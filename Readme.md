@@ -33,7 +33,7 @@ Here I use algebraic data type notation:
 Final type of List in TypeScript:
 
 ```ts
-export type List<T> = {
+type List<T> = {
   value: T;
   next: List<T>;
 } | null;
@@ -48,10 +48,10 @@ ListZipper(X) = List(X) * X * List(X)
 Or in terms of TypeScript:
 
 ```ts
-ListZipper<T> = {
-  prefix: List<T>,
-  focus: T,
-  suffix: List<T>,
+type ListZipper<T> = {
+  prefix: List<T>;
+  focus: T;
+  suffix: List<T>;
 };
 ```
 
@@ -75,8 +75,6 @@ const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
 };
 ```
 
-## Understnadin Zipper - vizualization
+## Understnading Zipper - vizualization
 
-I had trouble understanding Zippers. So I decided to do vizualization for the Zipper, to grasp the concept...
-
-TODO: put a link to the webpage
+I had trouble understanding Zippers. So I decided to do vizualization for the Zipper, to grasp the concept - https://zipper-huet.netlify.app/.
