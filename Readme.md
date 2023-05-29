@@ -13,19 +13,19 @@ Initially Huet proposed Zipper as the way to work with trees (specifically in th
 
 Later Conor McBride realized that idea of the Zipper can be generalized and used other data structures (not just trees). You can read his original paper - [The Derivative of a Regular Type is its Type of One-Hole Contexts](http://strictlypositive.org/diff.pdf), 2009.
 
-And even more he proposed that derivative of type for data structure gives type of the zipper for the given data structure.
+And even more he proposed that derivative of type for data structure gives type of the one hole context for the given data structure (e.g. zipper without focus).
 
 ## Zipper for Linked List
 
 Let's start with the Zipper for linked list. Linked list is simpler data structure than tree. Here is a type for linked list:
 
 ```
-List(X) = X * List(X) + 1
+List(T) = T * List(T) + 1
 ```
 
 Here I use algebraic data type notation:
 
-- `List(X)` - parametrised type, in terms of TypeScript it would be `List<X>`
+- `List(T)` - parametrised type, in terms of TypeScript it would be `List<T>`
 - `A * B` - product type, in terms of TypeScript it could be tupple `[A, B]` or object `{first: A, second: B}`
 - `A + B` - sum type, in terms of TypeScript `A | B`
 - `1` is a type with one value, in many language this is type which contains single value `null`. In Lisp they use empty tuple for null `()`
@@ -39,19 +39,19 @@ type List<T> = {
 } | null;
 ```
 
-Derivative of `List(X)` is `List(X) * List(X)`. Which would correspond to prefix and suffix e.g. values before focus and values after focus (or "hole"). So Zipper for linked list would be:
+Derivative of `List(T)` is `List(T) * List(T)`. Which would correspond to left and right context e.g. values before focus and values after focus (or "hole"). So Zipper for linked list would be:
 
 ```
-ListZipper(X) = List(X) * X * List(X)
+ListZipper(T) = List(T) * T * List(T)
 ```
 
 Or in terms of TypeScript:
 
 ```ts
 type ListZipper<T> = {
-  prefix: List<T>;
+  left: List<T>;
   focus: T;
-  suffix: List<T>;
+  right: List<T>;
 };
 ```
 
@@ -60,17 +60,17 @@ We can define two direction for navigation: left and right.
 ```ts
 const left = <T>(zipper: ListZipper<T>): ListZipper<T> => {
   return {
-    prefix: zipper.prefix.next,
-    focus: zipper.prefix.value,
-    suffix: cons(zipper.focus, zipper.suffix),
+    left: zipper.left.next,
+    focus: zipper.left.value,
+    right: cons(zipper.focus, zipper.right),
   };
 };
 
 const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
   return {
-    prefix: cons(zipper.focus, zipper.prefix),
-    focus: zipper.suffix.value,
-    suffix: zipper.suffix.next,
+    left: cons(zipper.focus, zipper.left),
+    focus: zipper.right.value,
+    right: zipper.right.next,
   };
 };
 ```
@@ -78,3 +78,11 @@ const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
 ## Understnading Zipper - vizualization
 
 I had trouble understanding Zippers. So I decided to do vizualization for the Zipper, to grasp the concept - https://zipper-huet.netlify.app/.
+
+## TODO
+
+- Zipper for a list standalone
+- Zipper for a tree
+- Zipper for a cycled data structure
+- Mention combinatorial species
+- Brzozowski derivative

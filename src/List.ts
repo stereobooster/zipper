@@ -36,45 +36,45 @@ export const listToNodes = <T>(list: List<T>): List<T>[] => {
 };
 
 export type ListZipper<T> = {
-  prefix: List<T>;
+  left: List<T>;
   focus: T;
-  suffix: List<T>;
+  right: List<T>;
 };
 
 export const listToZipper = <T>(list: List<T>): ListZipper<T> => {
   if (list === null) throw new Error("Can't construct Zipper from empty list");
   return {
-    prefix: null,
+    left: null,
     focus: list.value,
-    suffix: list.next,
+    right: list.next,
   };
 };
 
 export const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
   // other way would be to throw an Error
-  if (zipper.suffix === null) return zipper;
+  if (zipper.right === null) return zipper;
   return {
-    prefix: cons(zipper.focus, zipper.prefix),
-    focus: zipper.suffix.value,
-    suffix: zipper.suffix.next,
+    left: cons(zipper.focus, zipper.left),
+    focus: zipper.right.value,
+    right: zipper.right.next,
   };
 };
 
 export const left = <T>(zipper: ListZipper<T>): ListZipper<T> => {
   // other way would be to throw an Error
-  if (zipper.prefix === null) return zipper;
+  if (zipper.left === null) return zipper;
   return {
-    prefix: zipper.prefix.next,
-    focus: zipper.prefix.value,
-    suffix: cons(zipper.focus, zipper.suffix),
+    left: zipper.left.next,
+    focus: zipper.left.value,
+    right: cons(zipper.focus, zipper.right),
   };
 };
 
 export const replace = <T>(zipper: ListZipper<T>, value: T): ListZipper<T> => {
   return {
-    prefix: zipper.prefix,
+    left: zipper.left,
     focus: value,
-    suffix: zipper.suffix,
+    right: zipper.right,
   };
 };
 
@@ -129,7 +129,7 @@ export const zipperToDisplay = <T>(list: List<T>, zipper?: ListZipper<T>) => {
   }
 
   const length = list?.length || 0;
-  const focus = (zipper.prefix?.length || 0) + 1;
+  const focus = (zipper.left?.length || 0) + 1;
   let i = 0;
   let maxFocus = length;
 
@@ -150,7 +150,7 @@ export const zipperToDisplay = <T>(list: List<T>, zipper?: ListZipper<T>) => {
   // next
   i = focus;
   const nodes = listToNodes(list);
-  const next = listToNodes(zipper.suffix);
+  const next = listToNodes(zipper.right);
   next.map((x) => {
     i++;
     if (nodes[i - 1] === x) maxFocus = Math.min(maxFocus, i - 1);
@@ -226,7 +226,7 @@ export const zipperToDisplay = <T>(list: List<T>, zipper?: ListZipper<T>) => {
 
   // prev
   i = focus;
-  map(zipper.prefix, (x) => {
+  map(zipper.left, (x) => {
     i--;
     secondRow[i] = {
       type: "leftZipper",
