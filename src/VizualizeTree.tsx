@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NarryTree, narryTreeToDot } from "./Tree";
+import { NarryTree, narryTreeToTree, treeToDot } from "./Tree";
 import Graphviz from "graphviz-react";
 
 // type VizualizeTreeProps = {};
@@ -36,6 +36,8 @@ const sampleNarryTree: NarryTree<string> = [
   ],
 ];
 
+const sampleTree = narryTreeToTree(sampleNarryTree)
+
 // still trying to figure best render engine
 // so far chosed Graphviz, but there are other alternatives, like
 // - https://js.cytoscape.org/
@@ -45,7 +47,7 @@ const sampleNarryTree: NarryTree<string> = [
 // - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
 export const VizualizeTree = () => {
   const [layout, setLayout] = useState("logical");
-  const dot = narryTreeToDot(sampleNarryTree, layout === "logical");
+  const dot = treeToDot(sampleTree, layout === "logical");
   return (
     <>
       <div style={controls}>

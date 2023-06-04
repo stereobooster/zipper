@@ -19,6 +19,13 @@ export const map = <T, P>(list: List<T>, callback: (x: T) => P): List<P> => {
   return cons(callback(list.value), map(list.next, callback));
 };
 
+export const forEach = <T>(list: List<T>, callback: (x: T) => void): void => {
+  while (list != null) {
+    callback(list.value);
+    list = list.next;
+  }
+};
+
 export const arrayToList = <T>(a: T[]): List<T> => {
   if (a.length == 0) return null;
   const [first, ...rest] = a;

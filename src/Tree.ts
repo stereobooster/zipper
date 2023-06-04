@@ -1,4 +1,4 @@
-import { arrayToList } from "./List";
+import { arrayToList, forEach } from "./List";
 import { List } from "./List";
 
 export type NarryTree<T> = [T, Array<NarryTree<T>>];
@@ -45,15 +45,15 @@ const traverseNarryTree = <T>(narryTree: NarryTree<T>, level = 1) => {
 
 const listColor = `"#8b0000"`;
 
-export const narryTreeToDot = <T>(narryTree: NarryTree<T>, logical = false) => {
-  const { logicalEdges, memoryEdges, ranks } = traverseNarryTree(narryTree);
+export const toDot = <T>(
+  edges: Array<[T, T]>,
+  ranks: Record<number, Array<T>>
+) => {
   const levelNumbers = Object.keys(ranks);
   const rstring = Object.entries(ranks)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
     .join("\n");
-  const treeDot = (logical ? logicalEdges : memoryEdges)
-    .map(([a, b]) => `${a} -> ${b};`)
-    .join("\n");
+  const treeDot = edges.map(([a, b]) => `${a} -> ${b};`).join("\n");
 
   return `
     digraph {
@@ -70,19 +70,64 @@ export const narryTreeToDot = <T>(narryTree: NarryTree<T>, logical = false) => {
   `.trim();
 };
 
+export const narryTreeToDot = <T>(narryTree: NarryTree<T>, logical = false) => {
+  const { logicalEdges, memoryEdges, ranks } = traverseNarryTree(narryTree);
+  return toDot(logical ? logicalEdges : memoryEdges, ranks);
+};
+
+export type Tree<T> = {
+  value: T;
+  children: List<Tree<T>>;
+} | null;
+
+const traverseTree = <T>(tree: Tree<T>, level = 1) => {
+  let logicalEdges = [] as Array<[T, T]>;
+  let memoryEdges = [] as Array<[T, T]>;
+  let ranks = {} as Record<number, T[]>;
+
+  if (!tree) return { logicalEdges, memoryEdges, ranks };
+
+  const from = tree.value;
+  const to = tree.children;
+  ranks[level] = [from];
+
+  let prevFrom = from;
+
+  forEach(to, (t) => {
+    if (!t) return;
+    logicalEdges.push([from, t.value]);
+    memoryEdges.push([prevFrom, t.value]);
+    prevFrom = t.value;
+    const {
+      logicalEdges: le,
+      memoryEdges: me,
+      ranks: r,
+    } = traverseTree(t, level + 1);
+    logicalEdges = [...logicalEdges, ...le];
+    memoryEdges = [...memoryEdges, ...me];
+    ranks = merge(ranks, r);
+  });
+
+  return { logicalEdges, memoryEdges, ranks };
+};
+
+export const treeToDot = <T>(tree: Tree<T>, logical = false) => {
+  const { logicalEdges, memoryEdges, ranks } = traverseTree(tree);
+  return toDot(logical ? logicalEdges : memoryEdges, ranks);
+};
+
+export const narryTreeToTree = <T>(narryTree: NarryTree<T>): Tree<T> => ({
+  value: narryTree[0],
+  children: arrayToList(narryTree[1].map(narryTreeToTree)),
+});
+
 // TODO
-// treeToDot
 // figure out type for Zipper
 // draw zipper on the graph
 // add ids to tree, so it would be possible to change value
 // add explantion about logical and memory
 // fix warning: No script tag of type "javascript/worker" was found and "useWorker" is true. Not using web worker.
 // fix warning: [React Archer] Could not find target element! Not drawing the arrow.
-
-export type Tree<T> = {
-  value: T;
-  children: List<Tree<T>>;
-} | null;
 
 type ZipperPath<T> = {
   left: List<Tree<T>>;
@@ -103,10 +148,3 @@ export type TreeZipper<T> = {
   // tree at given arc
   focus: Tree<T>;
 };
-
-const narryTreeToTree = <T>(narryTree: NarryTree<T>): Tree<T> => ({
-  value: narryTree[0],
-  children: arrayToList(narryTree[1].map(narryTreeToTree)),
-});
-
-// export const sampleTree = narryTreeToTree(sampleNarryTree);
