@@ -3,19 +3,26 @@ import { List } from "./List";
 
 export type NarryTree<T> = [T, Array<NarryTree<T>>];
 
-const traverseNarryTree = <T extends string | number | symbol>(
-  narryTree: NarryTree<T>,
-  level = 1
-) => {
-  let levels = {} as Record<T, number>;
+const merge = <T>(a: Record<number, T[]>, b: Record<number, T[]>) => {
+  const c = { ...a } as Record<any, T[]>;
+  Object.entries(b).forEach(([k, v]) => {
+    if (c[k] === undefined) {
+      c[k] = v;
+    } else {
+      c[k] = [...new Set([...c[k], ...v])];
+    }
+  });
+  return c as Record<number, T[]>;
+};
+
+const traverseNarryTree = <T>(narryTree: NarryTree<T>, level = 1) => {
   let logicalEdges = [] as Array<[T, T]>;
   let memoryEdges = [] as Array<[T, T]>;
-  // let ranks = {} as Record<number, Array<T>>;
+  let ranks = {} as Record<number, T[]>;
 
   const from = narryTree[0];
   const to = narryTree[1];
-  levels[from] = level;
-  // ranks[level] = [from]
+  ranks[level] = [from];
 
   let prevFrom = from;
 
@@ -24,58 +31,46 @@ const traverseNarryTree = <T extends string | number | symbol>(
     memoryEdges.push([prevFrom, nt[0]]);
     prevFrom = nt[0];
     const {
-      levels: l,
       logicalEdges: le,
       memoryEdges: me,
-      // ranks: r,
+      ranks: r,
     } = traverseNarryTree(nt, level + 1);
-    levels = { ...levels, ...l };
     logicalEdges = [...logicalEdges, ...le];
     memoryEdges = [...memoryEdges, ...me];
-    // ranks = deepMerge(ranks, r)
+    ranks = merge(ranks, r);
   });
 
-  return { levels, logicalEdges, memoryEdges };
+  return { logicalEdges, memoryEdges, ranks };
 };
 
 const listColor = `"#8b0000"`;
 
 export const narryTreeToDot = <T>(narryTree: NarryTree<T>, logical = false) => {
-  const { levels, logicalEdges, memoryEdges } = traverseNarryTree(
-    narryTree as NarryTree<string>
-  );
-
-  const levelNumbers = [...new Set(Object.values(levels))].sort();
-  const ranks = {} as Record<number, Array<string>>;
-  Object.entries(levels).map(([k, v]) => {
-    ranks[v] = ranks[v] || [];
-    ranks[v].push(k);
-  });
+  const { logicalEdges, memoryEdges, ranks } = traverseNarryTree(narryTree);
+  const levelNumbers = Object.keys(ranks);
   const rstring = Object.entries(ranks)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
     .join("\n");
-
-  const treeDot = logical
-    ? logicalEdges.map(([a, b]) => `${a} -> ${b};`).join("\n")
-    : memoryEdges.map(([a, b]) => `${a} -> ${b};`).join("\n");
+  const treeDot = (logical ? logicalEdges : memoryEdges)
+    .map(([a, b]) => `${a} -> ${b};`)
+    .join("\n");
 
   return `
-  digraph {
-    {
-      node [shape=plaintext fontcolor=white];
-      edge [color=white]
-      ${levelNumbers.join(" -> ")}
+    digraph {
+      {
+        node [shape=plaintext fontcolor=white];
+        edge [color=white]
+        ${levelNumbers.join(" -> ")}
+      }
+      node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white color=${listColor} style=filled]
+      edge [color=${listColor}]
+      ${rstring}
+      ${treeDot}
     }
-    node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white color=${listColor} style=filled]
-    edge [color=${listColor}]
-    ${rstring}
-    ${treeDot}
-  }
-  `;
+  `.trim();
 };
 
 // TODO
-// refactor to use ranks instead of levels
 // treeToDot
 // figure out type for Zipper
 // draw zipper on the graph
