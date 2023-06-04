@@ -85,6 +85,14 @@ export const replace = <T>(zipper: ListZipper<T>, value: T): ListZipper<T> => {
   };
 };
 
+export const unwind = <T>(left: List<T>, focus: T, right: List<T>): List<T> => {
+  let result = cons(focus, right);
+  forEach(left, (x) => {
+    result = cons(x, result);
+  });
+  return result;
+};
+
 // TODO: [React Archer] Could not find target element! Not drawing the arrow.
 // TODO: zipper without list display
 // zipper operation: insertAfter, insertBefore
