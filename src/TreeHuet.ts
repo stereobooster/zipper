@@ -84,7 +84,7 @@ export const up = <T>(zipper: HuetTreeZipper<T>): HuetTreeZipper<T> => {
     path: zipper.path.up,
     focus: {
       type: "section",
-      // NOTE: this is not constant time operation
+      // NOTE: this is not a contant time operation
       // Section((rev left) @ (t::right))
       children: unwind(zipper.path.left, zipper.focus, zipper.path.left),
     },

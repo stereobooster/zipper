@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { NarryTree, narryTreeToTree, treeToDot } from "./Tree";
+import { NarryTree, narryTreeToTree } from "./Tree";
 import Graphviz from "graphviz-react";
+import { down, left, right, treeToDot, treeToZipper, up } from "./TreeZipper";
 
 // type VizualizeTreeProps = {};
 
@@ -15,6 +16,12 @@ const select: React.CSSProperties = {
   fontSize: 24,
   textAlign: "center",
 };
+const button: React.CSSProperties = {
+  width: 36,
+  height: 36,
+  fontSize: 24,
+  textAlign: "center",
+};
 
 const sampleNarryTree: NarryTree<string> = [
   "a",
@@ -22,21 +29,16 @@ const sampleNarryTree: NarryTree<string> = [
     [
       "b",
       [
-        ["d", []],
         ["e", []],
-      ],
-    ],
-    [
-      "c",
-      [
         ["f", []],
-        ["j", [["k", []]]],
       ],
     ],
+    ["c", [["j", []]]],
+    ["d", [["h", []]]],
   ],
 ];
 
-const sampleTree = narryTreeToTree(sampleNarryTree)
+const sampleTree = narryTreeToTree(sampleNarryTree);
 
 // still trying to figure best render engine
 // so far chosed Graphviz, but there are other alternatives, like
@@ -47,7 +49,23 @@ const sampleTree = narryTreeToTree(sampleNarryTree)
 // - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
 export const VizualizeTree = () => {
   const [layout, setLayout] = useState("logical");
-  const dot = treeToDot(sampleTree, layout === "logical");
+  const [tree] = useState(() => sampleTree);
+  const [zipper, setZipper] = useState(() => treeToZipper(tree));
+  const dot = treeToDot(layout === "logical", zipper);
+  const callback = (direction: "u" | "l" | "r" | "d") => () =>
+    setZipper((zipper) => {
+      switch (direction) {
+        case "d":
+          return down(zipper);
+        case "l":
+          return left(zipper);
+        case "r":
+          return right(zipper);
+        case "u":
+          return up(zipper);
+      }
+    });
+
   return (
     <>
       <div style={controls}>
@@ -59,8 +77,23 @@ export const VizualizeTree = () => {
           <option value="logical">Logical</option>
           <option value="memory">Memory</option>
         </select>
+        <button onClick={callback("l")} style={button}>
+          ←
+        </button>
+        <button onClick={callback("r")} style={button}>
+          →
+        </button>
+        <button onClick={callback("d")} style={button}>
+          ↓
+        </button>
+        <button onClick={callback("u")} style={button}>
+          ↑
+        </button>
       </div>
-      <Graphviz dot={dot} options={{ fit: false, height: 350 }} />
+      <Graphviz
+        dot={dot}
+        options={{ fit: false, height: 350, engine: "dot", useWorker: false }}
+      />
     </>
   );
 };

@@ -10,11 +10,11 @@ import {
 import { useState, Fragment } from "react";
 
 const radius = 30;
-const listColor = "DarkRed";
-const leftColor = "MediumBlue";
-const rightColor = "DarkGreen";
-const shadowColor = "SlateGray";
-const zipperColor = "HotPink";
+const listColor = "#8b0000";
+const shadowColor = "#708090";
+const leftColor = "#0000cd";
+const rightColor = "#006400";
+const zipperColor = "#ff69b4";
 
 const rowStyle = { display: "flex", padding: 10, paddingBottom: 0 };
 const spacer = { width: radius };
@@ -97,7 +97,7 @@ const button: React.CSSProperties = {
   width: 36,
   height: 36,
   fontSize: 24,
-  textAlign: "center"
+  textAlign: "center",
 };
 const controls: React.CSSProperties = {
   display: "flex",

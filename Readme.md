@@ -81,8 +81,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## TODO
 
-- Zipper for a list standalone
-- Zipper for a tree
 - Zipper for a cycled data structure
 - Mention combinatorial species
 - Brzozowski derivative
