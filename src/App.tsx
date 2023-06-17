@@ -1,9 +1,27 @@
 import { arrayToList } from "./List";
+import { NarryTree, narryTreeToTree } from "./Tree";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const initialList = arrayToList(array);
+
+const sampleNarryTree: NarryTree<string> = [
+  "a",
+  [
+    [
+      "b",
+      [
+        ["e", []],
+        ["f", []],
+      ],
+    ],
+    ["c", [["j", []]]],
+    ["d", [["h", []]]],
+  ],
+];
+
+const initialTree = narryTreeToTree(sampleNarryTree);
 
 const App = () => {
   return (
@@ -28,7 +46,7 @@ const App = () => {
             linked list
           </p>
         </div>
-        <VizualizeListZipper initialList={initialList} prefix="1" />
+        <VizualizeListZipper list={initialList} prefix="1" />
       </section>
       <section>
         <div style={{ paddingLeft: 90 }}>
@@ -36,24 +54,19 @@ const App = () => {
           <h3>Zipper for a linked list</h3>
           <p>Use arrows to see how zipper changes</p>
         </div>
-        <VizualizeListZipper
-          initialList={initialList}
-          prefix="2"
-          showZipper
-          showControls
-        />
+        <VizualizeListZipper list={initialList} prefix="2" showZipper />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>Red and gray nodes represent items from original list</li>
             <li>
               There are no references to gray items from Zipper, which means if
-              there are no references from the outside they could be remove by
-              garbag collector
+              there are no references from the outside they could be removed by
+              garbage collector
             </li>
             <li>
               When zipper is created it doesn't need to traverse structure
-              upfront. We put first element in focus and the rest of the list in
-              the right context (suffix)
+              upfront. We put first element in the focus and the rest of the
+              list in the right context (suffix)
             </li>
             <li>
               Blue and green nodes represent new list which zipper builds upon
@@ -64,7 +77,7 @@ const App = () => {
               change value in original list
             </li>
             <li>
-              If we woul navigate to the end to the list, Zipper will be fully
+              If we would navigate to the end to the list, Zipper will be fully
               "detached" from the original list
             </li>
             <li>
@@ -78,7 +91,44 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Tree</h2>
         </div>
-        <VizualizeTreeZipper />
+        <VizualizeTreeZipper tree={initialTree} />
+        <div style={{ paddingLeft: 90 }}>
+          <ul>
+            <li>
+              "DAG" vizualization - is how we typically imagine tree data
+              structure. Actually this vizualization more appropriate for{" "}
+              <a href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">
+                Directed Acyclic Graph
+              </a>
+              . In DAG children are unorderd.
+            </li>
+            <li>
+              "LCRS tree" vizualization - this is how typically{" "}
+              <a href="https://en.wikipedia.org/wiki/Left-child_right-sibling_binary_tree">
+                Left-child right-sibling tree
+              </a>{" "}
+              vizualized. It shows that children in tree are ordered.
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <div style={{ paddingLeft: 90 }}>
+          <h3>Zipper for a tree</h3>
+          <p>Use arrows to see how zipper changes</p>
+        </div>
+        <VizualizeTreeZipper tree={initialTree} showZipper height={300} />
+        <div style={{ paddingLeft: 90 }}>
+          <ul>
+            <li>
+              Pink "zone" represnts Zipper itself - left context, focus, right
+              context, top context
+            </li>
+            <li>
+              Zipper vizualization "makes more sense" in "LCRS tree" mode
+            </li>
+          </ul>
+        </div>
       </section>
       <br />
       <br />

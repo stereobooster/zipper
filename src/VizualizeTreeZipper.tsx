@@ -1,14 +1,28 @@
 import { useState } from "react";
-import { NarryTree, narryTreeToTree } from "./Tree";
+import { Tree } from "./Tree";
 import Graphviz from "graphviz-react";
-import { down, left, replace, right, treeToDot, treeToZipper, up } from "./TreeZipper";
+import {
+  down,
+  left,
+  replace,
+  right,
+  treeToDot,
+  treeToZipper,
+  up,
+} from "./TreeZipper";
 
-// type VizualizeTreeZipperProps = {};
+type VizualizeTreeZipperProps = {
+  tree: Tree<string>;
+  showZipper?: boolean;
+  height?: number;
+  width?: number;
+};
 
 const controls: React.CSSProperties = {
   display: "flex",
   gap: 24,
   paddingLeft: 90,
+  paddingBottom: 20,
   alignItems: "center",
 };
 const select: React.CSSProperties = {
@@ -23,23 +37,6 @@ const button: React.CSSProperties = {
   textAlign: "center",
 };
 
-const sampleNarryTree: NarryTree<string> = [
-  "a",
-  [
-    [
-      "b",
-      [
-        ["e", []],
-        ["f", []],
-      ],
-    ],
-    ["c", [["j", []]]],
-    ["d", [["h", []]]],
-  ],
-];
-
-const sampleTree = narryTreeToTree(sampleNarryTree);
-
 // still trying to figure best render engine
 // so far chosed Graphviz, but there are other alternatives, like
 // - https://js.cytoscape.org/
@@ -47,11 +44,17 @@ const sampleTree = narryTreeToTree(sampleNarryTree);
 // - https://visjs.github.io/vis-network/examples/
 // - https://github.com/vasturiano/react-force-graph
 // - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
-export const VizualizeTreeZipper = () => {
-  const [layout, setLayout] = useState("logical");
-  const [tree] = useState(() => sampleTree);
+export const VizualizeTreeZipper = ({
+  tree,
+  showZipper,
+  height,
+  width,
+}: VizualizeTreeZipperProps) => {
+  const [layout, setLayout] = useState("dag");
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const dot = treeToDot({ zipper, logical: layout === "logical" });
+  const dot = showZipper
+    ? treeToDot({ zipper, logical: layout === "dag" })
+    : treeToDot({ tree, logical: layout === "dag" });
   const callback = (direction: "u" | "l" | "r" | "d") => () =>
     setZipper((zipper) => {
       switch (direction) {
@@ -74,32 +77,42 @@ export const VizualizeTreeZipper = () => {
           value={layout}
           style={select}
         >
-          <option value="logical">Logical</option>
-          <option value="memory">Memory</option>
+          <option value="dag">DAG</option>
+          <option value="lcrs">LCRS tree</option>
         </select>
-        <button onClick={callback("l")} style={button}>
-          ←
-        </button>
-        <button onClick={callback("r")} style={button}>
-          →
-        </button>
-        <button onClick={callback("d")} style={button}>
-          ↓
-        </button>
-        <button onClick={callback("u")} style={button}>
-          ↑
-        </button>
-        <input
-            value={zipper.focus?.value}
-            onChange={(e) =>
-              setZipper((x) => replace(x, e.target.value as any))
-            }
-            style={button}
-          />
+        {showZipper && (
+          <>
+            <button onClick={callback("l")} style={button}>
+              ←
+            </button>
+            <button onClick={callback("r")} style={button}>
+              →
+            </button>
+            <button onClick={callback("d")} style={button}>
+              ↓
+            </button>
+            <button onClick={callback("u")} style={button}>
+              ↑
+            </button>
+            <input
+              value={zipper.focus?.value}
+              onChange={(e) =>
+                setZipper((x) => replace(x, e.target.value as any))
+              }
+              style={button}
+            />
+          </>
+        )}
       </div>
       <Graphviz
         dot={dot}
-        options={{ fit: false, height: 350, engine: "dot", useWorker: false }}
+        options={{
+          height: height || 200,
+          width: width || 500,
+          fit: false,
+          engine: "dot",
+          useWorker: false,
+        }}
       />
     </>
   );

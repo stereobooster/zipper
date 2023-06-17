@@ -497,10 +497,8 @@ export const treeToDot = <T>({
 // TODO:
 //  - draw detached nodes as grey
 //  - refactor list vizualization to use the same viz as tree
-// add explantion about logical and memory
 
 /**
- * TODO:
  * BTree(T) = 1 +  T * BTree(T) * BTree(T)
  * ContextBtree(T) = List(2 * x * BTree(T)) * BTree(T) * BTree(T)
  */

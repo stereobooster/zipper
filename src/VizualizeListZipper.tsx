@@ -87,8 +87,7 @@ const arrowStyle = (type: string | undefined) => {
 };
 
 export type VizualizeListZipperProps = {
-  initialList: List<number>;
-  showControls?: boolean;
+  list: List<number>;
   showZipper?: boolean;
   prefix: string;
 };
@@ -107,13 +106,11 @@ const controls: React.CSSProperties = {
 };
 
 export const VizualizeListZipper = ({
-  initialList,
-  showControls,
+  list,
   showZipper,
   prefix,
 }: VizualizeListZipperProps) => {
-  const [list] = useState(() => initialList);
-  const [zipper, setZipper] = useState(() => listToZipper(initialList));
+  const [zipper, setZipper] = useState(() => listToZipper(list));
   const display = zipperToDisplay(list, showZipper ? zipper : undefined);
   const callback = (direction: number) => () =>
     setZipper((x) => (direction > 0 ? right(x) : left(x)));
@@ -121,12 +118,12 @@ export const VizualizeListZipper = ({
   return (
     <div
       style={{
-        minWidth: ((initialList?.length || 0) + 2) * 2 * (radius + 6),
+        minWidth: ((list?.length || 0) + 2) * 2 * (radius + 6),
         overflow: "scroll",
         paddingBottom: 10,
       }}
     >
-      {showControls && (
+      {showZipper && (
         <div style={controls}>
           <button onClick={callback(-1)} style={button}>
             ←
@@ -169,7 +166,7 @@ export const VizualizeListZipper = ({
                     <div style={cellStyle(cell.type)}>{cell.value}</div>
                   </ArcherElement>
                 </div>
-                {j < (initialList?.length || 0) + 1 && (
+                {j < (list?.length || 0) + 1 && (
                   <div
                     style={
                       cell.zipper === "left" || cell.zipper === "focus"
