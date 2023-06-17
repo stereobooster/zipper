@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { NarryTree, narryTreeToTree } from "./Tree";
 import Graphviz from "graphviz-react";
-import { down, left, right, treeToDot, treeToZipper, up } from "./TreeZipper";
+import { down, left, replace, right, treeToDot, treeToZipper, up } from "./TreeZipper";
 
-// type VizualizeTreeProps = {};
+// type VizualizeTreeZipperProps = {};
 
 const controls: React.CSSProperties = {
   display: "flex",
@@ -47,7 +47,7 @@ const sampleTree = narryTreeToTree(sampleNarryTree);
 // - https://visjs.github.io/vis-network/examples/
 // - https://github.com/vasturiano/react-force-graph
 // - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
-export const VizualizeTree = () => {
+export const VizualizeTreeZipper = () => {
   const [layout, setLayout] = useState("logical");
   const [tree] = useState(() => sampleTree);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
@@ -89,6 +89,13 @@ export const VizualizeTree = () => {
         <button onClick={callback("u")} style={button}>
           ↑
         </button>
+        <input
+            value={zipper.focus?.value}
+            onChange={(e) =>
+              setZipper((x) => replace(x, e.target.value as any))
+            }
+            style={button}
+          />
       </div>
       <Graphviz
         dot={dot}

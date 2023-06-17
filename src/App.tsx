@@ -1,6 +1,6 @@
 import { arrayToList } from "./List";
 import { VizualizeListZipper } from "./VizualizeListZipper";
-import { VizualizeTree } from "./VizualizeTree";
+import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const initialList = arrayToList(array);
@@ -78,7 +78,7 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Tree</h2>
         </div>
-        <VizualizeTree />
+        <VizualizeTreeZipper />
       </section>
       <br />
       <br />

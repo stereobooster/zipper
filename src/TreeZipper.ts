@@ -93,6 +93,16 @@ export const up = <T>(zipper: TreeZipper<T>): TreeZipper<T> => {
   };
 };
 
+export const replace = <T>(zipper: TreeZipper<T>, value: T): TreeZipper<T> => {
+  if (!zipper.focus) return zipper;
+  return {
+    left: zipper.left,
+    right: zipper.right,
+    up: zipper.up,
+    focus: treeNode({ ...zipper.focus, value }),
+  };
+};
+
 const listColor = "#8b0000";
 const zipperColor = "#ff69b4";
 const leftColor = "#0000cd";
@@ -487,7 +497,6 @@ export const treeToDot = <T>({
 // TODO:
 //  - draw detached nodes as grey
 //  - refactor list vizualization to use the same viz as tree
-//  - function to replace value in zipper
 // add explantion about logical and memory
 
 /**
