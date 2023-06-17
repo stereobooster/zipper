@@ -51,7 +51,7 @@ export const VizualizeTree = () => {
   const [layout, setLayout] = useState("logical");
   const [tree] = useState(() => sampleTree);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const dot = treeToDot(layout === "logical", zipper);
+  const dot = treeToDot({ zipper, logical: layout === "logical" });
   const callback = (direction: "u" | "l" | "r" | "d") => () =>
     setZipper((zipper) => {
       switch (direction) {

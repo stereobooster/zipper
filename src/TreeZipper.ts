@@ -405,7 +405,7 @@ const edgeToDot = ({ from, to, type, direction }: Edge) => {
   } else if (type == "green") {
     color = rightColor;
   }
-  return `${from} -> ${to} [penwidth=${borderWidth} ${arrow} ${dir} color="${color}"];`;
+  return `${from} -> ${to} [penwidth=${borderWidth} ${arrow} ${dir} color="${color}"]`;
 };
 
 const nodeToDot = <T>(
@@ -438,54 +438,53 @@ const nodeToDot = <T>(
   return `${id} [penwidth=${borderWidth} label="${value}" color="${borderColor}" fillcolor="${fillColor}" style="${style}" fontcolor="${fontcolor}"]`;
 };
 
-const toDot = <T>(
-  edges: Edge[],
-  ranks: Record<Level, ID[]>,
-  nodes: Record<ID, Node<T>>
-) => {
-  const levelNumbers = Object.keys(ranks);
-  const rstring = Object.entries(ranks)
+const levelsDot = (ranks: Record<Level, ID[]>) => `{
+  node [style=invis];
+  edge [style=invis];
+  ${Object.keys(ranks).join(" -> ")}
+}`;
+
+const ranksDot = (ranks: Record<Level, ID[]>) =>
+  Object.entries(ranks)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
     .join("\n");
-  const treeDot = edges.map(edgeToDot).join("\n");
-  const lstring = Object.entries(nodes)
+
+const nodesDot = <T>(nodes: Record<ID, Node<T>>) =>
+  Object.entries(nodes)
     .sort(([, nodea], [, nodeb]) => nodea.level - nodeb.level)
     .map(([id, node]) => nodeToDot(id, node))
     .join("\n");
 
-  const result = `
-    digraph {
-      {
-        node [style=invis];
-        edge [style=invis];
-        ${levelNumbers.join(" -> ")}
-      }
-      node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
-      edge [color="${listColor}"]
-      ${lstring}
-      ${rstring}
-      ${treeDot}
-    }`.trim();
-
-  // console.log(result);
-  return result;
-};
-
-export const treeToDot = <T>(
-  // tree: Tree<T>,
-  logical = false,
-  zipper?: TreeZipper<T>
+const toDot = <T>(
+  { logicalEdges, memoryEdges, ranks, nodes }: Display<T>,
+  logical = false
 ) => {
-  // const { logicalEdges, memoryEdges, ranks, nodes } = traverseTree(tree);
-
-  if (!zipper) return "";
-  const { logicalEdges, memoryEdges, ranks, nodes } = traverseZipper(zipper);
-
-  return toDot(logical ? logicalEdges : memoryEdges, ranks, nodes);
+  const edges = logical ? logicalEdges : memoryEdges;
+  return `
+    ${levelsDot(ranks)}
+    ${ranksDot(ranks)}
+    ${nodesDot(nodes)}
+    ${edges.map(edgeToDot).join("\n")}
+  `.trim();
 };
+
+export const treeToDot = <T>({
+  logical,
+  tree,
+  zipper,
+}: {
+  logical: boolean;
+  tree?: Tree<T>;
+  zipper?: TreeZipper<T>;
+}) =>
+  `digraph {
+    node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
+    edge [color="${listColor}"]
+    ${tree ? toDot(traverseTree(tree), logical) : ""}
+    ${zipper ? toDot(traverseZipper(zipper), logical) : ""}
+  }`.trim();
 
 // TODO:
-//  - draw zipper and tree together
 //  - draw detached nodes as grey
 //  - refactor list vizualization to use the same viz as tree
 //  - function to replace value in zipper
