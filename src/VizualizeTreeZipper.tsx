@@ -8,6 +8,7 @@ import {
   right,
   treeToDot,
   treeToZipper,
+  treeZipperToDot,
   up,
 } from "./TreeZipper";
 
@@ -53,7 +54,7 @@ export const VizualizeTreeZipper = ({
   const [layout, setLayout] = useState("dag");
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
   const dot = showZipper
-    ? treeToDot({ zipper, logical: layout === "dag" })
+    ? treeZipperToDot({ zipper, logical: layout === "dag" })
     : treeToDot({ tree, logical: layout === "dag" });
   const callback = (direction: "u" | "l" | "r" | "d") => () =>
     setZipper((zipper) => {

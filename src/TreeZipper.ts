@@ -147,13 +147,13 @@ const setRank = <T>(display: Display<T>, level: Level, id: ID) => {
 
 const traverseTree = <T>(
   tree: Tree<T>,
-
   display: Display<T> = {
     logicalEdges: [],
     memoryEdges: [],
     ranks: {},
     nodes: {},
   },
+  showOriginal?: boolean,
   type?: "green" | "blue"
 ) => {
   if (!tree) return display;
@@ -163,7 +163,7 @@ const traverseTree = <T>(
   display.nodes[parent.id] = { ...node, originalId, type };
   setRank(display, tree.level, parent.id);
 
-  if (originalId) {
+  if (showOriginal && originalId) {
     display.nodes[originalId] = { ...node, id: originalId, type: "gray" };
     setRank(display, tree.level, originalId);
   }
@@ -176,7 +176,7 @@ const traverseTree = <T>(
       to: t.id,
       type: prev.originalId !== undefined ? type : undefined,
     });
-    if (parent.originalId) {
+    if (showOriginal && parent.originalId) {
       display.logicalEdges.push({
         from: parent.originalId,
         to: t.originalId || t.id,
@@ -196,7 +196,7 @@ const traverseTree = <T>(
       to: t.id,
       type: prev.originalId !== undefined ? type : undefined,
     });
-    if (prev.originalId) {
+    if (showOriginal && prev.originalId) {
       display.memoryEdges.push({
         from: prev.originalId,
         to: t.originalId || t.id,
@@ -205,7 +205,7 @@ const traverseTree = <T>(
       });
     }
     prev = t;
-    traverseTree(t, display, type);
+    traverseTree(t, display, showOriginal, type);
   });
   return display;
 };
@@ -217,16 +217,19 @@ const traverseUp = <T>(
     memoryEdges: [],
     ranks: {},
     nodes: {},
-  }
+  },
+  showOriginal: boolean,
+  focus?: Tree<T>
 ) => {
   if (!zipperPath) return display;
 
   const zipper = zipperPath.value;
-  const focus = zipper as { id: ID; originalId?: ID };
+  const current = zipper as { id: ID; originalId?: ID };
 
   const up = zipperPath.next?.value;
+
   if (up) {
-    if (up.originalId) {
+    if (showOriginal && up.originalId) {
       display.nodes[up.originalId] = {
         value: up.value,
         id: up.originalId,
@@ -236,9 +239,9 @@ const traverseUp = <T>(
       setRank(display, up.level, up.originalId);
       const edge: Edge = {
         from: up.originalId,
-        to: focus.originalId || focus.id,
+        to: current.originalId || current.id,
         type: "gray",
-        constraint: focus.originalId !== undefined,
+        constraint: current.originalId !== undefined,
       };
       display.logicalEdges.push(edge);
       if (zipper.left === null) {
@@ -248,46 +251,66 @@ const traverseUp = <T>(
 
     const edge: Edge = {
       from: up.id,
-      to: focus.id,
+      to: current.id,
       direction: "backward",
-      type: "blue",
+      type: focus ? "zipper" : "blue",
     };
     display.logicalEdges.push(edge);
     display.memoryEdges.push(edge);
     display.nodes[up.id] = {
       value: up.value,
       id: up.id,
-      originalId: up.originalId,
       type: "blue",
+      originalId: up.originalId,
+      zipper: focus ? true : false,
       level: up.level,
     };
     setRank(display, up.level, up.id);
 
-    traverseUp(zipperPath.next, display);
+    traverseUp(zipperPath.next, display, showOriginal);
   } else {
-    const upId = 80;
-    const edge: Edge = {
-      from: upId,
-      to: focus.id,
-      type: "invisible",
-    };
-    display.logicalEdges.push(edge);
-    display.memoryEdges.push(edge);
-    display.nodes[upId] = {
-      value: "",
-      id: upId,
-      type: "empty",
-      level: 0,
-    } as Node<T>;
+    if (focus) {
+      const upId = 90;
+      const edge: Edge = {
+        from: upId,
+        to: focus.id,
+        direction: "backward",
+        type: "zipper",
+      };
+      display.logicalEdges.push(edge);
+      display.memoryEdges.push(edge);
+      display.nodes[upId] = {
+        value: "",
+        id: upId,
+        type: "empty",
+        zipper: true,
+        level: 0,
+      } as Node<T>;
+    } else {
+      const upId = 80;
+      const edge: Edge = {
+        from: upId,
+        to: current.id,
+        type: "invisible",
+      };
+      display.logicalEdges.push(edge);
+      display.memoryEdges.push(edge);
+      display.nodes[upId] = {
+        value: "",
+        id: upId,
+        type: "empty",
+        level: 0,
+      } as Node<T>;
+    }
   }
 
   const left = zipper.left?.value;
   if (left) {
-    let prev = focus;
+    let prev = current;
     forEach(zipper.left, (node) => {
       if (!node) return;
 
-      if (up && up.originalId) {
+      if (showOriginal && up && up.originalId) {
         display.logicalEdges.push({
           from: up.originalId,
           to: node.originalId || node.id,
@@ -309,191 +332,34 @@ const traverseUp = <T>(
         });
       }
 
-      traverseTree(node, display, "blue");
+      traverseTree(node, display, showOriginal, "blue");
       const edge: Edge = {
         from: node.id,
         to: prev.id,
         direction: "backward",
-        type: "blue",
+        type: focus && node.id === left.id ? "zipper" : "blue",
       };
+
       display.logicalEdges.push(edge);
       display.memoryEdges.push(edge);
       prev = node;
     });
+
+    if (focus) {
+      if (up && up.originalId) {
+        display.memoryEdges.push({
+          from: up.originalId,
+          to: prev.originalId || prev.id,
+          type: "gray",
+          constraint: prev.originalId !== undefined,
+        });
+      }
+
+      display.nodes[left.id].type = "blue";
+      display.nodes[left.id].zipper = true;
+    }
     setRank(display, zipper.level, left.id);
-  }
-
-  const right = zipper.right?.value;
-  if (right) {
-    let prev = focus;
-    forEach(zipper.right, (node) => {
-      if (!node) return;
-
-      if (up && up.originalId) {
-        display.logicalEdges.push({
-          from: up.originalId,
-          to: node.originalId || node.id,
-          type: "gray",
-          constraint: node.originalId !== undefined,
-        });
-        display.memoryEdges.push({
-          from: prev.originalId || prev.id,
-          to: node.originalId || node.id,
-          type: "gray",
-          constraint: false,
-        });
-      }
-      if (node.originalId && prev.originalId) {
-        display.logicalEdges.push({
-          from: prev.originalId,
-          to: node.originalId,
-          type: "invisible",
-        });
-      }
-
-      traverseTree(node, display, "green");
-      const edge: Edge = {
-        from: prev.id,
-        to: node.id,
-        type: node.originalId !== undefined ? "green" : undefined,
-      };
-      display.logicalEdges.push(edge);
-      display.memoryEdges.push(edge);
-      prev = node;
-    });
-    setRank(display, zipper.level, right.id);
-  }
-
-  return display;
-};
-
-const traverseZipper = <T>(
-  zipper: TreeZipper<T>,
-  display: Display<T> = {
-    logicalEdges: [],
-    memoryEdges: [],
-    ranks: {},
-    nodes: {},
-  }
-) => {
-  if (!zipper.focus) return display;
-
-  const focus = zipper.focus;
-  traverseTree(focus, display, "green");
-  display.nodes[focus.id].type = "focus";
-  display.nodes[focus.id].zipper = true;
-
-  const up = zipper.up?.value;
-  if (up) {
-    if (up.originalId) {
-      display.nodes[up.originalId] = {
-        value: up.value,
-        id: up.originalId,
-        type: "gray",
-        level: up.level,
-      };
-      setRank(display, up.level, up.originalId);
-      const edge: Edge = {
-        from: up.originalId,
-        to: focus.originalId || focus.id,
-        type: "gray",
-        constraint: focus.originalId !== undefined,
-      };
-      display.logicalEdges.push(edge);
-      if (zipper.left === null) {
-        display.memoryEdges.push(edge);
-      }
-    }
-
-    const edge: Edge = {
-      from: up.id,
-      to: focus.id,
-      direction: "backward",
-      type: "zipper",
-    };
-    display.logicalEdges.push(edge);
-    display.memoryEdges.push(edge);
-    display.nodes[up.id] = {
-      value: up.value,
-      id: up.id,
-      type: "blue",
-      zipper: true,
-      originalId: up.originalId,
-      level: up.level,
-    };
-    setRank(display, up.level, up.id);
-
-    traverseUp(zipper.up, display);
-  } else {
-    const upId = 90;
-    const edge: Edge = {
-      from: upId,
-      to: focus.id,
-      direction: "backward",
-      type: "zipper",
-    };
-    display.logicalEdges.push(edge);
-    display.memoryEdges.push(edge);
-    display.nodes[upId] = {
-      value: "",
-      id: upId,
-      type: "empty",
-      zipper: true,
-      level: 0,
-    } as Node<T>;
-  }
-
-  const left = zipper.left?.value;
-  if (left) {
-    let prev = focus;
-    forEach(zipper.left, (node) => {
-      if (!node) return;
-
-      if (up && up.originalId) {
-        display.logicalEdges.push({
-          from: up.originalId,
-          to: node.originalId || node.id,
-          type: "gray",
-          constraint: node.originalId !== undefined,
-        });
-        if (node.originalId && prev.originalId) {
-          display.logicalEdges.push({
-            from: node.originalId,
-            to: prev.originalId,
-            type: "invisible",
-          });
-        }
-        display.memoryEdges.push({
-          from: node.originalId || node.id,
-          to: prev.originalId || prev.id,
-          type: "gray",
-          constraint: Boolean(node.originalId && prev.originalId),
-        });
-      }
-      traverseTree(node, display, "blue");
-      const edge: Edge = {
-        from: node.id,
-        to: prev.id,
-        direction: "backward",
-        type: node.id === left.id ? "zipper" : "blue",
-      };
-      display.logicalEdges.push(edge);
-      display.memoryEdges.push(edge);
-      prev = node;
-    });
-
-    if (up && up.originalId) {
-      display.memoryEdges.push({
-        from: up.originalId,
-        to: prev.originalId || prev.id,
-        type: "gray",
-        constraint: prev.originalId !== undefined,
-      });
-    }
-    display.nodes[left.id].type = "blue";
-    display.nodes[left.id].zipper = true;
-    setRank(display, zipper.focus.level, left.id);
-  } else {
+  } else if (focus) {
     const leftId = 92;
     const edge: Edge = {
       from: leftId,
@@ -508,18 +374,18 @@ const traverseZipper = <T>(
       id: leftId,
       type: "empty",
       zipper: true,
-      level: zipper.focus.level,
+      level: focus.level,
     } as Node<T>;
-    setRank(display, zipper.focus.level, leftId);
+    setRank(display, focus.level, leftId);
   }
 
   const right = zipper.right?.value;
   if (right) {
-    let prev = focus;
+    let prev = current;
     forEach(zipper.right, (node) => {
       if (!node) return;
 
-      if (up && up.originalId) {
+      if (showOriginal && up && up.originalId) {
         display.logicalEdges.push({
           from: up.originalId,
           to: node.originalId || node.id,
@@ -532,36 +398,38 @@ const traverseZipper = <T>(
           type: "gray",
           constraint: false,
         });
-      }
-      if (node.originalId && prev.originalId) {
-        display.logicalEdges.push({
-          from: prev.originalId,
-          to: node.originalId,
-          type: "invisible",
-        });
+        if (node.originalId && prev.originalId) {
+          display.logicalEdges.push({
+            from: prev.originalId,
+            to: node.originalId,
+            type: "invisible",
+          });
+        }
       }
 
-      traverseTree(node, display, "green");
+      traverseTree(node, display, showOriginal, "green");
+
       const edge: Edge = {
         from: prev.id,
         to: node.id,
         type:
-          node.id === right.id
+          focus && node.id === right.id
             ? "zipper"
             : node.originalId !== undefined
             ? "green"
             : undefined,
       };
+
       display.logicalEdges.push(edge);
       display.memoryEdges.push(edge);
-
       prev = node;
     });
-
-    display.nodes[right.id].type = "green";
-    display.nodes[right.id].zipper = true;
-    setRank(display, zipper.focus.level, right.id);
-  } else {
+    if (focus) {
+      display.nodes[right.id].type = "green";
+      display.nodes[right.id].zipper = true;
+    }
+    setRank(display, zipper.level, right.id);
+  } else if (focus) {
     const rightId = 91;
     const edge: Edge = {
       from: focus.id,
@@ -575,11 +443,42 @@ const traverseZipper = <T>(
       id: rightId,
       type: "empty",
       zipper: true,
-      level: zipper.focus.level,
+      level: focus.level,
     } as Node<T>;
-    setRank(display, zipper.focus.level, rightId);
+    setRank(display, focus.level, rightId);
   }
 
+  return display;
+};
+
+const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
+  const display: Display<T> = {
+    logicalEdges: [],
+    memoryEdges: [],
+    ranks: {},
+    nodes: {},
+  };
+  if (!zipper.focus) return display;
+  const focus = zipper.focus;
+  traverseTree(focus, display, Boolean(tree), "green");
+  display.nodes[focus.id].type = "focus";
+  display.nodes[focus.id].zipper = true;
+  traverseUp(
+    cons(
+      {
+        left: zipper.left,
+        right: zipper.right,
+        value: focus.value,
+        id: focus.id,
+        level: focus.level,
+        originalId: focus.originalId,
+      },
+      zipper.up
+    ),
+    display,
+    Boolean(tree),
+    focus
+  );
   return display;
 };
 
@@ -693,29 +592,39 @@ const toDot = <T>(
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  // console.log(r);
+  console.log(r);
   return r;
 };
 
 export const treeToDot = <T>({
   logical,
   tree,
-  zipper,
 }: {
   logical: boolean;
-  tree?: Tree<T>;
-  zipper?: TreeZipper<T>;
+  tree: Tree<T>;
 }) =>
   `digraph {
     node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
     edge [color="${listColor}"]
-    ${tree ? toDot(traverseTree(tree), logical) : ""}
-    ${zipper ? toDot(traverseZipper(zipper), logical) : ""}
+    ${toDot(traverseTree(tree), logical)}
+  }`.trim();
+
+export const treeZipperToDot = <T>({
+  logical,
+  tree,
+  zipper,
+}: {
+  logical: boolean;
+  zipper: TreeZipper<T>;
+  tree?: Tree<T>;
+}) =>
+  `digraph {
+    node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
+    edge [color="${listColor}"]
+    ${toDot(traverseZipper(zipper, tree), logical)}
   }`.trim();
 
 // TODO:
-//  - refactor traverse zipper and traverse up in one function
-//  - flag to draw tree + zipper
 //  - replace doesn't work for original items
 //  - fix display jumps
 //    - revert left before drawing
