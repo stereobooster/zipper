@@ -680,12 +680,6 @@ export const treeZipperToDot = <T>({
     ${toDot(traverseZipper(zipper, tree), logical)}
   }`.trim();
 
-// TODO:
-//  - fix display jumps
-//    - use order from original list, but need to traverse it breadth first
-//    - revert left before drawing
-//  - refactor list vizualization to use the same viz as tree
-
 /**
  * BTree(T) = 1 +  T * BTree(T) * BTree(T)
  * ContextBtree(T) = List(2 * x * BTree(T)) * BTree(T) * BTree(T)

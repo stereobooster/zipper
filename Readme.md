@@ -81,6 +81,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## TODO
 
+- Fix display "Zipper + tree"
+  - need to change order in which nodes (and edges ?) are printed out
 - Zipper for a cycled data structure
 - Mention combinatorial species
 - Brzozowski derivative
+- refactor list vizualization to use the same viz as tree
+  - `[React Archer] Could not find target element! Not drawing the arrow.`

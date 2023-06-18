@@ -93,11 +93,6 @@ export const unwind = <T>(left: List<T>, focus: T, right: List<T>): List<T> => {
   return result;
 };
 
-// TODO: [React Archer] Could not find target element! Not drawing the arrow.
-// TODO: zipper without list display
-// zipper operation: insertAfter, insertBefore
-// 3 rows, blanks, items (color: grey, red, blue, green)
-
 export type Cell = {
   id: string;
   type: "blank" | "node" | "shadow" | "leftZipper" | "rightZipper";
