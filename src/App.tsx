@@ -117,7 +117,7 @@ const App = () => {
           <h3>Zipper for a tree</h3>
           <p>Use arrows to see how zipper changes</p>
         </div>
-        <VizualizeTreeZipper tree={initialTree} showZipper height={300} />
+        <VizualizeTreeZipper tree={initialTree} showZipper height={300} width={600}/>
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>

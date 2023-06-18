@@ -90,7 +90,7 @@ export const up = <T>(zipper: TreeZipper<T>): TreeZipper<T> => {
       children: unwind(zipper.left, zipper.focus, zipper.right),
       // for vizualization
       level: zipper.up.value.level,
-      originalId: zipper.up.value.id,
+      originalId: zipper.up.value.originalId,
     }),
   };
 };
@@ -345,16 +345,16 @@ const traverseUp = <T>(
       prev = node;
     });
 
-    if (focus) {
-      if (up && up.originalId) {
-        display.memoryEdges.push({
-          from: up.originalId,
-          to: prev.originalId || prev.id,
-          type: "gray",
-          constraint: prev.originalId !== undefined,
-        });
-      }
+    if (showOriginal && up && up.originalId) {
+      display.memoryEdges.push({
+        from: up.originalId,
+        to: prev.originalId || prev.id,
+        type: "gray",
+        constraint: prev.originalId !== undefined,
+      });
+    }
 
+    if (focus) {
       display.nodes[left.id].type = "blue";
       display.nodes[left.id].zipper = true;
     }
@@ -451,6 +451,31 @@ const traverseUp = <T>(
   return display;
 };
 
+const treeToHash = <T>(
+  tree: Tree<T>,
+  result: {
+    nodes: Record<ID, T>;
+    levels: Record<Level, ID[]>;
+  } = { nodes: {}, levels: {} }
+) => {
+  if (!tree) return result;
+  result.nodes[tree.id] = tree.value;
+  if (!result.levels[tree.level]) result.levels[tree.level] = [];
+  result.levels[tree.level].push(tree.id);
+  forEach(tree.children, (node) => treeToHash(node, result));
+  return result;
+};
+
+// const nodesToOrigin = <T>(nodes: Record<ID, Node<T>>) => {
+//   const result: Record<ID, Node<T>[]> = {};
+//   Object.values(nodes).forEach((node) => {
+//     const id = node.originalId || node.id;
+//     if (!result[id]) result[id] = [];
+//     result[id].push(node);
+//   });
+//   return result;
+// };
+
 const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
   const display: Display<T> = {
     logicalEdges: [],
@@ -479,6 +504,37 @@ const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
     Boolean(tree),
     focus
   );
+
+  if (tree) {
+    const ref = treeToHash(tree);
+    Object.entries(ref.nodes).forEach(([id, value]) => {
+      if (display.nodes[id as any]) {
+        display.nodes[id as any].value = value;
+      }
+    });
+    // const sortedNodes: Record<ID, Node<T>> = {};
+    // const nodesByOrigin = nodesToOrigin(display.nodes);
+    // Object.values(ref.levels).forEach((ids) => {
+    //   ids.forEach((id) => {
+    //     nodesByOrigin[id]
+    //       .filter((x) => x.type === "gray")
+    //       .forEach((x) => {
+    //         sortedNodes[id] = x;
+    //       });
+    //   });
+    // });
+    // Object.values(ref.levels).forEach((ids) => {
+    //   ids.forEach((id) => {
+    //     nodesByOrigin[id]
+    //       .filter((x) => x.type !== "gray")
+    //       .forEach((x) => {
+    //         sortedNodes[id] = x;
+    //       });
+    //   });
+    // });
+    // console.log(display.nodes, sortedNodes)
+    // display.nodes = sortedNodes;
+  }
   return display;
 };
 
@@ -552,33 +608,33 @@ const ranksDot = (ranks: Record<Level, ID[]>) =>
 
 const nodesDot = <T>(nodes: Record<ID, Node<T>>) =>
   Object.entries(nodes)
-    .sort(([, nodea], [, nodeb]) => {
-      if (nodea.type === "gray" && nodeb.type === "gray") {
-        return nodea.level - nodeb.level;
-      } else if (nodea.type === "gray") {
-        return -1;
-      } else if (nodeb.type === "gray") {
-        return 1;
-      } else {
-        return nodea.level - nodeb.level;
-      }
-    })
+    // .sort(([, nodea], [, nodeb]) => {
+    //   if (nodea.type === "gray" && nodeb.type === "gray") {
+    //     return nodea.level - nodeb.level;
+    //   } else if (nodea.type === "gray") {
+    //     return -1;
+    //   } else if (nodeb.type === "gray") {
+    //     return 1;
+    //   } else {
+    //     return nodea.level - nodeb.level;
+    //   }
+    // })
     .map(([id, node]) => nodeToDot(id, node))
     .join("\n");
 
 const edgesDot = (edges: Edge[]) =>
   edges
-    .sort((edgea, edgeb) => {
-      if (edgea.type === "gray" && edgeb.type === "gray") {
-        return 0;
-      } else if (edgea.type === "gray") {
-        return -1;
-      } else if (edgeb.type === "gray") {
-        return 1;
-      } else {
-        return 0;
-      }
-    })
+    // .sort((edgea, edgeb) => {
+    //   if (edgea.type === "gray" && edgeb.type === "gray") {
+    //     return 0;
+    //   } else if (edgea.type === "gray") {
+    //     return -1;
+    //   } else if (edgeb.type === "gray") {
+    //     return 1;
+    //   } else {
+    //     return 0;
+    //   }
+    // })
     .map(edgeToDot)
     .join("\n");
 
@@ -592,7 +648,7 @@ const toDot = <T>(
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  console.log(r);
+  // console.log(r);
   return r;
 };
 
@@ -625,8 +681,8 @@ export const treeZipperToDot = <T>({
   }`.trim();
 
 // TODO:
-//  - replace doesn't work for original items
 //  - fix display jumps
+//    - use order from original list, but need to traverse it breadth first
 //    - revert left before drawing
 //  - refactor list vizualization to use the same viz as tree
 

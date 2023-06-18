@@ -52,9 +52,14 @@ export const VizualizeTreeZipper = ({
   width,
 }: VizualizeTreeZipperProps) => {
   const [layout, setLayout] = useState("dag");
+  const [mode, setMode] = useState("zipper");
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
   const dot = showZipper
-    ? treeZipperToDot({ zipper, logical: layout === "dag" })
+    ? treeZipperToDot({
+        zipper,
+        tree: mode !== "zipper" ? tree : undefined,
+        logical: layout === "dag",
+      })
     : treeToDot({ tree, logical: layout === "dag" });
   const callback = (direction: "u" | "l" | "r" | "d") => () =>
     setZipper((zipper) => {
@@ -102,6 +107,14 @@ export const VizualizeTreeZipper = ({
               }
               style={button}
             />
+            <select
+              onChange={(e) => setMode(e.target.value)}
+              value={mode}
+              style={select}
+            >
+              <option value="zipper">Zipper</option>
+              <option value="zipper-tree">Zipper + tree</option>
+            </select>
           </>
         )}
       </div>
