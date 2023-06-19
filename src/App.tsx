@@ -1,12 +1,11 @@
-import { arrayToList } from "./List";
-import { NarryTree, narryTreeToTree } from "./Tree";
+import { arrayToList, cons } from "./List";
+import { narryTreeToTree } from "./Tree";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const initialList = arrayToList(array);
-
-const sampleNarryTree: NarryTree<string> = [
+const list = arrayToList(array);
+const tree = narryTreeToTree([
   "a",
   [
     [
@@ -19,9 +18,17 @@ const sampleNarryTree: NarryTree<string> = [
     ["c", [["j", []]]],
     ["d", [["h", []]]],
   ],
-];
+]);
 
-const initialTree = narryTreeToTree(sampleNarryTree);
+const cicledTree = narryTreeToTree([
+  "a",
+  [
+    ["b", [["d", []]]],
+    ["c", []],
+  ],
+]);
+const e = cicledTree?.children?.value?.children?.value as any;
+e.children = cons(cicledTree, null);
 
 const App = () => {
   return (
@@ -46,7 +53,7 @@ const App = () => {
             linked list
           </p>
         </div>
-        <VizualizeListZipper list={initialList} prefix="1" />
+        <VizualizeListZipper list={list} prefix="1" />
       </section>
       <section>
         <div style={{ paddingLeft: 90 }}>
@@ -54,7 +61,7 @@ const App = () => {
           <h3>Zipper for a linked list</h3>
           <p>Use arrows to see how zipper changes</p>
         </div>
-        <VizualizeListZipper list={initialList} prefix="2" showZipper />
+        <VizualizeListZipper list={list} prefix="2" showZipper />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>Red and gray nodes represent items from original list</li>
@@ -91,7 +98,7 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Tree</h2>
         </div>
-        <VizualizeTreeZipper tree={initialTree} />
+        <VizualizeTreeZipper tree={tree} />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>
@@ -117,24 +124,48 @@ const App = () => {
           <h3>Zipper for a tree</h3>
           <p>Use arrows to see how zipper changes</p>
         </div>
-        <VizualizeTreeZipper tree={initialTree} showZipper height={300} width={600}/>
+        <VizualizeTreeZipper tree={tree} showZipper showTree height={300} width={600} />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>
               Pink "zone" represnts Zipper itself - left context, focus, right
               context, top context
             </li>
+            <li>Zipper vizualization "makes more sense" in "LCRS tree" mode</li>
+            <li><b>"Zipper + tree" vizualization is buggy</b></li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <div style={{ paddingLeft: 90 }}>
+          <h2>"Cycled tree"</h2>
+        </div>
+        <VizualizeTreeZipper tree={cicledTree} />
+        <div style={{ paddingLeft: 90 }}>
+          <ul>
             <li>
-              Zipper vizualization "makes more sense" in "LCRS tree" mode
+              I call it "cycled tree", because it is the same data structure as
+              tree, but cycle is created using mutation (or letrec). It is
+              actually graph.
             </li>
           </ul>
         </div>
       </section>
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
+      <section>
+        <div style={{ paddingLeft: 90 }}>
+          <h3>Zipper for a "cycled tree"</h3>
+          <p>Use arrows to see how zipper changes. <b>This vizualization is buggy</b></p>
+        </div>
+        <VizualizeTreeZipper tree={cicledTree} showZipper height={600} width={600} />
+        <div style={{ paddingLeft: 90 }}>
+          <ul>
+            <li>
+              Cycled structure serves as pattern to generate infinite structure in Zipper.
+            </li>
+
+          </ul>
+        </div>
+      </section>
     </>
   );
 };

@@ -15,6 +15,7 @@ import {
 type VizualizeTreeZipperProps = {
   tree: Tree<string>;
   showZipper?: boolean;
+  showTree?: boolean;
   height?: number;
   width?: number;
 };
@@ -48,6 +49,7 @@ const button: React.CSSProperties = {
 export const VizualizeTreeZipper = ({
   tree,
   showZipper,
+  showTree,
   height,
   width,
 }: VizualizeTreeZipperProps) => {
@@ -107,14 +109,16 @@ export const VizualizeTreeZipper = ({
               }
               style={button}
             />
-            <select
-              onChange={(e) => setMode(e.target.value)}
-              value={mode}
-              style={select}
-            >
-              <option value="zipper">Zipper</option>
-              <option value="zipper-tree">Zipper + tree</option>
-            </select>
+            {showTree && (
+              <select
+                onChange={(e) => setMode(e.target.value)}
+                value={mode}
+                style={select}
+              >
+                <option value="zipper">Zipper</option>
+                <option value="zipper-tree">Zipper + tree</option>
+              </select>
+            )}
           </>
         )}
       </div>

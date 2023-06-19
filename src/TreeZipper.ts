@@ -73,7 +73,7 @@ export const down = <T>(zipper: TreeZipper<T>): TreeZipper<T> => {
       },
       zipper.up
     ),
-    focus: treeNode(children.value),
+    focus: treeNode({ ...children.value, level: zipper.focus.level + 1 }),
   };
 };
 
@@ -154,18 +154,21 @@ const traverseTree = <T>(
     nodes: {},
   },
   showOriginal?: boolean,
-  type?: "green" | "blue"
+  type?: "green" | "blue",
+  level?: number
 ) => {
   if (!tree) return display;
   const parent = tree;
+  // loop detection
+  if (display.nodes[parent.id]) return display;
 
   const { children, originalId, ...node } = parent;
   display.nodes[parent.id] = { ...node, originalId, type };
-  setRank(display, tree.level, parent.id);
+  setRank(display, level === undefined ? tree.level : level, parent.id);
 
   if (showOriginal && originalId) {
     display.nodes[originalId] = { ...node, id: originalId, type: "gray" };
-    setRank(display, tree.level, originalId);
+    setRank(display, level === undefined ? tree.level : level, originalId);
   }
 
   let prev = parent;
@@ -205,7 +208,13 @@ const traverseTree = <T>(
       });
     }
     prev = t;
-    traverseTree(t, display, showOriginal, type);
+    traverseTree(
+      t,
+      display,
+      showOriginal,
+      type,
+      level === undefined ? undefined : level + 1
+    );
   });
   return display;
 };
@@ -224,8 +233,7 @@ const traverseUp = <T>(
   if (!zipperPath) return display;
 
   const zipper = zipperPath.value;
-  const current = zipper as { id: ID; originalId?: ID };
-
+  const current = zipper as { id: ID; originalId?: ID; level: Level };
   const up = zipperPath.next?.value;
 
   if (up) {
@@ -332,7 +340,7 @@ const traverseUp = <T>(
         });
       }
 
-      traverseTree(node, display, showOriginal, "blue");
+      traverseTree(node, display, showOriginal, "blue", current.level);
       const edge: Edge = {
         from: node.id,
         to: prev.id,
@@ -357,8 +365,8 @@ const traverseUp = <T>(
     if (focus) {
       display.nodes[left.id].type = "blue";
       display.nodes[left.id].zipper = true;
+      // setRank(display, zipper.level, left.id);
     }
-    setRank(display, zipper.level, left.id);
   } else if (focus) {
     const leftId = 92;
     const edge: Edge = {
@@ -407,7 +415,7 @@ const traverseUp = <T>(
         }
       }
 
-      traverseTree(node, display, showOriginal, "green");
+      traverseTree(node, display, showOriginal, "green", current.level);
 
       const edge: Edge = {
         from: prev.id,
@@ -424,11 +432,13 @@ const traverseUp = <T>(
       display.memoryEdges.push(edge);
       prev = node;
     });
+
     if (focus) {
       display.nodes[right.id].type = "green";
       display.nodes[right.id].zipper = true;
+      // not sure how this breaks vizualization
+      setRank(display, zipper.level, right.id);
     }
-    setRank(display, zipper.level, right.id);
   } else if (focus) {
     const rightId = 91;
     const edge: Edge = {
@@ -466,16 +476,6 @@ const treeToHash = <T>(
   return result;
 };
 
-// const nodesToOrigin = <T>(nodes: Record<ID, Node<T>>) => {
-//   const result: Record<ID, Node<T>[]> = {};
-//   Object.values(nodes).forEach((node) => {
-//     const id = node.originalId || node.id;
-//     if (!result[id]) result[id] = [];
-//     result[id].push(node);
-//   });
-//   return result;
-// };
-
 const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
   const display: Display<T> = {
     logicalEdges: [],
@@ -485,7 +485,7 @@ const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
   };
   if (!zipper.focus) return display;
   const focus = zipper.focus;
-  traverseTree(focus, display, Boolean(tree), "green");
+  traverseTree(focus, display, Boolean(tree), "green", focus.level);
   display.nodes[focus.id].type = "focus";
   display.nodes[focus.id].zipper = true;
   traverseUp(
@@ -512,28 +512,6 @@ const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
         display.nodes[id as any].value = value;
       }
     });
-    // const sortedNodes: Record<ID, Node<T>> = {};
-    // const nodesByOrigin = nodesToOrigin(display.nodes);
-    // Object.values(ref.levels).forEach((ids) => {
-    //   ids.forEach((id) => {
-    //     nodesByOrigin[id]
-    //       .filter((x) => x.type === "gray")
-    //       .forEach((x) => {
-    //         sortedNodes[id] = x;
-    //       });
-    //   });
-    // });
-    // Object.values(ref.levels).forEach((ids) => {
-    //   ids.forEach((id) => {
-    //     nodesByOrigin[id]
-    //       .filter((x) => x.type !== "gray")
-    //       .forEach((x) => {
-    //         sortedNodes[id] = x;
-    //       });
-    //   });
-    // });
-    // console.log(display.nodes, sortedNodes)
-    // display.nodes = sortedNodes;
   }
   return display;
 };
@@ -608,35 +586,10 @@ const ranksDot = (ranks: Record<Level, ID[]>) =>
 
 const nodesDot = <T>(nodes: Record<ID, Node<T>>) =>
   Object.entries(nodes)
-    // .sort(([, nodea], [, nodeb]) => {
-    //   if (nodea.type === "gray" && nodeb.type === "gray") {
-    //     return nodea.level - nodeb.level;
-    //   } else if (nodea.type === "gray") {
-    //     return -1;
-    //   } else if (nodeb.type === "gray") {
-    //     return 1;
-    //   } else {
-    //     return nodea.level - nodeb.level;
-    //   }
-    // })
     .map(([id, node]) => nodeToDot(id, node))
     .join("\n");
 
-const edgesDot = (edges: Edge[]) =>
-  edges
-    // .sort((edgea, edgeb) => {
-    //   if (edgea.type === "gray" && edgeb.type === "gray") {
-    //     return 0;
-    //   } else if (edgea.type === "gray") {
-    //     return -1;
-    //   } else if (edgeb.type === "gray") {
-    //     return 1;
-    //   } else {
-    //     return 0;
-    //   }
-    // })
-    .map(edgeToDot)
-    .join("\n");
+const edgesDot = (edges: Edge[]) => edges.map(edgeToDot).join("\n");
 
 const toDot = <T>(
   { logicalEdges, memoryEdges, ranks, nodes }: Display<T>,
