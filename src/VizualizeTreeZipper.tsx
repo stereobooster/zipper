@@ -55,6 +55,8 @@ export const VizualizeTreeZipper = ({
 }: VizualizeTreeZipperProps) => {
   const [layout, setLayout] = useState("dag");
   const [mode, setMode] = useState("zipper");
+  const [zoom, setZoom] = useState(false);
+  const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
   const dot = showZipper
     ? treeZipperToDot({
@@ -119,17 +121,35 @@ export const VizualizeTreeZipper = ({
                 <option value="zipper-tree">Zipper + tree</option>
               </select>
             )}
+            <label>
+              <input
+                type="checkbox"
+                checked={zoom}
+                onClick={() => setZoom((x) => !x)}
+              />{" "}
+              Zoom
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={fit}
+                onClick={() => setFit((x) => !x)}
+              />{" "}
+              Fit
+            </label>
           </>
         )}
       </div>
       <Graphviz
         dot={dot}
+        // https://github.com/magjac/d3-graphviz#supported-options
         options={{
           height: height || 200,
           width: width || 500,
-          fit: false,
           engine: "dot",
           useWorker: false,
+          fit,
+          zoom,
         }}
       />
     </>
