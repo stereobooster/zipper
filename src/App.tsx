@@ -107,7 +107,7 @@ const App = () => {
               <a href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">
                 Directed Acyclic Graph
               </a>
-              . In DAG children are unorderd.
+              . In DAG children may be unordered.
             </li>
             <li>
               "LCRS tree" vizualization - this is how typically{" "}
@@ -124,7 +124,13 @@ const App = () => {
           <h3>Zipper for a tree</h3>
           <p>Use arrows to see how zipper changes</p>
         </div>
-        <VizualizeTreeZipper tree={tree} showZipper showTree height={300} width={600} />
+        <VizualizeTreeZipper
+          tree={tree}
+          showZipper
+          showTree
+          height={300}
+          width={600}
+        />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>
@@ -132,7 +138,6 @@ const App = () => {
               context, top context
             </li>
             <li>Zipper vizualization "makes more sense" in "LCRS tree" mode</li>
-            <li><b>"Zipper + tree" vizualization is buggy</b></li>
           </ul>
         </div>
       </section>
@@ -154,15 +159,20 @@ const App = () => {
       <section>
         <div style={{ paddingLeft: 90 }}>
           <h3>Zipper for a "cycled tree"</h3>
-          <p>Use arrows to see how zipper changes. <b>This vizualization is buggy</b></p>
+          <p>Use arrows to see how zipper changes.</p>
         </div>
-        <VizualizeTreeZipper tree={cicledTree} showZipper height={600} width={600} />
+        <VizualizeTreeZipper
+          tree={cicledTree}
+          showZipper
+          height={600}
+          width={600}
+        />
         <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>
-              Cycled structure serves as pattern to generate infinite structure in Zipper.
+              Cycled structure serves as pattern to generate infinite structure
+              in Zipper.
             </li>
-
           </ul>
         </div>
       </section>

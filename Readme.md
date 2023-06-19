@@ -82,8 +82,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - Fix display "Zipper + tree"
-  - need to change order in which nodes (and edges ?) are printed out
-- Fix display for "Cycled tree zipper"
+  - need to change order in which nodes (and edges ?) are printed out. Topological sort?
+- BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges
 - Mention combinatorial species
 - Brzozowski derivative
 - refactor list vizualization to use the same viz as tree

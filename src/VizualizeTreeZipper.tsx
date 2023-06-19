@@ -121,14 +121,16 @@ export const VizualizeTreeZipper = ({
                 <option value="zipper-tree">Zipper + tree</option>
               </select>
             )}
-            <label>
-              <input
-                type="checkbox"
-                checked={zoom}
-                onChange={() => setZoom((x) => !x)}
-              />{" "}
-              Zoom
-            </label>
+            {false && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={zoom}
+                  onChange={() => setZoom((x) => !x)}
+                />{" "}
+                Zoom
+              </label>
+            )}
             <label>
               <input
                 type="checkbox"

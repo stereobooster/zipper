@@ -153,7 +153,6 @@ const setRank = <T>(display: Display<T>, id: ID, level: Level) => {
 };
 
 const addNode = <T>(display: Display<T>, node: Node<T>) => {
-  // debug
   // if (display.nodes[node.id]) console.log(display.nodes[node.id], node);
   display.nodes[node.id] = node;
   if (node.level <= 0) return;
