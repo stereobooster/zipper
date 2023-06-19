@@ -125,7 +125,7 @@ export const VizualizeTreeZipper = ({
               <input
                 type="checkbox"
                 checked={zoom}
-                onClick={() => setZoom((x) => !x)}
+                onChange={() => setZoom((x) => !x)}
               />{" "}
               Zoom
             </label>
@@ -133,7 +133,7 @@ export const VizualizeTreeZipper = ({
               <input
                 type="checkbox"
                 checked={fit}
-                onClick={() => setFit((x) => !x)}
+                onChange={() => setFit((x) => !x)}
               />{" "}
               Fit
             </label>
