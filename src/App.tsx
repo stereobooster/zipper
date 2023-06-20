@@ -1,7 +1,9 @@
 import { arrayToList, cons } from "./List";
 import { narryTreeToTree } from "./Tree";
+import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
+import { narryTreeToExpression } from "./pwz";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -29,6 +31,29 @@ const cicledTree = narryTreeToTree([
 ]);
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
+
+const exp = narryTreeToExpression([
+  "S",
+  "Seq",
+  [
+    [
+      "",
+      "Seq",
+      [
+        ["a", "Tok", []],
+        ["b", "Tok", []],
+      ],
+    ],
+    [
+      "",
+      "Seq",
+      [
+        ["c", "Tok", []],
+        ["d", "Tok", []],
+      ],
+    ],
+  ],
+]);
 
 const App = () => {
   return (
@@ -176,6 +201,14 @@ const App = () => {
           </ul>
         </div>
       </section>
+      {false && (
+        <section>
+          <div style={{ paddingLeft: 90 }}>
+            <h2>Grammar</h2>
+          </div>
+          <VizualizeGrammar tree={exp} />
+        </section>
+      )}
     </>
   );
 };
