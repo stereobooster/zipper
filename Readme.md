@@ -88,3 +88,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Brzozowski derivative
 - refactor list vizualization to use the same viz as tree
   - `[React Archer] Could not find target element! Not drawing the arrow.`
+
+## Other
+
+- https://github.com/stereobooster/parsing-with-derivalives
+- https://github.com/stereobooster/derp

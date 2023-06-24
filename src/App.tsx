@@ -201,14 +201,13 @@ const App = () => {
           </ul>
         </div>
       </section>
-      {false && (
-        <section>
-          <div style={{ paddingLeft: 90 }}>
-            <h2>Grammar</h2>
-          </div>
-          <VizualizeGrammar tree={exp} />
-        </section>
-      )}
+
+      <section>
+        <div style={{ paddingLeft: 90 }}>
+          <h2>Parsing with zippers</h2>
+        </div>
+        <VizualizeGrammar tree={exp} />
+      </section>
     </>
   );
 };
