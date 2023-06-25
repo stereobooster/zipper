@@ -3,6 +3,7 @@ import Graphviz from "graphviz-react";
 import {
   DeriveDirection,
   Expression,
+  Step,
   deriveStep,
   expressionToZipper,
   expressionZipperToDot,
@@ -10,6 +11,7 @@ import {
 
 type VizualizeGrammarProps = {
   tree: Expression;
+  str: string;
   height?: number;
   width?: number;
 };
@@ -48,35 +50,48 @@ export const VizualizeGrammar = ({
   tree,
   height,
   width,
+  str,
 }: VizualizeGrammarProps) => {
-  const str = "abcd";
   const [position, setPosition] = useState(0);
-  const [direction, setDirection] = useState<DeriveDirection>("down");
   const token = str[position] || "";
 
   const [layout, setLayout] = useState("dag");
-  const [zipper, setZipper] = useState(() => expressionToZipper(tree));
+  const [steps, setSteps] = useState(
+    () => [["down", expressionToZipper(tree)]] as Step[]
+  );
+  const [step, setStep] = useState(0);
+
+  const [direction, zipper] = steps[step];
   const dot = expressionZipperToDot({
     zipper,
-    tree,
+    // tree,
     logical: layout === "dag",
   });
+
   const go = () => {
-    if (zipper.up === null && direction === "up") {
+    if (
+      steps.every(
+        ([direction, zipper]) => zipper.up === null && direction === "up"
+      )
+    ) {
       console.log("sucessfully derived");
       return;
     }
-    const [newZipper, newDirection] = deriveStep(token, zipper, direction);
-    if (!newZipper) {
-      console.log("failed to derivate");
-      return;
-    }
-    setZipper(newZipper);
-    if (newDirection == "none") {
+
+    const newSteps = deriveStep(token, steps, step);
+    setSteps(newSteps);
+    const newStep = step < newSteps.length ? step : 0;
+    setStep(newStep);
+
+    if (newSteps.every(([direction]) => direction === "none")) {
       setPosition((x) => x + 1);
-      setDirection("up");
-    } else {
-      setDirection(newDirection);
+      setSteps(newSteps.map(([, zipper]) => ["up", zipper]));
+      setStep(0);
+    }
+
+    const [newDirection] = newSteps[newStep];
+    if (newDirection === "none" && newStep < newSteps.length - 1) {
+      setStep(newStep + 1);
     }
   };
 

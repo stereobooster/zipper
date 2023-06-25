@@ -25,9 +25,12 @@ export type NarryExpression = [string, ExpressionType, Array<NarryExpression>];
 export const expressionNode = ({
   originalId,
   id,
+  // expressionType,
   ...props
 }: Omit<Expression, "id"> & { id?: ID }): Expression => ({
   ...props,
+  // expressionType:
+  //   props.value === "" && expressionType === "Tok" ? "Seq" : expressionType,
   originalId: originalId !== undefined ? originalId : id,
   id: Math.random(),
 });
@@ -182,7 +185,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   let borderWidth = 1;
   let arrow = "";
   if (type === "zipper") {
-    borderWidth = 12;
+    borderWidth = 4;
     color = zipperColor;
     arrow = "arrowhead=none arrowtail=none";
   } else if (type === "blue") {
@@ -235,8 +238,15 @@ const nodeToDot = (
   if (zipper) {
     borderColor = zipperColor;
   }
-  // ${value === "" ? "width=0.05 height=0.05" : ""}
-  return `${id} [penwidth=4 style="filled,solid" label="${value}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
+
+  let label = value;
+  if (expressionType === "Tok" && value === "") label = "ϵ";
+  if (expressionType === "Seq" && value === "") label = "·";
+  // Seq without children ϵ
+  if (expressionType === "Alt" && value === "") label = "∪";
+  // Alt without children ∅
+
+  return `${id} [penwidth=4 style="filled,solid" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
 };
 
 const levelsDot = (ranks: Record<ID, Level>) => `{
@@ -399,6 +409,23 @@ export const replace = (
   focus,
 });
 
+export const mapChildren = <T>(
+  zipper: ExpressionZipper,
+  cb: (zipper: Expression) => T
+): T[] => {
+  const res: T[] = [];
+  forEach(zipper.focus.children, (x) => res.push(cb(x)));
+  return res;
+};
+
+export const replaceType = (
+  zipper: ExpressionZipper,
+  expressionType: ExpressionType
+): ExpressionZipper => ({
+  ...zipper,
+  focus: expressionNode({ ...zipper.focus, expressionType }),
+});
+
 // Derivative ---------------------------------------------------------------------
 // https://dl.acm.org/doi/pdf/10.1145/3408990
 
@@ -417,55 +444,83 @@ const empty = {
 // } as const;
 
 export type DeriveDirection = "down" | "up" | "none";
+export type Step = [DeriveDirection, ExpressionZipper];
 
-export function deriveStep(
-  token: string,
-  zipper: ExpressionZipper,
-  direction: DeriveDirection
-): [ExpressionZipper | null, DeriveDirection] {
-  if (direction === "down") return deriveDown(token, zipper);
-  else if (direction === "up") return deriveUp(zipper);
-  else return [zipper, "none"];
+export function deriveStep(token: string, steps: Step[], zipperNo = 0): Step[] {
+  return steps.flatMap((step, i) => {
+    if (i !== zipperNo) return [step];
+    const [direction, zipper] = step;
+    if (direction === "none") return [step];
+    return direction === "down" ? deriveDown(token, zipper) : deriveUp(zipper);
+  });
 }
 
-function deriveDown(
-  token: string,
-  zipper: ExpressionZipper
-): [ExpressionZipper | null, DeriveDirection] {
+function deriveDown(token: string, zipper: ExpressionZipper): Step[] {
   switch (zipper.focus.expressionType) {
     case "Tok":
       // | Tok (t') -> if t = t' then Some (Seq (t, []), c) else None
-      if (zipper.focus.value !== token) return [null, "none"];
+      if (zipper.focus.value !== token) return [];
       return [
-        replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
-        "none",
+        [
+          "none",
+          replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
+        ],
       ];
     case "Seq":
       // | Seq (s, []) -> d↑ (Seq (s, [])) c
-      if (zipper.focus.children === null) return [zipper, "up"];
+      if (zipper.focus.children === null) return [["up", zipper]];
       // | Seq (s, e :: es) -> d↓ (SeqC (c, s, [], es)) e
       return [
-        down(
-          replace(
-            zipper,
-            expressionNode({ ...zipper.focus, expressionType: "SeqC" })
-          )
-        ),
-        "down",
+        [
+          "down",
+          down(
+            replace(
+              zipper,
+              expressionNode({ ...zipper.focus, expressionType: "SeqC" })
+            )
+          ),
+        ],
       ];
+    case "Alt":
+      // | Alt (es) -> List.concat (List.map (d↓ (AltC c)) es)
+      return mapChildren(zipper, (e) => {
+        return [
+          "down",
+          down(
+            replace(
+              zipper,
+              expressionNode({
+                ...zipper.focus,
+                expressionType: "AltC",
+                children: cons(e, null),
+              })
+            )
+          ),
+        ];
+      });
+    default:
+      console.log(`Unhandled type: ${zipper.focus.expressionType}`);
+      return [];
   }
-  return [null, "none"];
 }
 
-function deriveUp(
-  zipper: ExpressionZipper
-): [ExpressionZipper | null, DeriveDirection] {
+function deriveUp(zipper: ExpressionZipper): Step[] {
   // | TopC -> None
-  if (zipper.up === null) return [null, "none"];
-  // | SeqC (c, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) c
-  if (zipper.right === null) return [up(zipper), "up"];
-  // | SeqC (c, s, esL , eR :: esR ) -> d↓ (SeqC (c, s, e :: esL , esR )) eR
-  return [right(zipper), "down"];
+  if (zipper.up === null) return [];
+  switch (zipper.up.value.expressionType) {
+    case "SeqC":
+      // | SeqC (c, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) c
+      if (zipper.right === null)
+        return [["up", replaceType(up(zipper), "Seq")]];
+      // | SeqC (c, s, esL , eR :: esR ) -> d↓ (SeqC (c, s, e :: esL , esR )) eR
+      return [["down", right(zipper)]];
+    case "AltC":
+      // | AltC (c) -> d↑ (Alt [e]) c
+      return [["up", replaceType(up(zipper), "Alt")]];
+    default:
+      console.log(`Unhandled type: ${zipper.focus.expressionType}`);
+      return [];
+  }
 }
 
 // Vizualization part ---------------------------------------------------------
@@ -693,6 +748,8 @@ const treeToHash = (
   result: Record<ID, { value: string; expressionType: ExpressionType }> = {}
 ) => {
   if (!tree) return result;
+  // break loop
+  if (result[tree.id]) return result;
   result[tree.id] = {
     value: tree.value,
     expressionType: tree.expressionType,
