@@ -61,11 +61,11 @@ export const VizualizeGrammar = ({
   );
   const [step, setStep] = useState(0);
 
-  const [direction, zipper] = steps[step];
+  const [direction] = steps[step];
   const dot = expressionZipperToDot({
-    zipper,
-    // tree,
+    zippers: steps.map(([, zipper]) => zipper),
     logical: layout === "dag",
+    // tree,
   });
 
   const go = () => {
@@ -94,6 +94,7 @@ export const VizualizeGrammar = ({
       setStep(newStep + 1);
     }
   };
+  const [fit, setFit] = useState(false);
 
   return (
     <>
@@ -111,15 +112,23 @@ export const VizualizeGrammar = ({
         </button>
         string: {str} | token: {token} ({position}) | direction:{" "}
         {dir(direction)}
+        <label>
+          <input
+            type="checkbox"
+            checked={fit}
+            onChange={() => setFit((x) => !x)}
+          />{" "}
+          Fit
+        </label>
       </div>
       <Graphviz
         dot={dot}
         options={{
-          height: height || 200,
+          height: height || 600,
           width: width || 500,
           engine: "dot",
           useWorker: false,
-          fit: true,
+          fit,
           zoom: false,
         }}
       />

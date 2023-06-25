@@ -66,14 +66,21 @@ type Edge = {
   constraint?: boolean;
 };
 
+type Trie = Record<ID, Record<ID, Edge>>;
+
+const addToTrie = (trie: Trie, edge: Edge) => {
+  if (!trie[edge.from]) trie[edge.from] = {};
+  trie[edge.from][edge.to] = edge;
+};
+
 type Node = Omit<Expression, "children"> & {
   type?: "green" | "blue" | "empty" | "focus" | "gray";
   zipper?: boolean;
 };
 
 type Display = {
-  logicalEdges: Edge[];
-  memoryEdges: Edge[];
+  logicalEdges: Trie;
+  memoryEdges: Trie;
   ranks: Record<ID, Level>;
   nodes: Record<ID, Node>;
 };
@@ -94,15 +101,15 @@ const addEdge = (
   memory: boolean | number,
   edge: Edge
 ) => {
-  if (logical) display.logicalEdges.push(edge);
-  if (memory) display.memoryEdges.push(edge);
+  if (logical) addToTrie(display.logicalEdges, edge);
+  if (memory) addToTrie(display.memoryEdges, edge);
 };
 
 const traverseExpression = (
   tree: Expression,
   display: Display = {
-    logicalEdges: [],
-    memoryEdges: [],
+    logicalEdges: {},
+    memoryEdges: {},
     ranks: {},
     nodes: {},
   },
@@ -241,9 +248,11 @@ const nodeToDot = (
 
   let label = value;
   if (expressionType === "Tok" && value === "") label = "ϵ";
-  if (expressionType === "Seq" && value === "") label = "·";
+  if ((expressionType === "Seq" || expressionType === "SeqC") && value === "")
+    label = "·";
   // Seq without children ϵ
-  if (expressionType === "Alt" && value === "") label = "∪";
+  if ((expressionType === "Alt" || expressionType === "AltC") && value === "")
+    label = "∪";
   // Alt without children ∅
 
   return `${id} [penwidth=4 style="filled,solid" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
@@ -271,7 +280,11 @@ const nodesDot = (nodes: Record<ID, Node>) =>
     .map(([id, node]) => nodeToDot(id, node))
     .join("\n");
 
-const edgesDot = (edges: Edge[]) => edges.map(edgeToDot).join("\n");
+const edgesDot = (edges: Trie) =>
+  Object.values(edges)
+    .flatMap((toEdges) => Object.values(toEdges))
+    .map(edgeToDot)
+    .join("\n");
 
 const toDot = (
   { logicalEdges, memoryEdges, ranks, nodes }: Display,
@@ -527,12 +540,7 @@ function deriveUp(zipper: ExpressionZipper): Step[] {
 
 const traverseUp = (
   zipperPath: ExpressionZipperPath,
-  display: Display = {
-    logicalEdges: [],
-    memoryEdges: [],
-    ranks: {},
-    nodes: {},
-  },
+  display: Display,
   showOriginal: boolean,
   focus?: Expression
 ) => {
@@ -659,21 +667,6 @@ const traverseUp = (
       display.nodes[left.id].type = "blue";
       display.nodes[left.id].zipper = true;
     }
-  } else if (focus) {
-    const leftId = 92;
-    addEdge(display, 1, 1, {
-      from: leftId,
-      to: focus.id,
-      type: "zipper",
-      direction: "backward",
-    });
-    addNode(display, {
-      value: "",
-      id: leftId,
-      type: "empty",
-      zipper: true,
-      level: focus.level,
-    } as Node);
   }
 
   const right = zipper.right?.value;
@@ -724,20 +717,6 @@ const traverseUp = (
       display.nodes[right.id].zipper = true;
       setRank(display, right.id, zipper.level);
     }
-  } else if (focus) {
-    const rightId = 91;
-    addEdge(display, 1, 1, {
-      from: focus.id,
-      to: rightId,
-      type: "zipper",
-    });
-    addNode(display, {
-      value: "",
-      id: rightId,
-      type: "empty",
-      zipper: true,
-      level: focus.level,
-    } as Node);
   }
 
   return display;
@@ -758,13 +737,11 @@ const treeToHash = (
   return result;
 };
 
-const traverseZipper = (zipper: ExpressionZipper, tree?: Expression) => {
-  const display: Display = {
-    logicalEdges: [],
-    memoryEdges: [],
-    ranks: {},
-    nodes: {},
-  };
+const traverseZipper = (
+  display: Display,
+  zipper: ExpressionZipper,
+  tree?: Expression
+) => {
   if (!zipper.focus) return display;
   const focus = zipper.focus;
   traverseExpression(focus, display, Boolean(tree), "green", focus.level);
@@ -803,15 +780,23 @@ const traverseZipper = (zipper: ExpressionZipper, tree?: Expression) => {
 
 export const expressionZipperToDot = ({
   logical,
+  zippers,
   tree,
-  zipper,
 }: {
   logical: boolean;
-  zipper: ExpressionZipper;
+  zippers: ExpressionZipper[];
   tree?: Expression;
-}) =>
-  `digraph {
+}) => {
+  const display: Display = {
+    logicalEdges: {},
+    memoryEdges: {},
+    ranks: {},
+    nodes: {},
+  };
+  zippers.forEach((zipper) => traverseZipper(display, zipper, tree));
+  return `digraph {
     node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
     edge [color="${listColor}"]
-    ${toDot(traverseZipper(zipper, tree), logical)}
+    ${toDot(display, logical)}
   }`.trim();
+};

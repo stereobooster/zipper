@@ -81,10 +81,9 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## TODO
 
-- Draw multiple zippers at the same time (because PwZ returns list of zippers)
-  - Use trie for edges
 - PwZ
   - Add memoization for `Alt`
+  - Draw `ϵ` for `Seq` without children
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
 - BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges

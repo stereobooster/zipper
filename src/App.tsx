@@ -226,7 +226,7 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Parsing with zippers</h2>
         </div>
-        <VizualizeGrammar tree={exp1} str="aaa" />
+        <VizualizeGrammar tree={exp1} str="aa" />
       </section>
     </>
   );
