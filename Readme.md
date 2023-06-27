@@ -82,7 +82,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - PwZ
-  - Add memoization for `Alt`
   - Draw `ϵ` for `Seq` without children
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?

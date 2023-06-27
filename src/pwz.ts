@@ -1,8 +1,14 @@
 import { List, arrayToList, cons, forEach, unwind } from "./List";
+import { Memo } from "./pwzMemo";
 
 export type ID = number;
 export type Level = number;
 export type ExpressionType = "Tok" | "Seq" | "Alt" | "SeqC" | "AltC";
+
+export type Mem = {
+  parents: ExpressionZipper[];
+  result: Record<number, Expression[]>;
+};
 
 // Token requires non-empy value and empty children
 // Top expression has to have non-empy value
@@ -18,6 +24,8 @@ export type Expression = {
   // Level can be removed, because it can be calculated during traversal
   level: Level;
   originalId?: ID;
+  // cache
+  m?: Mem;
 };
 
 export type NarryExpression = [string, ExpressionType, Array<NarryExpression>];
@@ -388,6 +396,7 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
         id: Math.random(),
         level: zipper.focus.level,
         originalId: zipper.focus.originalId || zipper.focus.id,
+        m: zipper.focus.m,
       },
       zipper.up
     ),
@@ -410,6 +419,7 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
       // for vizualization
       level: zipper.up.value.level,
       originalId: zipper.up.value.originalId,
+      m: zipper.up.value.m,
     }),
   };
 };
@@ -419,7 +429,7 @@ export const replace = (
   focus: Expression
 ): ExpressionZipper => ({
   ...zipper,
-  focus,
+  focus: { ...focus, level: zipper.focus.level },
 });
 
 export const mapChildren = <T>(
@@ -456,46 +466,70 @@ const empty = {
 //   children: null,
 // } as const;
 
-export type DeriveDirection = "down" | "up" | "none";
-export type Step = [DeriveDirection, ExpressionZipper];
+export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
+const mems = new Memo<Mem>();
+export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 
-export function deriveStep(token: string, steps: Step[], zipperNo = 0): Step[] {
+export function deriveStep(
+  position: number,
+  token: string,
+  steps: Step[],
+  stepNo = 0
+): Step[] {
   return steps.flatMap((step, i) => {
-    if (i !== zipperNo) return [step];
-    const [direction, zipper] = step;
-    if (direction === "none") return [step];
-    return direction === "down" ? deriveDown(token, zipper) : deriveUp(zipper);
+    if (i !== stepNo) return [step];
+    const [direction, zipper, m] = step;
+    switch (direction) {
+      case "down":
+        return deriveDown(position, zipper);
+      case "up":
+        if (!m) console.log("undefined m");
+        return deriveUp(position, zipper, m!);
+      case "downPrime":
+        if (!m) console.log("undefined m");
+        return deriveDownPrime(token, zipper, m!);
+      case "upPrime":
+        return deriveUpPrime(zipper);
+      case "none":
+        return [step];
+    }
   });
 }
 
-function deriveDown(token: string, zipper: ExpressionZipper): Step[] {
+function deriveDownPrime(
+  token: string,
+  zipper: ExpressionZipper,
+  m: Mem
+): Step[] {
   switch (zipper.focus.expressionType) {
     case "Tok":
-      // | Tok (t') -> if t = t' then Some (Seq (t, []), c) else None
+      // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
       if (zipper.focus.value !== token) return [];
       return [
         [
           "none",
           replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
+          m,
         ],
       ];
     case "Seq":
-      // | Seq (s, []) -> d↑ (Seq (s, [])) c
-      if (zipper.focus.children === null) return [["up", zipper]];
-      // | Seq (s, e :: es) -> d↓ (SeqC (c, s, [], es)) e
+      // | Seq (s, []) -> d↑ (Seq (s, [])) m
+      if (zipper.focus.children === null) return [["up", zipper, m]];
+      // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
       return [
         [
           "down",
           down(
             replace(
               zipper,
-              expressionNode({ ...zipper.focus, expressionType: "SeqC" })
+              expressionNode({ ...zipper.focus, expressionType: "SeqC", m })
             )
           ),
+          undefined,
         ],
       ];
     case "Alt":
-      // | Alt (es) -> List.concat (List.map (d↓ (AltC c)) es)
+      // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
       return mapChildren(zipper, (e) => {
         return [
           "down",
@@ -506,9 +540,11 @@ function deriveDown(token: string, zipper: ExpressionZipper): Step[] {
                 ...zipper.focus,
                 expressionType: "AltC",
                 children: cons(e, null),
+                m,
               })
             )
           ),
+          undefined,
         ];
       });
     default:
@@ -517,23 +553,93 @@ function deriveDown(token: string, zipper: ExpressionZipper): Step[] {
   }
 }
 
-function deriveUp(zipper: ExpressionZipper): Step[] {
-  // | TopC -> None
+function deriveUpPrime(zipper: ExpressionZipper): Step[] {
+  // | TopC -> []
   if (zipper.up === null) return [];
+  let x: ExpressionZipper;
   switch (zipper.up.value.expressionType) {
     case "SeqC":
-      // | SeqC (c, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) c
-      if (zipper.right === null)
-        return [["up", replaceType(up(zipper), "Seq")]];
-      // | SeqC (c, s, esL , eR :: esR ) -> d↓ (SeqC (c, s, e :: esL , esR )) eR
-      return [["down", right(zipper)]];
+      // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
+      if (zipper.right === null) {
+        x = up(zipper);
+        return [
+          [
+            "up",
+            replace(
+              x,
+              expressionNode({
+                ...x.focus,
+                expressionType: "Seq",
+                m: undefined,
+              })
+            ),
+            x.focus.m,
+          ],
+        ];
+      }
+      // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
+      return [["down", right(zipper), undefined]];
     case "AltC":
-      // | AltC (c) -> d↑ (Alt [e]) c
-      return [["up", replaceType(up(zipper), "Alt")]];
+      // | AltC (m) -> d↑ (Alt [e]) m
+      x = up(zipper);
+      return [
+        [
+          "up",
+          replace(
+            x,
+            expressionNode({
+              ...x.focus,
+              expressionType: "Alt",
+              m: undefined,
+            })
+          ),
+          x.focus.m,
+        ],
+      ];
     default:
       console.log(`Unhandled type: ${zipper.focus.expressionType}`);
       return [];
   }
+}
+
+function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
+  let m = mems.get(zipper.focus.originalId || zipper.focus.id, position);
+  // match mems.get(p, e) with
+  // | Some (m) ->
+  if (m) {
+    // m.parents <- c :: m.parents;
+    if (m.parents.indexOf(zipper) === -1) m.parents.unshift(zipper);
+    // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
+    return (m.result[position] || []).map((e: Expression) => [
+      "upPrime",
+      replace(zipper, expressionNode(e)),
+      undefined,
+    ]);
+  }
+  // | None ->
+  else {
+    // let m = { parents = [c]; result = ∅ } in
+    m = {
+      parents: [zipper],
+      result: {},
+    };
+    // mems.put(p, e, m);
+    mems.set(zipper.focus.originalId || zipper.focus.id, position, m);
+    // d′↓ m e
+    return [["downPrime", zipper, m]];
+  }
+}
+
+function deriveUp(position: number, zipper: ExpressionZipper, m: Mem): Step[] {
+  // m.result.put(p, e :: m.result.get(p));
+  if (!m.result[position]) m.result[position] = [];
+  m.result[position].unshift(zipper.focus);
+  // List.concat (List.map (d′↑ e) m.parents)
+  return m.parents.map((c: ExpressionZipper) => [
+    "upPrime",
+    replace(c, expressionNode(zipper.focus)),
+    m,
+  ]);
 }
 
 // Vizualization part ---------------------------------------------------------
