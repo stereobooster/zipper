@@ -7,13 +7,11 @@ export const controls: CSSProperties = {
   paddingBottom: 20,
   alignItems: "center",
 };
-
 export const subControls: CSSProperties = {
   display: "flex",
   gap: 24,
   alignItems: "center",
 };
-
 export const select: CSSProperties = {
   height: 36,
   fontSize: 24,
@@ -39,6 +37,9 @@ export const input: CSSProperties = {
   height: 36,
   fontSize: 24,
   textAlign: "center",
+};
+export const paragraph: CSSProperties = {
+  paddingLeft: 90,
 };
 
 export const listColor = "#8b0000";
