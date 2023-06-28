@@ -8,6 +8,7 @@ import {
   expressionToZipper,
   expressionZipperToDot,
 } from "./pwz";
+import { button, controls, select, text } from "./common";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -15,31 +16,6 @@ type VizualizeGrammarProps = {
   height?: number;
   width?: number;
 };
-
-const controls: React.CSSProperties = {
-  display: "flex",
-  gap: 24,
-  paddingLeft: 90,
-  paddingBottom: 20,
-  alignItems: "center",
-};
-const select: React.CSSProperties = {
-  height: 36,
-  fontSize: 24,
-  textAlign: "center",
-};
-const button: React.CSSProperties = {
-  width: "min-content",
-  height: 36,
-  fontSize: 24,
-  textAlign: "center",
-};
-// const input: React.CSSProperties = {
-//   width: 36,
-//   height: 36,
-//   fontSize: 24,
-//   textAlign: "center",
-// };
 
 const top = 1;
 
@@ -141,49 +117,72 @@ export const VizualizeGrammar = ({
   return (
     <>
       <div style={controls}>
-        <select
-          onChange={(e) => setLayout(e.target.value)}
-          value={layout}
-          style={select}
-        >
-          <option value="dag">DAG</option>
-          <option value="lcrs">LCRS tree</option>
-        </select>
-        <button style={button} onClick={go}>
-          Derivate
-        </button>
-        <select
-          onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
-          value={displayZipper}
-          style={select}
-        >
-          <option value="-1">All</option>
-          {steps.map((_, i) => (
-            <option value={i} key={i}>
-              {i}
-            </option>
-          ))}
-        </select>
-        <span dangerouslySetInnerHTML={{ __html: strWIthPos }} />
-        <span
-          dangerouslySetInnerHTML={{
-            __html: steps
-              .map(([d, z], i) =>
-                i === step
-                  ? `<b style="color:red">${dir(d)} ${z.focus.level}</b>`
-                  : `${dir(d)} ${z.focus.level}`
-              )
-              .join(" | "),
-          }}
-        />
         <label>
-          <input
-            type="checkbox"
-            checked={fit}
-            onChange={() => setFit((x) => !x)}
-          />{" "}
-          Fit
+          Show tree as
+          <br />
+          <select
+            onChange={(e) => setLayout(e.target.value)}
+            value={layout}
+            style={select}
+          >
+            <option value="dag">DAG</option>
+            <option value="lcrs">LCRS tree</option>
+          </select>
         </label>
+        <div>
+          <br />
+          <button style={button} onClick={go}>
+            Derivate
+          </button>
+        </div>
+        <label>
+          Which zipper
+          <br />
+          <select
+            onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
+            value={displayZipper}
+            style={select}
+          >
+            <option value="-1">All</option>
+            {steps.map((_, i) => (
+              <option value={i} key={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div>
+          String to parse
+          <br />
+          <div style={text} dangerouslySetInnerHTML={{ __html: strWIthPos }} />
+        </div>
+        <div>
+          Direction and depth
+          <br />
+          <div
+            style={text}
+            dangerouslySetInnerHTML={{
+              __html: steps
+                .map(([d, z], i) =>
+                  i === step
+                    ? `<b style="color:red">${dir(d)} ${z.focus.level}</b>`
+                    : `<span>${dir(d)} ${z.focus.level}</span>`
+                )
+                .join("&nbsp;|&nbsp;"),
+            }}
+          />
+        </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={fit}
+              onChange={() => setFit((x) => !x)}
+            />{" "}
+            Fit
+          </label>
+        </div>
         {/*<input
           value={position}
           onChange={(e) => setPosition(parseInt(e.target.value, 10))}

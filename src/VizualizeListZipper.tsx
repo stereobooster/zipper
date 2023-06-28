@@ -8,13 +8,18 @@ import {
   zipperToDisplay,
 } from "./List";
 import { useState, Fragment } from "react";
+import {
+  buttonRect,
+  controls,
+  grayColor,
+  leftColor,
+  listColor,
+  rightColor,
+  subControls,
+  zipperColor,
+} from "./common";
 
 const radius = 30;
-const listColor = "#8b0000";
-const shadowColor = "#708090";
-const leftColor = "#0000cd";
-const rightColor = "#006400";
-const zipperColor = "#ff69b4";
 
 const rowStyle = { display: "flex", padding: 10, paddingBottom: 0 };
 const spacer = { width: radius };
@@ -32,7 +37,7 @@ const baseCell: React.CSSProperties = {
 const nodeCell = { ...baseCell, background: listColor };
 const leftZipperCell = { ...baseCell, background: leftColor };
 const rightZipperCell = { ...baseCell, background: rightColor };
-const shadowCell = { ...baseCell, background: shadowColor };
+const shadowCell = { ...baseCell, background: grayColor };
 const blankCell = { ...baseCell, color: "black", background: "white" };
 
 const blankWrapper = { padding: 6 };
@@ -76,7 +81,7 @@ const wrapperStyle = (zipper: string | undefined) => {
 
 const arrowStyle = (type: string | undefined) => {
   if (type === "shadow") {
-    return { strokeColor: shadowColor };
+    return { strokeColor: grayColor };
   } else if (type === "leftZipper") {
     return { strokeColor: leftColor };
   } else if (type === "rightZipper") {
@@ -90,19 +95,6 @@ export type VizualizeListZipperProps = {
   list: List<number>;
   showZipper?: boolean;
   prefix: string;
-};
-
-const button: React.CSSProperties = {
-  width: 36,
-  height: 36,
-  fontSize: 24,
-  textAlign: "center",
-};
-const controls: React.CSSProperties = {
-  display: "flex",
-  gap: 24,
-  paddingLeft: 90,
-  alignItems: "center",
 };
 
 export const VizualizeListZipper = ({
@@ -125,19 +117,29 @@ export const VizualizeListZipper = ({
     >
       {showZipper && (
         <div style={controls}>
-          <button onClick={callback(-1)} style={button}>
-            ←
-          </button>
-          <button onClick={callback(1)} style={button}>
-            →
-          </button>
-          <input
-            value={zipper.focus}
-            onChange={(e) =>
-              setZipper((x) => replace(x, e.target.value as any))
-            }
-            style={button}
-          />
+          <div>
+            Use arrows to navigate
+            <br />
+            <div style={subControls}>
+              <button onClick={callback(-1)} style={buttonRect}>
+                ←
+              </button>
+              <button onClick={callback(1)} style={buttonRect}>
+                →
+              </button>
+            </div>
+          </div>
+          <label>
+            Value at focus
+            <br />
+            <input
+              value={zipper.focus}
+              onChange={(e) =>
+                setZipper((x) => replace(x, e.target.value as any))
+              }
+              style={buttonRect}
+            />
+          </label>
         </div>
       )}
       <ArcherContainer strokeColor="red">

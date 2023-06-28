@@ -129,7 +129,6 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Zipper</h2>
           <h3>Zipper for a linked list</h3>
-          <p>Use arrows to see how zipper changes</p>
         </div>
         <VizualizeListZipper list={list} prefix="2" showZipper />
         <div style={{ paddingLeft: 90 }}>
@@ -192,7 +191,6 @@ const App = () => {
       <section>
         <div style={{ paddingLeft: 90 }}>
           <h3>Zipper for a tree</h3>
-          <p>Use arrows to see how zipper changes</p>
         </div>
         <VizualizeTreeZipper
           tree={tree}
@@ -229,7 +227,6 @@ const App = () => {
       <section>
         <div style={{ paddingLeft: 90 }}>
           <h3>Zipper for a "cycled tree"</h3>
-          <p>Use arrows to see how zipper changes.</p>
         </div>
         <VizualizeTreeZipper
           tree={cicledTree}

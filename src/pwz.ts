@@ -1,4 +1,11 @@
 import { List, arrayToList, cons, forEach, unwind } from "./List";
+import {
+  grayColor,
+  leftColor,
+  listColor,
+  rightColor,
+  zipperColor,
+} from "./common";
 import { Memo } from "./pwzMemo";
 
 export type ID = number;
@@ -69,12 +76,6 @@ export const narryTreeToExpression = (
   });
 
 // Vizualization part ---------------------------------------------------------
-
-const listColor = "#8b0000";
-const zipperColor = "#ff69b4";
-const leftColor = "#0000cd";
-const rightColor = "#006400";
-const grayColor = "#708090";
 
 type Edge = {
   from: ID;

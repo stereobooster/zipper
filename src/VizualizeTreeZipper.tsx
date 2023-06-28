@@ -11,6 +11,7 @@ import {
   treeZipperToDot,
   up,
 } from "./TreeZipper";
+import { buttonRect, controls, select, subControls } from "./common";
 
 type VizualizeTreeZipperProps = {
   tree: Tree<string>;
@@ -18,25 +19,6 @@ type VizualizeTreeZipperProps = {
   showTree?: boolean;
   height?: number;
   width?: number;
-};
-
-const controls: React.CSSProperties = {
-  display: "flex",
-  gap: 24,
-  paddingLeft: 90,
-  paddingBottom: 20,
-  alignItems: "center",
-};
-const select: React.CSSProperties = {
-  height: 36,
-  fontSize: 24,
-  textAlign: "center",
-};
-const button: React.CSSProperties = {
-  width: 36,
-  height: 36,
-  fontSize: 24,
-  textAlign: "center",
 };
 
 // still trying to figure best render engine
@@ -55,7 +37,6 @@ export const VizualizeTreeZipper = ({
 }: VizualizeTreeZipperProps) => {
   const [layout, setLayout] = useState("dag");
   const [mode, setMode] = useState("zipper");
-  const [zoom, setZoom] = useState(false);
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
   const dot = showZipper
@@ -82,63 +63,74 @@ export const VizualizeTreeZipper = ({
   return (
     <>
       <div style={controls}>
-        <select
-          onChange={(e) => setLayout(e.target.value)}
-          value={layout}
-          style={select}
-        >
-          <option value="dag">DAG</option>
-          <option value="lcrs">LCRS tree</option>
-        </select>
+        <label>
+          Show tree as
+          <br />
+          <select
+            onChange={(e) => setLayout(e.target.value)}
+            value={layout}
+            style={select}
+          >
+            <option value="dag">DAG</option>
+            <option value="lcrs">LCRS tree</option>
+          </select>
+        </label>
         {showZipper && (
           <>
-            <button onClick={callback("l")} style={button}>
-              ←
-            </button>
-            <button onClick={callback("r")} style={button}>
-              →
-            </button>
-            <button onClick={callback("d")} style={button}>
-              ↓
-            </button>
-            <button onClick={callback("u")} style={button}>
-              ↑
-            </button>
-            <input
-              value={zipper.focus?.value}
-              onChange={(e) =>
-                setZipper((x) => replace(x, e.target.value as any))
-              }
-              style={button}
-            />
+            <div>
+              Use arrows to navigate
+              <br />
+              <div style={subControls}>
+                <button onClick={callback("l")} style={buttonRect}>
+                  ←
+                </button>
+                <button onClick={callback("r")} style={buttonRect}>
+                  →
+                </button>
+                <button onClick={callback("d")} style={buttonRect}>
+                  ↓
+                </button>
+                <button onClick={callback("u")} style={buttonRect}>
+                  ↑
+                </button>
+              </div>
+            </div>
+            <label>
+              Value at focus
+              <br />
+              <input
+                value={zipper.focus?.value}
+                onChange={(e) =>
+                  setZipper((x) => replace(x, e.target.value as any))
+                }
+                style={buttonRect}
+              />
+            </label>
             {showTree && (
-              <select
-                onChange={(e) => setMode(e.target.value)}
-                value={mode}
-                style={select}
-              >
-                <option value="zipper">Zipper</option>
-                <option value="zipper-tree">Zipper + tree</option>
-              </select>
+              <label>
+                Zipper or tree?
+                <br />
+                <select
+                  onChange={(e) => setMode(e.target.value)}
+                  value={mode}
+                  style={select}
+                >
+                  <option value="zipper">Zipper</option>
+                  <option value="zipper-tree">Zipper + tree</option>
+                </select>
+              </label>
             )}
-            {false && (
+            <div>
+              <br />
               <label>
                 <input
                   type="checkbox"
-                  checked={zoom}
-                  onChange={() => setZoom((x) => !x)}
+                  checked={fit}
+                  onChange={() => setFit((x) => !x)}
                 />{" "}
-                Zoom
+                Fit
               </label>
-            )}
-            <label>
-              <input
-                type="checkbox"
-                checked={fit}
-                onChange={() => setFit((x) => !x)}
-              />{" "}
-              Fit
-            </label>
+            </div>
           </>
         )}
       </div>
@@ -151,7 +143,7 @@ export const VizualizeTreeZipper = ({
           engine: "dot",
           useWorker: false,
           fit,
-          zoom,
+          zoom: false,
         }}
       />
     </>

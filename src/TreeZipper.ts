@@ -1,5 +1,6 @@
 import { List, cons, forEach, unwind } from "./List";
 import { ID, Level, Tree, treeNode } from "./Tree";
+import { grayColor, leftColor, listColor, rightColor, zipperColor } from "./common";
 
 export type TreeZipperPath<T, P = Tree<T>> = List<{
   left: List<P>;
@@ -116,12 +117,6 @@ export const replace = <T>(zipper: TreeZipper<T>, value: T): TreeZipper<T> => {
 };
 
 // Vizualization part
-
-const listColor = "#8b0000";
-const zipperColor = "#ff69b4";
-const leftColor = "#0000cd";
-const rightColor = "#006400";
-const grayColor = "#708090";
 
 type Edge = {
   from: ID;
