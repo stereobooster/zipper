@@ -41,6 +41,8 @@ const button: React.CSSProperties = {
 //   textAlign: "center",
 // };
 
+const top = 1;
+
 const dir = (direction: DeriveDirection): string => {
   switch (direction) {
     case "down":
@@ -52,7 +54,7 @@ const dir = (direction: DeriveDirection): string => {
     case "upPrime":
       return "↑'";
     case "none":
-      return "-";
+      return "■";
   }
 };
 
@@ -85,14 +87,19 @@ export const VizualizeGrammar = ({
   const go = () => {
     let newSteps = deriveStep(position, token, steps, step);
     if (position >= str.length - 1) {
-      newSteps = newSteps.map(([d, z, m]) =>
-        d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
-      );
+      newSteps = newSteps
+        .filter(([, z, ,]) => z.focus.level >= top)
+        .map(([d, z, ...rest]) =>
+          d === "up" && z.focus.level === top && z.up === null
+            ? ["none", z, ...rest]
+            : [d, z, ...rest]
+        );
     }
     setSteps(newSteps);
 
     let newStep = -1;
-    newStep = newSteps.findIndex(([direction]) => direction === "upPrime");
+    if (newStep === -1)
+      newStep = newSteps.findIndex(([direction]) => direction === "upPrime");
     if (newStep === -1)
       newStep = newSteps.findIndex(([direction]) => direction === "downPrime");
     if (newStep === -1)
@@ -104,9 +111,10 @@ export const VizualizeGrammar = ({
       const [newDirection] = newSteps[newStep];
       if (
         newDirection === "down" &&
-        (direction === "up" || direction === "upPrime")
+        (direction === "up" || direction === "upPrime") &&
+        position < str.length - 1
       ) {
-        if (position < str.length - 1) setPosition((x) => x + 1);
+        setPosition((x) => x + 1);
       }
       if (displayZipper != -1) setDisplayZipper(newStep);
       return setStep(newStep);
@@ -115,11 +123,13 @@ export const VizualizeGrammar = ({
     if (displayZipper != -1) setDisplayZipper(newStep);
     setStep(newStep);
     setSteps(
-      newSteps.map(([_, z, m]) =>
-        position >= str.length - 1 && z.up === null
-          ? ["none", z, m]
-          : ["up", z, m]
-      )
+      newSteps
+        .filter(([, z, ,]) => z.focus.level >= top)
+        .map(([_, z, ...rest]) =>
+          position >= str.length - 1 && z.focus.level === top && z.up === null
+            ? ["none", z, ...rest]
+            : ["up", z, ...rest]
+        )
     );
   };
   const [fit, setFit] = useState(false);
@@ -142,7 +152,6 @@ export const VizualizeGrammar = ({
         <button style={button} onClick={go}>
           Derivate
         </button>
-
         <select
           onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
           value={displayZipper}
@@ -159,8 +168,10 @@ export const VizualizeGrammar = ({
         <span
           dangerouslySetInnerHTML={{
             __html: steps
-              .map(([d], i) =>
-                i === step ? `<b style="color:red">${dir(d)}</b>` : dir(d)
+              .map(([d, z], i) =>
+                i === step
+                  ? `<b style="color:red">${dir(d)} ${z.focus.level}</b>`
+                  : `${dir(d)} ${z.focus.level}`
               )
               .join(" | "),
           }}

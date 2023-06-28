@@ -33,15 +33,27 @@ export type NarryExpression = [string, ExpressionType, Array<NarryExpression>];
 export const expressionNode = ({
   originalId,
   id,
-  // expressionType,
+  expressionType,
+  children,
+  value,
   ...props
-}: Omit<Expression, "id"> & { id?: ID }): Expression => ({
-  ...props,
-  // expressionType:
-  //   props.value === "" && expressionType === "Tok" ? "Seq" : expressionType,
-  originalId: originalId !== undefined ? originalId : id,
-  id: Math.random(),
-});
+}: Omit<Expression, "id"> & { id?: ID }): Expression => {
+  if (expressionType === "Tok" && children !== null)
+    throw Error("Token can't have children");
+  if (expressionType === "Tok" && value === "") expressionType = "Seq";
+  if (expressionType === "Seq" && children === null && value === "")
+    value = "ϵ";
+  if (expressionType === "Alt" && children === null && value === "")
+    value = "∅";
+  return {
+    ...props,
+    expressionType,
+    children,
+    value,
+    originalId: originalId !== undefined ? originalId : id,
+    id: Math.random(),
+  };
+};
 
 export const narryTreeToExpression = (
   narryTree: NarryExpression,
@@ -258,10 +270,8 @@ const nodeToDot = (
   if (expressionType === "Tok" && value === "") label = "ϵ";
   if ((expressionType === "Seq" || expressionType === "SeqC") && value === "")
     label = "·";
-  // Seq without children ϵ
   if ((expressionType === "Alt" || expressionType === "AltC") && value === "")
     label = "∪";
-  // Alt without children ∅
 
   return `${id} [penwidth=4 style="filled,solid" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
 };

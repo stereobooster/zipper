@@ -59,7 +59,7 @@ e.children = cons(cicledTree, null);
 
 // S -> a S | ""
 // const str = "aa";
-// const exp1 = narryTreeToExpression([
+// const exp = narryTreeToExpression([
 //   "S",
 //   "Alt",
 //   [
@@ -74,12 +74,12 @@ e.children = cons(cicledTree, null);
 //     ["", "Tok", []],
 //   ],
 // ]);
-// const e1 = exp1?.children?.value.children?.next as any;
-// e1.value = exp1;
+// const e1 = exp?.children?.value.children?.next as any;
+// e1.value = exp;
 
 // S -> S + S | 1
-// const str = "1+1+1";
-const exp2 = narryTreeToExpression([
+const str = "1+1+1";
+const exp = narryTreeToExpression([
   "S",
   "Alt",
   [
@@ -95,10 +95,10 @@ const exp2 = narryTreeToExpression([
     ["1", "Tok", []],
   ],
 ]);
-let e2 = exp2?.children?.value.children as any;
-e2.value = exp2;
-e2 = exp2?.children?.value.children?.next?.next as any;
-e2.value = exp2;
+let e2 = exp?.children?.value.children as any;
+e2.value = exp;
+e2 = exp?.children?.value.children?.next?.next as any;
+e2.value = exp;
 
 const App = () => {
   return (
@@ -251,7 +251,7 @@ const App = () => {
         <div style={{ paddingLeft: 90 }}>
           <h2>Parsing with zippers</h2>
         </div>
-        <VizualizeGrammar tree={exp2} str="1+1+1" />
+        <VizualizeGrammar tree={exp} str={str} />
       </section>
     </>
   );

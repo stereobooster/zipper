@@ -82,12 +82,12 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - PwZ
-  - Draw `ϵ` for `Seq` without children
+  - Fig. 17. Code for the derivative using zippers with expression and context sharing. Changes relative to Figure 14 in bold.
+  - Fig. 22. Code for the derivative using zippers without memoization tables. Changes relative to Figure 17 in bold. Except for highlighting, this figure is identical to Figure 1.
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
 - BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges
 - Mention combinatorial species
-- Brzozowski derivative
 - refactor list vizualization to use the same viz as tree
   - `[React Archer] Could not find target element! Not drawing the arrow.`
 
