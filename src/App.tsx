@@ -227,14 +227,6 @@ const App = () => {
       <section>
         <div style={{ paddingLeft: 90 }}>
           <h3>Zipper for a "cycled tree"</h3>
-        </div>
-        <VizualizeTreeZipper
-          tree={cicledTree}
-          showZipper
-          height={600}
-          width={600}
-        />
-        <div style={{ paddingLeft: 90 }}>
           <ul>
             <li>
               Cycled structure serves as pattern to generate infinite structure
@@ -242,11 +234,50 @@ const App = () => {
             </li>
           </ul>
         </div>
+        <VizualizeTreeZipper
+          tree={cicledTree}
+          showZipper
+          height={600}
+          width={600}
+        />
       </section>
-
       <section>
         <div style={{ paddingLeft: 90 }}>
           <h2>Parsing with zippers</h2>
+          <ul>
+            <li>
+              Based on{" "}
+              <a href="https://dl.acm.org/doi/pdf/10.1145/3408990">
+                Parsing with Zippers
+              </a>
+              , 2020
+            </li>
+            <li>
+              Parser returns list of zippers. It is hard to understand what is
+              happening when all zippers are shown at once, so you can select to
+              show only one zipper at a time
+            </li>
+            <li>
+              For each zipper vizualization shows current depth of focus and
+              direction of next move
+            </li>
+            <li>
+              "Derivate" button makes one move for one zipper at a time. Next
+              move shown in red
+            </li>
+            <li>
+              Current position in string which is being parsed shown in red
+            </li>
+            <li>
+              Vizualization doesn't show memoized zippers (See `mem` in original
+              paper). So sometimes it seems like there is nowhere to move in the
+              zipper, but new paths appear out of nowhere
+            </li>
+            <li>
+              Vizualization doesn't show left and right empty nodes for zipper
+              to remove vizual noise
+            </li>
+          </ul>
         </div>
         <VizualizeGrammar tree={exp} str={str} />
       </section>

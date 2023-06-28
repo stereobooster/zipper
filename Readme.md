@@ -82,7 +82,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - TODO
-  - Explainer for PwZ
   - Start / stop derivation button with 5 second pause between steps
   - Finish implementation of PwZ
     - Fig. 17. Code for the derivative using zippers with expression and context sharing. Changes relative to Figure 14 in bold.
