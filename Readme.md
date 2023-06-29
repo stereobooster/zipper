@@ -82,14 +82,12 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - TODO
-  - Start / stop derivation button with 5 second pause between steps
-  - Finish implementation of PwZ
-    - Fig. 17. Code for the derivative using zippers with expression and context sharing. Changes relative to Figure 14 in bold.
-    - Fig. 22. Code for the derivative using zippers without memoization tables. Changes relative to Figure 17 in bold. Except for highlighting, this figure is identical to Figure 1.
-  - Problem of disappering zippers in PwZ vizualization
   - Parser for a simplified "grammar"
     - `S -> a | b`
     - `()`, whitespace, quotes
+  - Start / stop derivation button with 5 second pause between steps
+  - Implement PwZ without memoization table
+  - Problem of disappering zippers in PwZ vizualization
   - Tree compaction
   - Refactor: remove level from Tree
 - Fix display "Zipper + tree"

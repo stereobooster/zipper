@@ -40,18 +40,30 @@ export const VizualizeGrammar = ({
   width,
   str,
 }: VizualizeGrammarProps) => {
-  const [displayZipper, setDisplayZipper] = useState(-1);
+  const [fit, setFit] = useState(false);
   const [layout, setLayout] = useState("dag");
+
+  const [displayZipper, setDisplayZipper] = useState(-1);
+  const [step, setStep] = useState(0);
+  const [steps, setSteps] = useState<Step[]>(() => [
+    ["down", expressionToZipper(tree), undefined],
+  ]);
 
   const [position, setPosition] = useState(0);
   const token = str[position] || "";
 
-  const [steps, setSteps] = useState(
-    () => [["down", expressionToZipper(tree), undefined]] as Step[]
-  );
-  const [step, setStep] = useState(0);
-
-  const [direction] = steps[step];
+  const strWIthPos =
+    str.substring(0, position) +
+    `<span style="text-decoration: underline;">${token}</span>` +
+    str.substring(position + 1, str.length);
+  const depthAndDirection = steps
+    .map(
+      ([d, z], i) =>
+        `<span style="${i === step ? "text-decoration: underline;" : ""}${
+          i === displayZipper ? "color: red;" : ""
+        }">${dir(d)} ${z.focus.level} </span>`
+    )
+    .join("&nbsp;,&nbsp;");
   const dot = expressionZipperToDot({
     zippers: !steps[displayZipper]
       ? steps.map(([, zipper]) => zipper)
@@ -61,58 +73,31 @@ export const VizualizeGrammar = ({
   });
 
   const go = () => {
+    if (position > str.length) return;
+    
     let newSteps = deriveStep(position, token, steps, step);
-    if (position >= str.length - 1) {
-      newSteps = newSteps
-        .filter(([, z, ,]) => z.focus.level >= top)
-        .map(([d, z, ...rest]) =>
-          d === "up" && z.focus.level === top && z.up === null
-            ? ["none", z, ...rest]
-            : [d, z, ...rest]
-        );
-    }
-    setSteps(newSteps);
+    if (position == str.length)
+      newSteps = newSteps.map(([d, z, m]) =>
+        d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
+      );
 
     let newStep = -1;
+    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "upPrime");
     if (newStep === -1)
-      newStep = newSteps.findIndex(([direction]) => direction === "upPrime");
-    if (newStep === -1)
-      newStep = newSteps.findIndex(([direction]) => direction === "downPrime");
-    if (newStep === -1)
-      newStep = newSteps.findIndex(([direction]) => direction === "up");
-    if (newStep === -1)
-      newStep = newSteps.findIndex(([direction]) => direction === "down");
-
-    if (newStep != -1) {
-      const [newDirection] = newSteps[newStep];
-      if (
-        newDirection === "down" &&
-        (direction === "up" || direction === "upPrime") &&
-        position < str.length - 1
-      ) {
-        setPosition((x) => x + 1);
-      }
-      if (displayZipper != -1) setDisplayZipper(newStep);
-      return setStep(newStep);
+      newStep = newSteps.findIndex(([d]) => d === "downPrime");
+    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "up");
+    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "down");
+    if (newStep === -1) {
+      newStep = 0;
+      setPosition((x) => x + 1);
+      if (position < str.length)
+        newSteps = newSteps.map(([, z, m]) => ["up", z, m]);
     }
-    newStep = 0;
+
     if (displayZipper != -1) setDisplayZipper(newStep);
     setStep(newStep);
-    setSteps(
-      newSteps
-        .filter(([, z, ,]) => z.focus.level >= top)
-        .map(([_, z, ...rest]) =>
-          position >= str.length - 1 && z.focus.level === top && z.up === null
-            ? ["none", z, ...rest]
-            : ["up", z, ...rest]
-        )
-    );
+    setSteps(newSteps);
   };
-  const [fit, setFit] = useState(false);
-  const strWIthPos =
-    str.substring(0, position) +
-    `<b style="color:red">${token}</b>` +
-    str.substring(position + 1, str.length);
 
   return (
     <>
@@ -146,7 +131,7 @@ export const VizualizeGrammar = ({
             <option value="-1">All</option>
             {steps.map((_, i) => (
               <option value={i} key={i}>
-                {i}
+                {i + 1}
               </option>
             ))}
           </select>
@@ -161,15 +146,7 @@ export const VizualizeGrammar = ({
           <br />
           <div
             style={text}
-            dangerouslySetInnerHTML={{
-              __html: steps
-                .map(([d, z], i) =>
-                  i === step
-                    ? `<b style="color:red">${dir(d)} ${z.focus.level}</b>`
-                    : `<span>${dir(d)} ${z.focus.level}</span>`
-                )
-                .join("&nbsp;|&nbsp;"),
-            }}
+            dangerouslySetInnerHTML={{ __html: depthAndDirection }}
           />
         </div>
         <div>
@@ -183,18 +160,6 @@ export const VizualizeGrammar = ({
             Fit
           </label>
         </div>
-        {/*<input
-          value={position}
-          onChange={(e) => setPosition(parseInt(e.target.value, 10))}
-          style={input}
-          type="number"
-        />
-         <input
-          value={step}
-          onChange={(e) => setStep(parseInt(e.target.value, 10))}
-          style={input}
-          type="number"
-        /> */}
       </div>
       <Graphviz
         dot={dot}
