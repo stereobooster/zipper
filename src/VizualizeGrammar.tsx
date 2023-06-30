@@ -59,7 +59,7 @@ export const VizualizeGrammar = ({
       ([d, z], i) =>
         `<span style="${i === step ? "text-decoration: underline;" : ""}${
           i === displayZipper ? "color: red;" : ""
-        }">${dir(d)} ${z.focus.level} </span>`
+        }">${dir(d)} ${(z.up?.value.level || 0) + 1} </span>`
     )
     .join("&nbsp;,&nbsp;");
   const dot = expressionZipperToDot({
@@ -131,7 +131,8 @@ export const VizualizeGrammar = ({
           </select>
         </label>
         <div>
-          Next step<br />
+          Next step
+          <br />
           <button style={buttonRect} onClick={go} disabled={finished}>
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
@@ -183,7 +184,7 @@ export const VizualizeGrammar = ({
             onClick={() => setAutoDerivate((x) => !x)}
             disabled={finished}
           >
-            Derivate 
+            Derivate
           </button>
         </div>
       </div>

@@ -88,7 +88,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Implement PwZ without memoization table
   - Problem of disappering zippers in PwZ vizualization
   - Tree compaction
-  - Refactor: remove level from Tree
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
 - BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges

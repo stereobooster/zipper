@@ -4,7 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { narryTreeToExpression } from "./pwz";
+import { alt, exc, seq, star, tok } from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -35,31 +35,17 @@ e.children = cons(cicledTree, null);
 
 // S -> (a b) (c d)
 // const str = "abcd";
-// const exp = narryTreeToExpression([
-//   "S",
-//   "Seq",
-//   [
-//     [
-//       "",
-//       "Seq",
-//       [
-//         ["a", "Tok", []],
-//         ["b", "Tok", []],
-//       ],
-//     ],
-//     [
-//       "",
-//       "Seq",
-//       [
-//         ["c", "Tok", []],
-//         ["d", "Tok", []],
-//       ],
-//     ],
-//   ],
+// const exp = seq("S", [
+//   seq("", [tok("a"), tok("b")]),
+//   seq("", [tok("c"), tok("d")]),
 // ]);
 
-// S -> a S | ""
-// const str = "aa";
+// S -> a*
+// const str = "aaaa";
+// const exp = star(tok("a"))
+
+// S -> S + S | 1
+// const str = "1+1+1";
 // const exp = narryTreeToExpression([
 //   "S",
 //   "Alt",
@@ -68,38 +54,40 @@ e.children = cons(cicledTree, null);
 //       "",
 //       "Seq",
 //       [
-//         ["a", "Tok", []],
+//         ["S", "Alt", []],
+//         ["+", "Tok", []],
 //         ["S", "Alt", []],
 //       ],
 //     ],
-//     ["", "Tok", []],
+//     ["1", "Tok", []],
 //   ],
 // ]);
-// const e1 = exp?.children?.value.children?.next as any;
-// e1.value = exp;
+// let e2 = exp?.children?.value.children as any;
+// e2.value = exp;
+// e2 = exp?.children?.value.children?.next?.next as any;
+// e2.value = exp;
 
-// S -> S + S | 1
-const str = "1+1+1";
-const exp = narryTreeToExpression([
-  "S",
-  "Alt",
-  [
-    [
-      "",
-      "Seq",
-      [
-        ["S", "Alt", []],
-        ["+", "Tok", []],
-        ["S", "Alt", []],
-      ],
-    ],
-    ["1", "Tok", []],
-  ],
+// E -> Letter Arrow Letter Alt Letter
+// S->.|.
+// S->..
+// S->.*
+// S->.(|.)*
+// const str = "S->a|b";
+// const exp = seq("E", [
+//   any(),
+//   seq("→", [tok("-"), tok(">")]),
+//   any(),
+//   tok("|"),
+//   any(),
+// ]);
+
+// S -> "(^"|\")*"
+const str = '"a\\"c"';
+const exp = seq("Q", [
+  tok('"'),
+  star(alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
+  tok('"'),
 ]);
-let e2 = exp?.children?.value.children as any;
-e2.value = exp;
-e2 = exp?.children?.value.children?.next?.next as any;
-e2.value = exp;
 
 const App = () => {
   return (

@@ -10,7 +10,14 @@ import { Memo } from "./pwzMemo";
 
 export type ID = number;
 export type Level = number;
-export type ExpressionType = "Tok" | "Seq" | "Alt" | "SeqC" | "AltC";
+export type ExpressionType =
+  | "Tok"
+  | "Seq"
+  | "Alt"
+  | "SeqC"
+  | "AltC"
+  | "TokAny"
+  | "TokExc";
 
 export type Mem = {
   parents: ExpressionZipper[];
@@ -28,14 +35,10 @@ export type Expression = {
   children: List<Expression>;
   // for vizualization
   id: ID;
-  // Level can be removed, because it can be calculated during traversal
-  level: Level;
   originalId?: ID;
   // cache
   m?: Mem;
 };
-
-export type NarryExpression = [string, ExpressionType, Array<NarryExpression>];
 
 export const expressionNode = ({
   originalId,
@@ -61,19 +64,6 @@ export const expressionNode = ({
     id: Math.random(),
   };
 };
-
-export const narryTreeToExpression = (
-  narryTree: NarryExpression,
-  level = 1
-): Expression =>
-  expressionNode({
-    value: narryTree[0],
-    expressionType: narryTree[1],
-    children: arrayToList(
-      narryTree[2].map((t) => narryTreeToExpression(t, level + 1))
-    ),
-    level,
-  });
 
 // Vizualization part ---------------------------------------------------------
 
@@ -110,10 +100,10 @@ const setRank = (display: Display, id: ID, level: Level) => {
   display.ranks[id] = level;
 };
 
-const addNode = (display: Display, node: Node) => {
+const addNode = (display: Display, node: Node, level: number) => {
   display.nodes[node.id] = node;
-  if (node.level <= 0) return;
-  setRank(display, node.id, node.level);
+  // if (node.level <= 0) return;
+  setRank(display, node.id, level);
 };
 
 const addEdge = (
@@ -136,7 +126,7 @@ const traverseExpression = (
   },
   showOriginal?: boolean,
   type?: "green" | "blue",
-  level?: number
+  level = 1
 ) => {
   if (!tree) return display;
   const parent = tree;
@@ -144,19 +134,25 @@ const traverseExpression = (
   if (display.nodes[parent.id]) return display;
 
   const { children, originalId, ...node } = parent;
-  addNode(display, {
-    ...node,
-    originalId,
-    type,
-    level: level === undefined ? node.level : level,
-  });
-  if (showOriginal && originalId) {
-    addNode(display, {
+  addNode(
+    display,
+    {
       ...node,
-      id: originalId,
-      type: "gray",
-      level: level === undefined ? node.level : level,
-    });
+      originalId,
+      type,
+    },
+    level
+  );
+  if (showOriginal && originalId) {
+    addNode(
+      display,
+      {
+        ...node,
+        id: originalId,
+        type: "gray",
+      },
+      level
+    );
   }
 
   let prev = parent;
@@ -236,7 +232,12 @@ const nodeToDot = (
 ) => {
   // https://graphviz.org/doc/info/shapes.html
   let shape = "circle";
-  if (expressionType === "Tok") {
+
+  if (expressionType === "TokAny") {
+    shape = "house";
+  } else if (expressionType === "TokExc") {
+    shape = "invhouse";
+  } else if (expressionType === "Tok") {
     shape = "square";
   } else if (expressionType === "Alt" || expressionType === "AltC") {
     shape = "diamond";
@@ -268,11 +269,16 @@ const nodeToDot = (
   }
 
   let label = value;
+  if (expressionType === "TokAny") label = "?";
   if (expressionType === "Tok" && value === "") label = "ϵ";
   if ((expressionType === "Seq" || expressionType === "SeqC") && value === "")
     label = "·";
   if ((expressionType === "Alt" || expressionType === "AltC") && value === "")
     label = "∪";
+
+  // TODO: escape label value
+  if (label === '"') label = '\\"';
+  if (label === "\\") label = "\\\\";
 
   return `${id} [penwidth=4 style="filled,solid" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
 };
@@ -315,7 +321,7 @@ const toDot = (
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  // console.log(x);
+  console.log(x);
   return x;
 };
 
@@ -338,6 +344,7 @@ export type ExpressionZipperPath = List<
   Omit<Expression, "children"> & {
     left: List<Expression>;
     right: List<Expression>;
+    level: number;
   }
 >;
 
@@ -369,7 +376,7 @@ export const right = (zipper: ExpressionZipper): ExpressionZipper => {
     left: cons(zipper.focus, zipper.left),
     right: zipper.right.next,
     up: zipper.up,
-    focus: expressionNode({ ...zipper.right.value, level: zipper.focus.level }),
+    focus: expressionNode({ ...zipper.right.value }),
   };
 };
 
@@ -385,7 +392,7 @@ export const left = (zipper: ExpressionZipper): ExpressionZipper => {
     left: zipper.left.next,
     right: cons(zipper.focus, zipper.right),
     up: zipper.up,
-    focus: expressionNode({ ...zipper.left.value, level: zipper.focus.level }),
+    focus: expressionNode({ ...zipper.left.value }),
   };
 };
 
@@ -405,13 +412,13 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
         expressionType: zipper.focus.expressionType,
         // for vizualization
         id: Math.random(),
-        level: zipper.focus.level,
+        level: (zipper.up?.value.level || 0) + 1,
         originalId: zipper.focus.originalId || zipper.focus.id,
         m: zipper.focus.m,
       },
       zipper.up
     ),
-    focus: expressionNode({ ...children.value, level: zipper.focus.level + 1 }),
+    focus: expressionNode({ ...children.value }),
   };
 };
 
@@ -428,7 +435,6 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
       // NOTE: this is not a contant time operation
       children: unwind(zipper.left, zipper.focus, zipper.right),
       // for vizualization
-      level: zipper.up.value.level,
       originalId: zipper.up.value.originalId,
       m: zipper.up.value.m,
     }),
@@ -440,7 +446,7 @@ export const replace = (
   focus: Expression
 ): ExpressionZipper => ({
   ...zipper,
-  focus: { ...focus, level: zipper.focus.level },
+  focus,
 });
 
 export const mapChildren = <T>(
@@ -512,6 +518,29 @@ function deriveDownPrime(
   m: Mem
 ): Step[] {
   switch (zipper.focus.expressionType) {
+    case "TokAny":
+      return [
+        [
+          "none",
+          replace(
+            zipper,
+            expressionNode({ ...zipper.focus, ...empty, value: token })
+          ),
+          m,
+        ],
+      ];
+    case "TokExc":
+      if (zipper.focus.value === token) return [];
+      return [
+        [
+          "none",
+          replace(
+            zipper,
+            expressionNode({ ...zipper.focus, ...empty, value: token })
+          ),
+          m,
+        ],
+      ];
     case "Tok":
       // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
       if (zipper.focus.value !== token) return [];
@@ -668,13 +697,16 @@ const traverseUp = (
 
   if (up) {
     if (showOriginal && up.originalId) {
-      addNode(display, {
-        value: up.value,
-        expressionType: up.expressionType,
-        id: up.originalId,
-        type: "gray",
-        level: up.level,
-      });
+      addNode(
+        display,
+        {
+          value: up.value,
+          expressionType: up.expressionType,
+          id: up.originalId,
+          type: "gray",
+        },
+        up.level
+      );
       addEdge(display, 1, zipper.left === null, {
         from: up.originalId,
         to: current.originalId || current.id,
@@ -689,15 +721,18 @@ const traverseUp = (
       direction: "backward",
       type: focus ? "zipper" : "blue",
     });
-    addNode(display, {
-      value: up.value,
-      expressionType: up.expressionType,
-      id: up.id,
-      type: "blue",
-      originalId: up.originalId,
-      zipper: focus ? true : false,
-      level: up.level,
-    });
+    addNode(
+      display,
+      {
+        value: up.value,
+        expressionType: up.expressionType,
+        id: up.id,
+        type: "blue",
+        originalId: up.originalId,
+        zipper: focus ? true : false,
+      },
+      up.level
+    );
 
     traverseUp(zipperPath.next, display, showOriginal);
   } else {
@@ -709,13 +744,16 @@ const traverseUp = (
         direction: "backward",
         type: "zipper",
       });
-      addNode(display, {
-        value: "",
-        id: upId,
-        type: "empty",
-        zipper: true,
-        level: 0,
-      } as Node);
+      addNode(
+        display,
+        {
+          value: "",
+          id: upId,
+          type: "empty",
+          zipper: true,
+        } as Node,
+        0
+      );
     } else {
       const upId = 80;
       addEdge(display, 1, 1, {
@@ -723,18 +761,21 @@ const traverseUp = (
         to: current.id,
         type: "invisible",
       });
-      addNode(display, {
-        value: "",
-        id: upId,
-        type: "empty",
-        level: 0,
-      } as Node);
+      addNode(
+        display,
+        {
+          value: "",
+          id: upId,
+          type: "empty",
+        } as Node,
+        0
+      );
     }
   }
 
   const left = zipper.left?.value;
   if (left) {
-    let prev = current;
+    let prev = current as { id: ID; originalId?: ID };
     forEach(zipper.left, (node) => {
       if (!node) return;
 
@@ -787,7 +828,7 @@ const traverseUp = (
 
   const right = zipper.right?.value;
   if (right) {
-    let prev = current;
+    let prev = current as { id: ID; originalId?: ID };
     forEach(zipper.right, (node) => {
       if (!node) return;
 
@@ -860,7 +901,13 @@ const traverseZipper = (
 ) => {
   if (!zipper.focus) return display;
   const focus = zipper.focus;
-  traverseExpression(focus, display, Boolean(tree), "green", focus.level);
+  traverseExpression(
+    focus,
+    display,
+    Boolean(tree),
+    "green",
+    (zipper.up?.value.level || 0) + 1
+  );
   display.nodes[focus.id].type = "focus";
   display.nodes[focus.id].zipper = true;
   traverseUp(
@@ -871,7 +918,7 @@ const traverseZipper = (
         value: focus.value,
         expressionType: focus.expressionType,
         id: focus.id,
-        level: focus.level,
+        level: (zipper.up?.value.level || 0) + 1,
         originalId: focus.originalId,
       },
       zipper.up
