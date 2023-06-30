@@ -466,7 +466,6 @@ export const replaceType = (
 // empty string
 const empty = {
   expressionType: "Seq",
-  // value: "",
   children: null,
 } as const;
 

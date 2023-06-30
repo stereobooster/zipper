@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Graphviz from "graphviz-react";
 import {
   DeriveDirection,
@@ -8,7 +8,7 @@ import {
   expressionToZipper,
   expressionZipperToDot,
 } from "./pwz";
-import { button, controls, select, text } from "./common";
+import { button, buttonRect, controls, select, text } from "./common";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -16,8 +16,6 @@ type VizualizeGrammarProps = {
   height?: number;
   width?: number;
 };
-
-const top = 1;
 
 const dir = (direction: DeriveDirection): string => {
   switch (direction) {
@@ -72,9 +70,9 @@ export const VizualizeGrammar = ({
     // tree,
   });
 
-  const go = () => {
-    if (position > str.length) return;
-    
+  const [finished, setFinished] = useState(false);
+  const go = useCallback(() => {
+    if (position > str.length) return setFinished(true);
     let newSteps = deriveStep(position, token, steps, step);
     if (position == str.length)
       newSteps = newSteps.map(([d, z, m]) =>
@@ -97,7 +95,25 @@ export const VizualizeGrammar = ({
     if (displayZipper != -1) setDisplayZipper(newStep);
     setStep(newStep);
     setSteps(newSteps);
-  };
+  }, [
+    position,
+    token,
+    steps,
+    step,
+    displayZipper,
+    str,
+    setFinished,
+    setDisplayZipper,
+    setStep,
+    setSteps,
+  ]);
+
+  const [autoDerivate, setAutoDerivate] = useState(false);
+  useEffect(() => {
+    if (finished || !autoDerivate) return;
+    const i = setInterval(go, 50);
+    return () => clearInterval(i);
+  }, [autoDerivate, finished, go]);
 
   return (
     <>
@@ -115,9 +131,9 @@ export const VizualizeGrammar = ({
           </select>
         </label>
         <div>
-          <br />
-          <button style={button} onClick={go}>
-            Derivate
+          Next step<br />
+          <button style={buttonRect} onClick={go} disabled={finished}>
+            {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>
         <label>
@@ -159,6 +175,16 @@ export const VizualizeGrammar = ({
             />{" "}
             Fit
           </label>
+        </div>
+        <div>
+          <br />
+          <button
+            style={button}
+            onClick={() => setAutoDerivate((x) => !x)}
+            disabled={finished}
+          >
+            Derivate 
+          </button>
         </div>
       </div>
       <Graphviz

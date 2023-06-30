@@ -85,7 +85,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Parser for a simplified "grammar"
     - `S -> a | b`
     - `()`, whitespace, quotes
-  - Start / stop derivation button with 5 second pause between steps
   - Implement PwZ without memoization table
   - Problem of disappering zippers in PwZ vizualization
   - Tree compaction
