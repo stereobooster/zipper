@@ -1,6 +1,11 @@
 import { arrayToList } from "./List";
 import { Expression, expressionNode } from "./pwz";
 
+// operations from the original paper -----------------------------------------
+
+/**
+ * token
+ */
 export const tok = (value: string) =>
   expressionNode({
     expressionType: "Tok",
@@ -8,6 +13,9 @@ export const tok = (value: string) =>
     children: null,
   });
 
+/**
+ * concatenation
+ */
 export const seq = (value: string, children: Expression[]) =>
   expressionNode({
     expressionType: "Seq",
@@ -15,6 +23,9 @@ export const seq = (value: string, children: Expression[]) =>
     children: arrayToList(children),
   });
 
+/**
+ * unordered choice
+ */
 export const alt = (value: string, children: Expression[]) =>
   expressionNode({
     expressionType: "Alt",
@@ -23,16 +34,22 @@ export const alt = (value: string, children: Expression[]) =>
   });
 
 /**
- * Kleen star expressed as S -> ϵ | xS
+ * instead of OCAML's `letrec`
  */
-export const star = (x: Expression) => {
-  const empty = tok("");
-  const s = seq("", [x, empty]);
-  const res = alt("*", [empty, s]);
-  const tmp = res.children?.next?.value.children?.next as any;
-  tmp.value = res;
+export const rec = (cb: (x: Expression) => Expression): Expression => {
+  const res = {} as any;
+  const tmp = cb(res);
+  Object.entries(tmp).forEach(([k, v]) => (res[k] = v));
   return res;
 };
+
+// extension ------------------------------------------------------------------
+
+/**
+ * Kleen star expressed as S -> ϵ | x S
+ */
+export const star = (x: Expression) =>
+  rec((s) => alt("*", [tok(""), seq("", [x, s])]));
 
 /**
  * matches any character, similar to `.` from PCRE
@@ -53,5 +70,3 @@ export const exc = (value: string) =>
     value,
     children: null,
   });
-
-// TODO rec

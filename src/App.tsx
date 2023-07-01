@@ -4,7 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { alt, exc, seq, star, tok } from "./pwzDSL";
+import { alt, exc, rec, seq, star, tok } from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -46,32 +46,9 @@ e.children = cons(cicledTree, null);
 
 // S -> S + S | 1
 // const str = "1+1+1";
-// const exp = narryTreeToExpression([
-//   "S",
-//   "Alt",
-//   [
-//     [
-//       "",
-//       "Seq",
-//       [
-//         ["S", "Alt", []],
-//         ["+", "Tok", []],
-//         ["S", "Alt", []],
-//       ],
-//     ],
-//     ["1", "Tok", []],
-//   ],
-// ]);
-// let e2 = exp?.children?.value.children as any;
-// e2.value = exp;
-// e2 = exp?.children?.value.children?.next?.next as any;
-// e2.value = exp;
+// const exp = rec((S) => alt("", [seq("", [S, tok("+"), S]), tok("1")]));
 
 // E -> Letter Arrow Letter Alt Letter
-// S->.|.
-// S->..
-// S->.*
-// S->.(|.)*
 // const str = "S->a|b";
 // const exp = seq("E", [
 //   any(),
