@@ -97,7 +97,7 @@ export const up = <T>(zipper: TreeZipper<T>): TreeZipper<T> => {
     up: zipper.up.next,
     focus: treeNode({
       value: zipper.up.value.value,
-      // NOTE: this is not a contant time operation
+      // NOTE: this is not a constant time operation
       children: unwind(zipper.left, zipper.focus, zipper.right),
       // for vizualization
       level: zipper.up.value.level,

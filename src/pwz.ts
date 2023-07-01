@@ -1,4 +1,4 @@
-import { List, arrayToList, cons, forEach, unwind } from "./List";
+import { List, cons, forEach, unwind } from "./List";
 import {
   grayColor,
   leftColor,
@@ -19,13 +19,6 @@ export type ExpressionType =
   | "TokAny"
   | "TokExc";
 
-export type Mem = {
-  parents: ExpressionZipper[];
-  result: Record<number, Expression[]>;
-};
-
-// Token requires non-empy value and empty children
-// Top expression has to have non-empy value
 export type Expression = {
   expressionType: ExpressionType;
   // S -> a | b
@@ -321,7 +314,7 @@ const toDot = (
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  console.log(x);
+  // console.log(x);
   return x;
 };
 
@@ -355,6 +348,11 @@ export type ExpressionZipper = {
   focus: Expression;
 };
 
+export type Mem = {
+  parents: ExpressionZipper[];
+  result: Record<number, Expression[]>;
+};
+
 export const expressionToZipper = (tree: Expression): ExpressionZipper => {
   return {
     left: null,
@@ -371,12 +369,12 @@ export const right = (zipper: ExpressionZipper): ExpressionZipper => {
     zipper.right === null ||
     zipper.right.value === null
   )
-    return zipper;
+    throw new Error("can't go right");
   return {
     left: cons(zipper.focus, zipper.left),
     right: zipper.right.next,
     up: zipper.up,
-    focus: expressionNode({ ...zipper.right.value }),
+    focus: zipper.right.value,
   };
 };
 
@@ -387,20 +385,21 @@ export const left = (zipper: ExpressionZipper): ExpressionZipper => {
     zipper.left === null ||
     zipper.left.value === null
   )
-    return zipper;
+    throw new Error("can't go left");
   return {
     left: zipper.left.next,
     right: cons(zipper.focus, zipper.right),
     up: zipper.up,
-    focus: expressionNode({ ...zipper.left.value }),
+    focus: zipper.left.value,
   };
 };
 
 export const down = (zipper: ExpressionZipper): ExpressionZipper => {
   // other way would be to throw an Error
-  if (zipper.focus === null || zipper.focus.children === null) return zipper;
+  if (zipper.focus === null || zipper.focus.children === null)
+    throw new Error("can't go down");
   const children = zipper.focus.children;
-  if (children.value === null) return zipper;
+  if (children.value === null) throw new Error("can't go down");
   return {
     left: null,
     right: children.next,
@@ -418,13 +417,13 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
       },
       zipper.up
     ),
-    focus: expressionNode({ ...children.value }),
+    focus: children.value,
   };
 };
 
 export const up = (zipper: ExpressionZipper): ExpressionZipper => {
   // other way would be to throw an Error
-  if (zipper.up === null) return zipper;
+  if (zipper.up === null) throw new Error("can't go up");
   return {
     left: zipper.up.value.left,
     right: zipper.up.value.right,
@@ -432,9 +431,10 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
     focus: expressionNode({
       value: zipper.up.value.value,
       expressionType: zipper.up.value.expressionType,
-      // NOTE: this is not a contant time operation
+      // NOTE: this is not a constant time operation
       children: unwind(zipper.left, zipper.focus, zipper.right),
       // for vizualization
+      id: zipper.up.value.id,
       originalId: zipper.up.value.originalId,
       m: zipper.up.value.m,
     }),
@@ -474,13 +474,6 @@ const empty = {
   expressionType: "Seq",
   children: null,
 } as const;
-
-// empty language
-// const nil = {
-//   expressionType: "Alt",
-//   value: "",
-//   children: null,
-// } as const;
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
 const mems = new Memo<Mem>();
@@ -553,7 +546,8 @@ function deriveDownPrime(
       ];
     case "Seq":
       // | Seq (s, []) -> d↑ (Seq (s, [])) m
-      if (zipper.focus.children === null) return [["up", zipper, m]];
+      if (zipper.focus.children === null)
+        return [["up", replace(zipper, expressionNode(zipper.focus)), m]];
       // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
       return [
         [
@@ -587,8 +581,7 @@ function deriveDownPrime(
         ];
       });
     default:
-      console.log(`Unhandled type: ${zipper.focus.expressionType}`);
-      return [];
+      throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }
 }
 
@@ -636,22 +629,23 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         ],
       ];
     default:
-      console.log(`Unhandled type: ${zipper.focus.expressionType}`);
-      return [];
+      throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }
 }
 
 function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
-  let m = mems.get(zipper.focus.originalId || zipper.focus.id, position);
+  const id = zipper.focus;
+  let m = mems.get(id, position);
   // match mems.get(p, e) with
   // | Some (m) ->
   if (m) {
     // m.parents <- c :: m.parents;
-    if (m.parents.indexOf(zipper) === -1) m.parents.unshift(zipper);
+    // if (m.parents.indexOf(zipper) === -1)
+    m.parents.unshift(zipper);
     // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
-    return (m.result[position] || []).map((e: Expression) => [
+    return (m.result[position] || []).map((focus) => [
       "upPrime",
-      replace(zipper, expressionNode(e)),
+      replace(zipper, focus),
       undefined,
     ]);
   }
@@ -663,7 +657,7 @@ function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
       result: {},
     };
     // mems.put(p, e, m);
-    mems.set(zipper.focus.originalId || zipper.focus.id, position, m);
+    mems.set(id, position, m);
     // d′↓ m e
     return [["downPrime", zipper, m]];
   }
@@ -672,13 +666,14 @@ function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
 function deriveUp(position: number, zipper: ExpressionZipper, m: Mem): Step[] {
   // m.result.put(p, e :: m.result.get(p));
   if (!m.result[position]) m.result[position] = [];
+  // if (
+  //   m.result[position].findIndex(
+  //     (e) => e.originalId === zipper.focus.originalId
+  //   ) === -1
+  // )
   m.result[position].unshift(zipper.focus);
   // List.concat (List.map (d′↑ e) m.parents)
-  return m.parents.map((c: ExpressionZipper) => [
-    "upPrime",
-    replace(c, expressionNode(zipper.focus)),
-    m,
-  ]);
+  return m.parents.map((c) => ["upPrime", replace(c, zipper.focus), undefined]);
 }
 
 // Vizualization part ---------------------------------------------------------

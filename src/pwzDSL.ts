@@ -46,7 +46,7 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 // extension ------------------------------------------------------------------
 
 /**
- * Kleen star expressed as S -> ϵ | x S
+ * Kleene star expressed as S -> ϵ | x S
  */
 export const star = (x: Expression) =>
   rec((s) => alt("*", [tok(""), seq("", [x, s])]));

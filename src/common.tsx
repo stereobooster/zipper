@@ -47,3 +47,11 @@ export const zipperColor = "#ff69b4";
 export const leftColor = "#0000cd";
 export const rightColor = "#006400";
 export const grayColor = "#708090";
+
+const nowrap: CSSProperties = {
+  whiteSpace: "nowrap",
+};
+
+export const Nobr = ({ children }: React.PropsWithChildren) => (
+  <span style={nowrap}>{children}</span>
+);

@@ -8,7 +8,7 @@ import {
   expressionToZipper,
   expressionZipperToDot,
 } from "./pwz";
-import { button, buttonRect, controls, select, text } from "./common";
+import { Nobr, button, buttonRect, controls, select, text } from "./common";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -57,7 +57,7 @@ export const VizualizeGrammar = ({
   const depthAndDirection = steps
     .map(
       ([d, z], i) =>
-        `<span style="${i === step ? "text-decoration: underline;" : ""}${
+        `<span style="white-space:nowrap;${i === step ? "text-decoration: underline;" : ""}${
           i === displayZipper ? "color: red;" : ""
         }">${dir(d)} ${(z.up?.value.level || 0) + 1} </span>`
     )
@@ -79,12 +79,7 @@ export const VizualizeGrammar = ({
         d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
       );
 
-    let newStep = -1;
-    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "upPrime");
-    if (newStep === -1)
-      newStep = newSteps.findIndex(([d]) => d === "downPrime");
-    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "up");
-    if (newStep === -1) newStep = newSteps.findIndex(([d]) => d === "down");
+    let newStep = newSteps.findIndex(([d]) => d !== "none");
     if (newStep === -1) {
       newStep = 0;
       setPosition((x) => x + 1);
@@ -119,7 +114,7 @@ export const VizualizeGrammar = ({
     <>
       <div style={controls}>
         <label>
-          Show tree as
+          <Nobr>Show tree as</Nobr>
           <br />
           <select
             onChange={(e) => setLayout(e.target.value)}
@@ -131,14 +126,14 @@ export const VizualizeGrammar = ({
           </select>
         </label>
         <div>
-          Next step
+          <Nobr>Next step</Nobr>
           <br />
           <button style={buttonRect} onClick={go} disabled={finished}>
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>
         <label>
-          Which zipper
+          <Nobr>Which zipper</Nobr>
           <br />
           <select
             onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
@@ -154,12 +149,12 @@ export const VizualizeGrammar = ({
           </select>
         </label>
         <div>
-          String to parse
+          <Nobr>String to parse</Nobr>
           <br />
           <div style={text} dangerouslySetInnerHTML={{ __html: strWIthPos }} />
         </div>
         <div>
-          Direction and depth
+          <Nobr>Direction and depth</Nobr>
           <br />
           <div
             style={text}

@@ -33,21 +33,27 @@ const cicledTree = narryTreeToTree([
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
 
-// S -> (a b) (c d)
-// const str = "abcd";
-// const exp = seq("S", [
-//   seq("", [tok("a"), tok("b")]),
-//   seq("", [tok("c"), tok("d")]),
-// ]);
-
-// S -> a*
+// Kleene star: S -> a*
 // const str = "aaaa";
 // const exp = star(tok("a"))
 
-// S -> S + S | 1
+// arithmetic expression: S -> S + S | 1
 // const str = "1+1+1";
 // const exp = rec((S) => alt("", [seq("", [S, tok("+"), S]), tok("1")]));
 
+// quoted string: S -> "(^"|\")*"
+// const str = '"a\\"c"';
+// const exp = seq("Q", [
+//   tok('"'),
+//   star(alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
+//   tok('"'),
+// ]);
+
+// nested parentheses: S -> (S)*
+const str = "()(())";
+const exp = rec((S) => star(seq("", [tok("("), S, tok(")")])))
+
+// TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 // E -> Letter Arrow Letter Alt Letter
 // const str = "S->a|b";
 // const exp = seq("E", [
@@ -57,14 +63,6 @@ e.children = cons(cicledTree, null);
 //   tok("|"),
 //   any(),
 // ]);
-
-// S -> "(^"|\")*"
-const str = '"a\\"c"';
-const exp = seq("Q", [
-  tok('"'),
-  star(alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
-  tok('"'),
-]);
 
 const App = () => {
   return (
