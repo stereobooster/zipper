@@ -35,7 +35,7 @@ e.children = cons(cicledTree, null);
 
 // Kleene star: S -> a*
 // const str = "aaaa";
-// const exp = star(tok("a"))
+// const exp = star("S", tok("a"))
 
 // arithmetic expression: S -> S + S | 1
 // const str = "1+1+1";
@@ -45,13 +45,13 @@ e.children = cons(cicledTree, null);
 // const str = '"a\\"c"';
 // const exp = seq("Q", [
 //   tok('"'),
-//   star(alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
+//   star("", alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
 //   tok('"'),
 // ]);
 
 // nested parentheses: S -> (S)*
 const str = "()(())";
-const exp = rec((S) => star(seq("", [tok("("), S, tok(")")])))
+const exp = rec((S) => star("S", seq("", [tok("("), S, tok(")")])))
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 // E -> Letter Arrow Letter Alt Letter

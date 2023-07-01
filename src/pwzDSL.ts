@@ -1,4 +1,4 @@
-import { arrayToList } from "./List";
+import { arrayToList, cons } from "./List";
 import { Expression, expressionNode } from "./pwz";
 
 // operations from the original paper -----------------------------------------
@@ -48,8 +48,15 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 /**
  * Kleene star expressed as S -> ϵ | x S
  */
-export const star = (x: Expression) =>
-  rec((s) => alt("*", [tok(""), seq("", [x, s])]));
+// export const star = (value: string, x: Expression) =>
+//   rec((s) => alt(value, [tok(""), seq("", [x, s])]));
+
+export const star = (value: string, child: Expression) =>
+  expressionNode({
+    expressionType: "Rep",
+    value,
+    children: cons(child, null),
+  });
 
 /**
  * matches any character, similar to `.` from PCRE

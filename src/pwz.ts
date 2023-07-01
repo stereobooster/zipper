@@ -17,7 +17,9 @@ export type ExpressionType =
   | "SeqC"
   | "AltC"
   | "TokAny"
-  | "TokExc";
+  | "TokExc"
+  | "Rep"
+  | "RepC";
 
 export type Expression = {
   expressionType: ExpressionType;
@@ -449,12 +451,22 @@ export const replace = (
   focus,
 });
 
-export const mapChildren = <T>(
+export const insertAfter = (
   zipper: ExpressionZipper,
-  cb: (zipper: Expression) => T
-): T[] => {
+  item: Expression
+): ExpressionZipper => ({
+  ...zipper,
+  right: cons(item, zipper.right),
+});
+
+export const deleteAfter = (zipper: ExpressionZipper): ExpressionZipper => ({
+  ...zipper,
+  right: null,
+});
+
+export const mapToArray = <P, T>(list: List<P>, cb: (item: P) => T): T[] => {
   const res: T[] = [];
-  forEach(zipper.focus.children, (x) => res.push(cb(x)));
+  forEach(list, (x) => res.push(cb(x)));
   return res;
 };
 
@@ -510,6 +522,7 @@ function deriveDownPrime(
   zipper: ExpressionZipper,
   m: Mem
 ): Step[] {
+  let x: ExpressionZipper;
   switch (zipper.focus.expressionType) {
     case "TokAny":
       return [
@@ -533,6 +546,31 @@ function deriveDownPrime(
           ),
           m,
         ],
+      ];
+    case "Rep":
+      x = down(
+        replace(
+          zipper,
+          expressionNode({ ...zipper.focus, expressionType: "RepC", m })
+        )
+      );
+      x = insertAfter(x, expressionNode(x.focus));
+      return [
+        [
+          "up",
+          replace(
+            zipper,
+            expressionNode({
+              ...zipper.focus,
+              children: cons(
+                expressionNode(expressionNode({ ...empty, value: "" })),
+                null
+              ),
+            })
+          ),
+          m,
+        ],
+        ["down", x, undefined],
       ];
     case "Tok":
       // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
@@ -563,23 +601,38 @@ function deriveDownPrime(
       ];
     case "Alt":
       // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
-      return mapChildren(zipper, (e) => {
-        return [
-          "down",
-          down(
-            replace(
-              zipper,
-              expressionNode({
-                ...zipper.focus,
-                expressionType: "AltC",
-                children: cons(e, null),
-                m,
-              })
-            )
-          ),
-          undefined,
-        ];
+      x = down(
+        replace(
+          zipper,
+          expressionNode({
+            ...zipper.focus,
+            expressionType: "AltC",
+            children: cons({} as any, null),
+            m,
+          })
+        )
+      );
+      return mapToArray(zipper.focus.children, (e) => {
+        return ["down", replace(x, e), undefined];
       });
+    // not sure about that
+    // return mapToArray(zipper.focus.children, (e) => {
+    //   return [
+    //     "down",
+    //     down(
+    //       replace(
+    //         zipper,
+    //         expressionNode({
+    //           ...zipper.focus,
+    //           expressionType: "AltC",
+    //           children: cons(e, null),
+    //           m,
+    //         })
+    //       )
+    //     ),
+    //     undefined,
+    //   ];
+    // )
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }
@@ -588,8 +641,27 @@ function deriveDownPrime(
 function deriveUpPrime(zipper: ExpressionZipper): Step[] {
   // | TopC -> []
   if (zipper.up === null) return [];
-  let x: ExpressionZipper;
+  let x, y: ExpressionZipper;
   switch (zipper.up.value.expressionType) {
+    case "RepC":
+      y = right(zipper);
+      y = insertAfter(y, expressionNode(y.focus));
+      x = up(deleteAfter(zipper));
+      return [
+        [
+          "up",
+          replace(
+            x,
+            expressionNode({
+              ...x.focus,
+              expressionType: "Rep",
+              m: undefined,
+            })
+          ),
+          x.focus.m,
+        ],
+        ["down", y, undefined],
+      ];
     case "SeqC":
       // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
       if (zipper.right === null) {
