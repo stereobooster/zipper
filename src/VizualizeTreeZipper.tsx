@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tree } from "./Tree";
-import Graphviz from "graphviz-react";
+import { Graphviz } from "./Graphviz";
 import {
   down,
   left,

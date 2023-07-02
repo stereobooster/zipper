@@ -621,7 +621,7 @@ export const treeZipperToDot = <T>({
   logical: boolean;
   zipper: TreeZipper<T>;
   tree?: Tree<T>;
-}) =>
+}) => 
   `digraph {
     node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
     edge [color="${listColor}"]

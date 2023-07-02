@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import Graphviz from "graphviz-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Graphviz } from "./Graphviz";
 import {
   DeriveDirection,
   Expression,
@@ -8,7 +8,16 @@ import {
   expressionToZipper,
   expressionZipperToDot,
 } from "./pwz";
-import { Nobr, button, buttonRect, controls, select, text } from "./common";
+import {
+  Nobr,
+  button,
+  buttonRect,
+  controls,
+  legend,
+  row,
+  select,
+  text,
+} from "./common";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -57,18 +66,25 @@ export const VizualizeGrammar = ({
   const depthAndDirection = steps
     .map(
       ([d, z], i) =>
-        `<span style="white-space:nowrap;${i === step ? "text-decoration: underline;" : ""}${
-          i === displayZipper ? "color: red;" : ""
-        }">${dir(d)} ${(z.up?.value.level || 0) + 1} </span>`
+        `<span style="white-space:nowrap;${
+          i === step ? "text-decoration: underline;" : ""
+        }${i === displayZipper ? "color: red;" : ""}">${dir(d)} ${
+          (z.up?.value.level || 0) + 1
+        } </span>`
     )
     .join("&nbsp;,&nbsp;");
-  const dot = expressionZipperToDot({
-    zippers: !steps[displayZipper]
-      ? steps.map(([, zipper]) => zipper)
-      : [steps[displayZipper][1]],
-    logical: layout === "dag",
-    // tree,
-  });
+
+  const { dot, nodes } = useMemo(
+    () =>
+      expressionZipperToDot({
+        zippers: !steps[displayZipper]
+          ? steps.map(([, zipper]) => zipper)
+          : [steps[displayZipper][1]],
+        logical: layout === "dag",
+        // tree,
+      }),
+    [layout, steps, displayZipper]
+  );
 
   const [finished, setFinished] = useState(false);
   const go = useCallback(() => {
@@ -110,6 +126,18 @@ export const VizualizeGrammar = ({
     return () => clearInterval(i);
   }, [autoDerivate, finished, go]);
 
+  const options = useMemo(
+    () =>
+      ({
+        height: height || 600,
+        width: width || 800,
+        engine: "dot",
+        useWorker: false,
+        fit,
+      } as const),
+    [height, width, fit]
+  );
+  const [selectedNode, setSelectedNode] = useState(0);
   return (
     <>
       <div style={controls}>
@@ -183,17 +211,29 @@ export const VizualizeGrammar = ({
           </button>
         </div>
       </div>
-      <Graphviz
-        dot={dot}
-        options={{
-          height: height || 600,
-          width: width || 800,
-          engine: "dot",
-          useWorker: false,
-          fit,
-          zoom: false,
-        }}
-      />
+      <div style={row}>
+        <Graphviz dot={dot} onHover={setSelectedNode} options={options} />
+        {nodes[selectedNode] && (
+          <div style={legend}>
+            id: {nodes[selectedNode].id}
+            <br />
+            value: {nodes[selectedNode].value}
+            <br />
+            type: {nodes[selectedNode].expressionType}
+            {/* {nodes[nodes[selectedNode].originalId!] && (
+              <>
+                <br />
+                original id: {nodes[nodes[selectedNode].originalId!].id}
+                <br />
+                original value: {nodes[nodes[selectedNode].originalId!].value}
+                <br />
+                original type:{" "}
+                {nodes[nodes[selectedNode].originalId!].expressionType}
+              </>
+            )} */}
+          </div>
+        )}
+      </div>
     </>
   );
 };

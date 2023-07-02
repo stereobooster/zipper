@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "graphviz-react": "^1.2.5",
+    "@types/d3-graphviz": "^2.6.7",
+    "d3-graphviz": "^5.0.2",
     "react": "^18.2.0",
     "react-archer": "^4.2.3",
     "react-dom": "^18.2.0"

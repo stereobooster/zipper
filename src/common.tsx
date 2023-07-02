@@ -41,6 +41,17 @@ export const input: CSSProperties = {
 export const paragraph: CSSProperties = {
   paddingLeft: 90,
 };
+export const row: CSSProperties = {
+  display: "flex",
+  flexDirection: "row",
+  flexWrap: "wrap",
+};
+export const legend: CSSProperties = {
+  padding: 10,
+  border: "1px solid black",
+  height: "min-content",
+  borderRadius: 5,
+};
 
 export const listColor = "#8b0000";
 export const zipperColor = "#ff69b4";

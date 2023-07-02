@@ -1,4 +1,4 @@
-import { arrayToList, cons } from "./List";
+import { arrayToList } from "./List";
 import { Expression, expressionNode } from "./pwz";
 
 // operations from the original paper -----------------------------------------
@@ -13,24 +13,28 @@ export const tok = (value: string) =>
     children: null,
   });
 
+type StrExp = string | Expression;
+const helper = (arr: StrExp[]) =>
+  arrayToList(arr.map((x) => (typeof x === "string" ? tok(x) : x)));
+
 /**
  * concatenation
  */
-export const seq = (value: string, children: Expression[]) =>
+export const seq = (value: string, children: StrExp[]) =>
   expressionNode({
     expressionType: "Seq",
     value,
-    children: arrayToList(children),
+    children: helper(children),
   });
 
 /**
  * unordered choice
  */
-export const alt = (value: string, children: Expression[]) =>
+export const alt = (value: string, children: StrExp[]) =>
   expressionNode({
     expressionType: "Alt",
     value,
-    children: arrayToList(children),
+    children: helper(children),
   });
 
 /**
@@ -43,7 +47,7 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
   return res;
 };
 
-// extension ------------------------------------------------------------------
+// Extension ------------------------------------------------------------------
 
 /**
  * Kleene star expressed as S -> ϵ | x S
@@ -51,11 +55,11 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 // export const star = (value: string, x: Expression) =>
 //   rec((s) => alt(value, [tok(""), seq("", [x, s])]));
 
-export const star = (value: string, child: Expression) =>
+export const star = (value: string, child: StrExp) =>
   expressionNode({
     expressionType: "Rep",
     value,
-    children: cons(child, null),
+    children: helper([child]),
   });
 
 /**

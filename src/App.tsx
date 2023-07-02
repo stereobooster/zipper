@@ -4,7 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { alt, exc, rec, seq, star, tok } from "./pwzDSL";
+import { seq, star } from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -33,25 +33,34 @@ const cicledTree = narryTreeToTree([
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
 
+// Diffrent trees for almost the same grammar:
+// const str = "aa";
+// S -> ϵ | x S
+// const exp = rec((S) => alt("S", ["", seq("", ["a", S])]));
+// S -> ϵ | S x
+// const exp = rec((S) => alt("S", ["", seq("", [S, "a"])]));
 // Kleene star: S -> a*
-// const str = "aaaa";
-// const exp = star("S", tok("a"))
+// const exp = star("S", "a")
 
 // arithmetic expression: S -> S + S | 1
 // const str = "1+1+1";
-// const exp = rec((S) => alt("", [seq("", [S, tok("+"), S]), tok("1")]));
+// const exp = rec((S) => alt("Exp", [seq("", [S, "+", S]), "1"]));
 
 // quoted string: S -> "(^"|\")*"
 // const str = '"a\\"c"';
-// const exp = seq("Q", [
-//   tok('"'),
-//   star("", alt("", [exc('"'), seq("", [tok("\\"), tok('"')])])),
-//   tok('"'),
+// const exp = seq("quoted", [
+//   '"',
+//   star("", alt("", [exc('"'), seq("", ["\\", '"'])])),
+//   '"',
 // ]);
 
-// nested parentheses: S -> (S)*
-const str = "()(())";
-const exp = rec((S) => star("S", seq("", [tok("("), S, tok(")")])))
+// nested parentheses: S -> ("(" S ")")*
+// const str = "()(())";
+// const exp = rec((S) => star("S", seq("", ["(", S, ")"])))
+
+// highly ambigious: S -> a* a*
+const str = "aa";
+const exp = seq("S", [star("", "a"), star("", "a")])
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 // E -> Letter Arrow Letter Alt Letter

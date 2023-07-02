@@ -225,19 +225,6 @@ const nodeToDot = (
   id: ID | string,
   { value, type, originalId, zipper, expressionType }: Node
 ) => {
-  // https://graphviz.org/doc/info/shapes.html
-  let shape = "circle";
-
-  if (expressionType === "TokAny") {
-    shape = "house";
-  } else if (expressionType === "TokExc") {
-    shape = "invhouse";
-  } else if (expressionType === "Tok") {
-    shape = "square";
-  } else if (expressionType === "Alt" || expressionType === "AltC") {
-    shape = "diamond";
-  }
-
   let borderColor = listColor;
   let fillColor = listColor;
   let fontcolor = "white";
@@ -263,19 +250,50 @@ const nodeToDot = (
     borderColor = zipperColor;
   }
 
+  const short = true;
+  let rounded = true; // maybe: terminals rounded, non-terminals squared?
   let label = value;
-  if (expressionType === "TokAny") label = "?";
-  if (expressionType === "Tok" && value === "") label = "ϵ";
-  if ((expressionType === "Seq" || expressionType === "SeqC") && value === "")
-    label = "·";
-  if ((expressionType === "Alt" || expressionType === "AltC") && value === "")
-    label = "∪";
+  if (expressionType === "TokAny") {
+    label = short ? "∀" : "any";
+    rounded = false;
+  }
+  if (expressionType === "Tok" && value === "") {
+    label = "ϵ";
+    rounded = false;
+  }
+  if ((expressionType === "Seq" || expressionType === "SeqC") && value === "") {
+    label = short ? "∙" : "Seq";
+    rounded = false;
+  }
+  if ((expressionType === "Alt" || expressionType === "AltC") && value === "") {
+    label = short ? "∪" : "Alt";
+    rounded = false;
+  }
+  // Ugly workaround
+  if (
+    (expressionType === "Seq" || expressionType === "SeqC") &&
+    value === "ϵ"
+  ) {
+    rounded = false;
+  }
+  // Extension
+  if (expressionType === "Rep" || expressionType === "RepC") {
+    label = short ? "∗" : "Rep";
+    rounded = false;
+  }
+  if (expressionType === "TokExc") {
+    label = `not ${value}`;
+    rounded = false;
+  }
 
-  // TODO: escape label value
-  if (label === '"') label = '\\"';
-  if (label === "\\") label = "\\\\";
+  // https://graphviz.org/doc/info/shapes.html
+  const shape = label.length <= 1 ? "square" : "rect";
 
-  return `${id} [penwidth=4 style="filled,solid" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
+  label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+  return `${id} [penwidth=4 style="filled,solid${
+    rounded ? ",rounded" : ""
+  }" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
 };
 
 const levelsDot = (ranks: Record<ID, Level>) => `{
@@ -524,6 +542,68 @@ function deriveDownPrime(
 ): Step[] {
   let x: ExpressionZipper;
   switch (zipper.focus.expressionType) {
+    case "Tok":
+      // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
+      if (zipper.focus.value !== token) return [];
+      return [
+        [
+          "none",
+          replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
+          m,
+        ],
+      ];
+    case "Seq":
+      // | Seq (s, []) -> d↑ (Seq (s, [])) m
+      if (zipper.focus.children === null)
+        return [["up", replace(zipper, expressionNode(zipper.focus)), m]];
+      // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
+      return [
+        [
+          "down",
+          down(
+            replace(
+              zipper,
+              expressionNode({ ...zipper.focus, expressionType: "SeqC", m })
+            )
+          ),
+          undefined,
+        ],
+      ];
+    case "Alt":
+      // not sure about that
+      // return mapToArray(zipper.focus.children, (e) => {
+      //   return [
+      //     "down",
+      //     down(
+      //       replace(
+      //         zipper,
+      //         expressionNode({
+      //           ...zipper.focus,
+      //           expressionType: "AltC",
+      //           children: cons(e, null),
+      //           m,
+      //         })
+      //       )
+      //     ),
+      //     undefined,
+      //   ];
+      // )
+      // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
+      x = down(
+        replace(
+          zipper,
+          expressionNode({
+            ...zipper.focus,
+            expressionType: "AltC",
+            children: cons({} as any, null),
+            m,
+          })
+        )
+      );
+      return mapToArray(zipper.focus.children, (e) => {
+        return ["down", replace(x, e), undefined];
+      });
+    // Extension
     case "TokAny":
       return [
         [
@@ -572,67 +652,6 @@ function deriveDownPrime(
         ],
         ["down", x, undefined],
       ];
-    case "Tok":
-      // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
-      if (zipper.focus.value !== token) return [];
-      return [
-        [
-          "none",
-          replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
-          m,
-        ],
-      ];
-    case "Seq":
-      // | Seq (s, []) -> d↑ (Seq (s, [])) m
-      if (zipper.focus.children === null)
-        return [["up", replace(zipper, expressionNode(zipper.focus)), m]];
-      // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
-      return [
-        [
-          "down",
-          down(
-            replace(
-              zipper,
-              expressionNode({ ...zipper.focus, expressionType: "SeqC", m })
-            )
-          ),
-          undefined,
-        ],
-      ];
-    case "Alt":
-      // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
-      x = down(
-        replace(
-          zipper,
-          expressionNode({
-            ...zipper.focus,
-            expressionType: "AltC",
-            children: cons({} as any, null),
-            m,
-          })
-        )
-      );
-      return mapToArray(zipper.focus.children, (e) => {
-        return ["down", replace(x, e), undefined];
-      });
-    // not sure about that
-    // return mapToArray(zipper.focus.children, (e) => {
-    //   return [
-    //     "down",
-    //     down(
-    //       replace(
-    //         zipper,
-    //         expressionNode({
-    //           ...zipper.focus,
-    //           expressionType: "AltC",
-    //           children: cons(e, null),
-    //           m,
-    //         })
-    //       )
-    //     ),
-    //     undefined,
-    //   ];
-    // )
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }
@@ -643,25 +662,6 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
   if (zipper.up === null) return [];
   let x, y: ExpressionZipper;
   switch (zipper.up.value.expressionType) {
-    case "RepC":
-      y = right(zipper);
-      y = insertAfter(y, expressionNode(y.focus));
-      x = up(deleteAfter(zipper));
-      return [
-        [
-          "up",
-          replace(
-            x,
-            expressionNode({
-              ...x.focus,
-              expressionType: "Rep",
-              m: undefined,
-            })
-          ),
-          x.focus.m,
-        ],
-        ["down", y, undefined],
-      ];
     case "SeqC":
       // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
       if (zipper.right === null) {
@@ -699,6 +699,26 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           ),
           x.focus.m,
         ],
+      ];
+    // Extension
+    case "RepC":
+      y = right(zipper);
+      y = insertAfter(y, expressionNode(y.focus));
+      x = up(deleteAfter(zipper));
+      return [
+        [
+          "up",
+          replace(
+            x,
+            expressionNode({
+              ...x.focus,
+              expressionType: "Rep",
+              m: undefined,
+            })
+          ),
+          x.focus.m,
+        ],
+        ["down", y, undefined],
       ];
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
@@ -1024,9 +1044,11 @@ export const expressionZipperToDot = ({
     nodes: {},
   };
   zippers.forEach((zipper) => traverseZipper(display, zipper, tree));
-  return `digraph {
-    node [fixedsize=true width=0.3 height=0.3 shape=circle fontcolor=white]
+  const dot = `digraph {
+    node [fixedsize=true height=0.3 shape=circle fontcolor=white]
     edge [color="${listColor}"]
     ${toDot(display, logical)}
   }`.trim();
+
+  return { dot, nodes: display.nodes };
 };
