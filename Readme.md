@@ -82,16 +82,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ## TODO
 
 - TODO
-  - Parser for a simplified "grammar"
-    - [Character classes](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Character_classes)
-      - [x] exactly one chracter (`Tok`)
-      - [ ] list of characters
-      - [ ] range of characters
-      - [ ] negation of cc
-      - [ ] predefined classes
-    - [Lexical](https://spoofax.dev/references/sdf3/lexical-syntax/) nodes
-      - `mem = { start : pos; mutable end : pos; }`
   - Implement PwZ without memoization table
+    - start, end, value (parsed substring) `mem = { start : pos; mutable end : pos; }`
+  - [Lexical](https://spoofax.dev/references/sdf3/lexical-syntax/) nodes
+  - Parser for a simplified "grammar"
   - Problem of disappering zippers in PwZ vizualization
     - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers
   - Tree compaction

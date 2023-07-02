@@ -67,8 +67,8 @@ export const star = (label: string, child: StrExp) =>
  */
 export const any = () =>
   expressionNode({
-    expressionType: "TokAny",
-    label: "",
+    expressionType: "Tok",
+    label: "\\.",
     children: null,
   });
 
@@ -77,7 +77,7 @@ export const any = () =>
  */
 export const exc = (label: string) =>
   expressionNode({
-    expressionType: "TokExc",
-    label,
+    expressionType: "Tok",
+    label: `^${label}`,
     children: null,
   });

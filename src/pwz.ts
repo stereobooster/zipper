@@ -16,8 +16,6 @@ export type ExpressionType =
   | "Alt"
   | "SeqC"
   | "AltC"
-  | "TokAny"
-  | "TokExc"
   | "Rep"
   | "RepC";
 
@@ -252,10 +250,6 @@ const nodeToDot = (
 
   const short = true;
   let rounded = true; // maybe: terminals rounded, non-terminals squared?
-  if (expressionType === "TokAny") {
-    label = short ? "∀" : "any";
-    rounded = false;
-  }
   if (expressionType === "Tok" && label === "") {
     label = "ϵ";
     rounded = false;
@@ -278,10 +272,6 @@ const nodeToDot = (
   // Extension
   if (expressionType === "Rep" || expressionType === "RepC") {
     label = short ? "∗" : "Rep";
-    rounded = false;
-  }
-  if (expressionType === "TokExc") {
-    label = `not ${label}`;
     rounded = false;
   }
 
@@ -498,6 +488,38 @@ export const replaceType = (
 // Derivative ---------------------------------------------------------------------
 // https://dl.acm.org/doi/pdf/10.1145/3408990
 
+// Extension: support for character classes
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Character_classes
+const match = (label: string, token: string): boolean => {
+  if (token === "") return label === "";
+  // escapes
+  if (label[0] === "\\") {
+    // match any token. PCRE: .
+    if (label[1] === ".") return true;
+    // match `^` token:  PCRE: \^
+    if (label[1] === "^") return token === "^";
+    // match `\` token:  PCRE: \\
+    if (label[1] === undefined) return token === "\\";
+  }
+  let not = false;
+  // negation. PCRE: [^a]
+  if (label[0] === "^") {
+    label = label.slice(1);
+    not = true;
+  }
+  let result;
+  // character range. PCRE: [a-b]
+  if (label.length === 3 && label[1] === "-") {
+    result =
+      label.charCodeAt(0) <= token.charCodeAt(0) &&
+      label.charCodeAt(2) >= token.charCodeAt(0);
+  }
+  // character set. PCRE: [abc]
+  else {
+    result = label.includes(token);
+  }
+  return not ? !result : result;
+};
 // empty string
 const empty = {
   expressionType: "Seq",
@@ -543,11 +565,14 @@ function deriveDownPrime(
   switch (zipper.focus.expressionType) {
     case "Tok":
       // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
-      if (zipper.focus.label !== token) return [];
+      if (!match(zipper.focus.label, token)) return [];
       return [
         [
           "none",
-          replace(zipper, expressionNode({ ...zipper.focus, ...empty })),
+          replace(
+            zipper,
+            expressionNode({ ...zipper.focus, ...empty, label: token })
+          ),
           m,
         ],
       ];
@@ -603,29 +628,6 @@ function deriveDownPrime(
         return ["down", replace(x, e), undefined];
       });
     // Extension
-    case "TokAny":
-      return [
-        [
-          "none",
-          replace(
-            zipper,
-            expressionNode({ ...zipper.focus, ...empty, label: token })
-          ),
-          m,
-        ],
-      ];
-    case "TokExc":
-      if (zipper.focus.label === token) return [];
-      return [
-        [
-          "none",
-          replace(
-            zipper,
-            expressionNode({ ...zipper.focus, ...empty, label: token })
-          ),
-          m,
-        ],
-      ];
     case "Rep":
       x = down(
         replace(
