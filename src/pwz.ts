@@ -24,9 +24,9 @@ export type ExpressionType =
 export type Expression = {
   expressionType: ExpressionType;
   // S -> a | b
-  // For token value would be the token itself i.e. a, b
-  // For others value would be the symbol i.e. S
-  value: string;
+  // For token label would be the token itself i.e. a, b
+  // For others label would be the symbol i.e. S
+  label: string;
   children: List<Expression>;
   // for vizualization
   id: ID;
@@ -40,21 +40,21 @@ export const expressionNode = ({
   id,
   expressionType,
   children,
-  value,
+  label,
   ...props
 }: Omit<Expression, "id"> & { id?: ID }): Expression => {
   if (expressionType === "Tok" && children !== null)
     throw Error("Token can't have children");
-  if (expressionType === "Tok" && value === "") expressionType = "Seq";
-  if (expressionType === "Seq" && children === null && value === "")
-    value = "ϵ";
-  if (expressionType === "Alt" && children === null && value === "")
-    value = "∅";
+  if (expressionType === "Tok" && label === "") expressionType = "Seq";
+  if (expressionType === "Seq" && children === null && label === "")
+    label = "ϵ";
+  if (expressionType === "Alt" && children === null && label === "")
+    label = "∅";
   return {
     ...props,
     expressionType,
     children,
-    value,
+    label,
     originalId: originalId !== undefined ? originalId : id,
     id: Math.random(),
   };
@@ -223,7 +223,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
 
 const nodeToDot = (
   id: ID | string,
-  { value, type, originalId, zipper, expressionType }: Node
+  { label, type, originalId, zipper, expressionType }: Node
 ) => {
   let borderColor = listColor;
   let fillColor = listColor;
@@ -252,27 +252,26 @@ const nodeToDot = (
 
   const short = true;
   let rounded = true; // maybe: terminals rounded, non-terminals squared?
-  let label = value;
   if (expressionType === "TokAny") {
     label = short ? "∀" : "any";
     rounded = false;
   }
-  if (expressionType === "Tok" && value === "") {
+  if (expressionType === "Tok" && label === "") {
     label = "ϵ";
     rounded = false;
   }
-  if ((expressionType === "Seq" || expressionType === "SeqC") && value === "") {
+  if ((expressionType === "Seq" || expressionType === "SeqC") && label === "") {
     label = short ? "∙" : "Seq";
     rounded = false;
   }
-  if ((expressionType === "Alt" || expressionType === "AltC") && value === "") {
+  if ((expressionType === "Alt" || expressionType === "AltC") && label === "") {
     label = short ? "∪" : "Alt";
     rounded = false;
   }
   // Ugly workaround
   if (
     (expressionType === "Seq" || expressionType === "SeqC") &&
-    value === "ϵ"
+    label === "ϵ"
   ) {
     rounded = false;
   }
@@ -282,7 +281,7 @@ const nodeToDot = (
     rounded = false;
   }
   if (expressionType === "TokExc") {
-    label = `not ${value}`;
+    label = `not ${label}`;
     rounded = false;
   }
 
@@ -427,7 +426,7 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
       {
         left: zipper.left,
         right: zipper.right,
-        value: zipper.focus.value,
+        label: zipper.focus.label,
         expressionType: zipper.focus.expressionType,
         // for vizualization
         id: Math.random(),
@@ -449,7 +448,7 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
     right: zipper.up.value.right,
     up: zipper.up.next,
     focus: expressionNode({
-      value: zipper.up.value.value,
+      label: zipper.up.value.label,
       expressionType: zipper.up.value.expressionType,
       // NOTE: this is not a constant time operation
       children: unwind(zipper.left, zipper.focus, zipper.right),
@@ -544,7 +543,7 @@ function deriveDownPrime(
   switch (zipper.focus.expressionType) {
     case "Tok":
       // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
-      if (zipper.focus.value !== token) return [];
+      if (zipper.focus.label !== token) return [];
       return [
         [
           "none",
@@ -610,19 +609,19 @@ function deriveDownPrime(
           "none",
           replace(
             zipper,
-            expressionNode({ ...zipper.focus, ...empty, value: token })
+            expressionNode({ ...zipper.focus, ...empty, label: token })
           ),
           m,
         ],
       ];
     case "TokExc":
-      if (zipper.focus.value === token) return [];
+      if (zipper.focus.label === token) return [];
       return [
         [
           "none",
           replace(
             zipper,
-            expressionNode({ ...zipper.focus, ...empty, value: token })
+            expressionNode({ ...zipper.focus, ...empty, label: token })
           ),
           m,
         ],
@@ -643,7 +642,7 @@ function deriveDownPrime(
             expressionNode({
               ...zipper.focus,
               children: cons(
-                expressionNode(expressionNode({ ...empty, value: "" })),
+                expressionNode(expressionNode({ ...empty, label: "" })),
                 null
               ),
             })
@@ -787,7 +786,7 @@ const traverseUp = (
       addNode(
         display,
         {
-          value: up.value,
+          label: up.label,
           expressionType: up.expressionType,
           id: up.originalId,
           type: "gray",
@@ -811,7 +810,7 @@ const traverseUp = (
     addNode(
       display,
       {
-        value: up.value,
+        label: up.label,
         expressionType: up.expressionType,
         id: up.id,
         type: "blue",
@@ -834,7 +833,7 @@ const traverseUp = (
       addNode(
         display,
         {
-          value: "",
+          label: "",
           id: upId,
           type: "empty",
           zipper: true,
@@ -851,7 +850,7 @@ const traverseUp = (
       addNode(
         display,
         {
-          value: "",
+          label: "",
           id: upId,
           type: "empty",
         } as Node,
@@ -968,13 +967,13 @@ const traverseUp = (
 
 const treeToHash = (
   tree: Expression,
-  result: Record<ID, { value: string; expressionType: ExpressionType }> = {}
+  result: Record<ID, { label: string; expressionType: ExpressionType }> = {}
 ) => {
   if (!tree) return result;
   // break loop
   if (result[tree.id]) return result;
   result[tree.id] = {
-    value: tree.value,
+    label: tree.label,
     expressionType: tree.expressionType,
   };
   forEach(tree.children, (node) => treeToHash(node, result));
@@ -1002,7 +1001,7 @@ const traverseZipper = (
       {
         left: zipper.left,
         right: zipper.right,
-        value: focus.value,
+        label: focus.label,
         expressionType: focus.expressionType,
         id: focus.id,
         level: (zipper.up?.value.level || 0) + 1,
@@ -1017,9 +1016,9 @@ const traverseZipper = (
 
   if (tree) {
     Object.entries(treeToHash(tree)).forEach(
-      ([id, { value, expressionType }]) => {
+      ([id, { label, expressionType }]) => {
         if (display.nodes[id as any]) {
-          display.nodes[id as any].value = value;
+          display.nodes[id as any].label = label;
           display.nodes[id as any].expressionType = expressionType;
         }
       }

@@ -217,7 +217,7 @@ export const VizualizeGrammar = ({
           <div style={legend}>
             id: {nodes[selectedNode].id}
             <br />
-            value: {nodes[selectedNode].value}
+            label: {nodes[selectedNode].label}
             <br />
             type: {nodes[selectedNode].expressionType}
             {/* {nodes[nodes[selectedNode].originalId!] && (
@@ -225,7 +225,7 @@ export const VizualizeGrammar = ({
                 <br />
                 original id: {nodes[nodes[selectedNode].originalId!].id}
                 <br />
-                original value: {nodes[nodes[selectedNode].originalId!].value}
+                original label: {nodes[nodes[selectedNode].originalId!].label}
                 <br />
                 original type:{" "}
                 {nodes[nodes[selectedNode].originalId!].expressionType}

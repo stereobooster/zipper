@@ -6,10 +6,10 @@ import { Expression, expressionNode } from "./pwz";
 /**
  * token
  */
-export const tok = (value: string) =>
+export const tok = (label: string) =>
   expressionNode({
     expressionType: "Tok",
-    value,
+    label,
     children: null,
   });
 
@@ -20,20 +20,20 @@ const helper = (arr: StrExp[]) =>
 /**
  * concatenation
  */
-export const seq = (value: string, children: StrExp[]) =>
+export const seq = (label: string, children: StrExp[]) =>
   expressionNode({
     expressionType: "Seq",
-    value,
+    label,
     children: helper(children),
   });
 
 /**
  * unordered choice
  */
-export const alt = (value: string, children: StrExp[]) =>
+export const alt = (label: string, children: StrExp[]) =>
   expressionNode({
     expressionType: "Alt",
-    value,
+    label,
     children: helper(children),
   });
 
@@ -52,13 +52,13 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 /**
  * Kleene star expressed as S -> ϵ | x S
  */
-// export const star = (value: string, x: Expression) =>
-//   rec((s) => alt(value, [tok(""), seq("", [x, s])]));
+// export const star = (label: string, x: Expression) =>
+//   rec((s) => alt(label, [tok(""), seq("", [x, s])]));
 
-export const star = (value: string, child: StrExp) =>
+export const star = (label: string, child: StrExp) =>
   expressionNode({
     expressionType: "Rep",
-    value,
+    label,
     children: helper([child]),
   });
 
@@ -68,16 +68,16 @@ export const star = (value: string, child: StrExp) =>
 export const any = () =>
   expressionNode({
     expressionType: "TokAny",
-    value: "",
+    label: "",
     children: null,
   });
 
 /**
  * matches any character except the given one, similar to `^x` from PCRE
  */
-export const exc = (value: string) =>
+export const exc = (label: string) =>
   expressionNode({
     expressionType: "TokExc",
-    value,
+    label,
     children: null,
   });
