@@ -31,6 +31,8 @@ export type Expression = {
   originalId?: ID;
   // cache
   m?: Mem;
+  start?: number;
+  end?: number;
 };
 
 export const expressionNode = ({
@@ -423,6 +425,8 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
         level: (zipper.up?.value.level || 0) + 1,
         originalId: zipper.focus.originalId || zipper.focus.id,
         m: zipper.focus.m,
+        start: zipper.focus.start,
+        end: zipper.focus.end,
       },
       zipper.up
     ),
@@ -446,6 +450,8 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
       id: zipper.up.value.id,
       originalId: zipper.up.value.originalId,
       m: zipper.up.value.m,
+      start: zipper.up.value.start,
+      end: zipper.up.value.end,
     }),
   };
 };
@@ -547,7 +553,7 @@ export function deriveStep(
         return deriveUp(position, zipper, m!);
       case "downPrime":
         if (!m) console.log("undefined m");
-        return deriveDownPrime(token, zipper, m!);
+        return deriveDownPrime(position, token, zipper, m!);
       case "upPrime":
         return deriveUpPrime(zipper);
       case "none":
@@ -557,10 +563,15 @@ export function deriveStep(
 }
 
 function deriveDownPrime(
+  position: number,
   token: string,
   zipper: ExpressionZipper,
   m: Mem
 ): Step[] {
+  // empty token can be only in the end of the string, when position is `str.length + 1`
+  if (token === "") position = position - 1;
+  // in case when first = last token = ""
+  if (position === -1) position = 0;
   let x: ExpressionZipper;
   switch (zipper.focus.expressionType) {
     case "Tok":
@@ -571,7 +582,13 @@ function deriveDownPrime(
           "none",
           replace(
             zipper,
-            expressionNode({ ...zipper.focus, ...empty, label: token })
+            expressionNode({
+              ...zipper.focus,
+              ...empty,
+              label: token,
+              start: position,
+              end: position,
+            })
           ),
           m,
         ],
@@ -579,7 +596,20 @@ function deriveDownPrime(
     case "Seq":
       // | Seq (s, []) -> d↑ (Seq (s, [])) m
       if (zipper.focus.children === null)
-        return [["up", replace(zipper, expressionNode(zipper.focus)), m]];
+        return [
+          [
+            "up",
+            replace(
+              zipper,
+              expressionNode({
+                ...zipper.focus,
+                start: position,
+                end: position,
+              })
+            ),
+            m,
+          ],
+        ];
       // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
       return [
         [
@@ -587,7 +617,12 @@ function deriveDownPrime(
           down(
             replace(
               zipper,
-              expressionNode({ ...zipper.focus, expressionType: "SeqC", m })
+              expressionNode({
+                ...zipper.focus,
+                expressionType: "SeqC",
+                m,
+                start: position,
+              })
             )
           ),
           undefined,
@@ -621,18 +656,24 @@ function deriveDownPrime(
             expressionType: "AltC",
             children: cons({} as any, null),
             m,
+            start: position,
           })
         )
       );
       return mapToArray(zipper.focus.children, (e) => {
-        return ["down", replace(x, e), undefined];
+        return ["down", replace(x, { ...e, start: position }), undefined];
       });
     // Extension
     case "Rep":
       x = down(
         replace(
           zipper,
-          expressionNode({ ...zipper.focus, expressionType: "RepC", m })
+          expressionNode({
+            ...zipper.focus,
+            expressionType: "RepC",
+            m,
+            start: position,
+          })
         )
       );
       x = insertAfter(x, expressionNode(x.focus));
@@ -643,8 +684,17 @@ function deriveDownPrime(
             zipper,
             expressionNode({
               ...zipper.focus,
+              start: position,
+              end: position,
               children: cons(
-                expressionNode(expressionNode({ ...empty, label: "" })),
+                expressionNode(
+                  expressionNode({
+                    ...empty,
+                    label: "",
+                    start: position,
+                    end: position,
+                  })
+                ),
                 null
               ),
             })
@@ -676,6 +726,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
                 ...x.focus,
                 expressionType: "Seq",
                 m: undefined,
+                end: zipper.focus.end,
               })
             ),
             x.focus.m,
@@ -696,6 +747,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
               ...x.focus,
               expressionType: "Alt",
               m: undefined,
+              end: zipper.focus.end,
             })
           ),
           x.focus.m,
@@ -715,6 +767,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
               ...x.focus,
               expressionType: "Rep",
               m: undefined,
+              end: zipper.focus.end,
             })
           ),
           x.focus.m,

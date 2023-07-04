@@ -4,7 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { seq } from "./pwzDSL";
+import { seq, star } from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -59,12 +59,12 @@ e.children = cons(cicledTree, null);
 // const exp = rec((S) => star("S", seq("", ["(", S, ")"])))
 
 // highly ambigious: S -> a* a*
-// const str = "aa";
-// const exp = seq("S", [star("", "a"), star("", "a")])
+const str = "aa";
+const exp = seq("S", [star("", "a"), star("", "a")])
 
 // E -> Letter Arrow Letter Alt Letter
-const str = "S->a|b";
-const exp = seq("E", ["A-Z", seq("→", ["-", ">"]), "a-z", "|", "a-z"]);
+// const str = "S->a|b";
+// const exp = seq("E", ["A-Z", seq("→", ["-", ">"]), "a-z", "|", "a-z"]);
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

@@ -81,14 +81,17 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## TODO
 
-- TODO
-  - Implement PwZ without memoization table
-    - start, end, value (parsed substring) `mem = { start : pos; mutable end : pos; }`
-  - [Lexical](https://spoofax.dev/references/sdf3/lexical-syntax/) nodes
-  - Parser for a simplified "grammar"
-  - Problem of disappering zippers in PwZ vizualization
-    - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers
-  - Tree compaction
+- Added positions (`start`, `end`) to tree nodes
+- Tried to implement PwZ without memoization table, but failed miserably
+  - Authors store `start` and `end` in `mem`, but I store those in tree nodes. Maybe I can get something out of this
+
+TODO:
+
+- [Lexical](https://spoofax.dev/references/sdf3/lexical-syntax/) nodes
+- Parser for a simplified "grammar"
+- Problem of disappering zippers in PwZ vizualization
+  - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers
+- Tree compaction
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
 - BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges

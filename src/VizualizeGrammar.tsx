@@ -220,6 +220,10 @@ export const VizualizeGrammar = ({
             label: {nodes[selectedNode].label}
             <br />
             type: {nodes[selectedNode].expressionType}
+            <br />
+            start: {nodes[selectedNode].start}
+            <br />
+            end: {nodes[selectedNode].end}
             {/* {nodes[nodes[selectedNode].originalId!] && (
               <>
                 <br />
