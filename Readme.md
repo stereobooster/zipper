@@ -81,13 +81,21 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## TODO
 
-- Added positions (`start`, `end`) to tree nodes
 - Tried to implement PwZ without memoization table, but failed miserably
   - Authors store `start` and `end` in `mem`, but I store those in tree nodes. Maybe I can get something out of this
+- PwZ can work as [scannerless](https://en.wikipedia.org/wiki/Scannerless_parsing) parser (parser generator)
+  - The only thing that we need to add is ability to specify [lexical grammar](https://spoofax.dev/references/sdf3/lexical-syntax/) separately from syntactical grammar.
+    - There are different ways, for example:
+      - I can add special nodes (`lex`), which are when matched (e.g. moves zipper up through node) would collapse tree underneath and store string value in the node
+      - Or I can add special flag to nodes (`lex: true`), which would work the same as separate node, but without need to introduce separate node
+    - In order to capture string value I can:
+      - accumulate input string and use `start`, `end` to slice required part frrom accumulated input
+      - or use `Mem` to accumulate string
+    - What to do if there are nested lexical nodes?
+      - I think it is reasonable to collapse tree to the highest lexical node.
 
 TODO:
 
-- [Lexical](https://spoofax.dev/references/sdf3/lexical-syntax/) nodes
 - Parser for a simplified "grammar"
 - Problem of disappering zippers in PwZ vizualization
   - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers

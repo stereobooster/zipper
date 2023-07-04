@@ -81,3 +81,10 @@ export const exc = (label: string) =>
     label: `^${label}`,
     children: null,
   });
+
+export const lex = (label: string, child: StrExp) =>
+  expressionNode({
+    expressionType: "Lex",
+    label,
+    children: helper([child]),
+  });

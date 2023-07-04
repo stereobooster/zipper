@@ -17,7 +17,9 @@ export type ExpressionType =
   | "SeqC"
   | "AltC"
   | "Rep"
-  | "RepC";
+  | "RepC"
+  | "Lex"
+  | "LexC";
 
 export type Expression = {
   expressionType: ExpressionType;
@@ -33,6 +35,7 @@ export type Expression = {
   m?: Mem;
   start?: number;
   end?: number;
+  value?: string;
 };
 
 export const expressionNode = ({
@@ -41,15 +44,13 @@ export const expressionNode = ({
   expressionType,
   children,
   label,
+  value,
   ...props
 }: Omit<Expression, "id"> & { id?: ID }): Expression => {
   if (expressionType === "Tok" && children !== null)
     throw Error("Token can't have children");
   if (expressionType === "Tok" && label === "") expressionType = "Seq";
-  if (expressionType === "Seq" && children === null && label === "")
-    label = "ϵ";
-  if (expressionType === "Alt" && children === null && label === "")
-    label = "∅";
+  if (expressionType === "Seq" && children === null && label === "") value = "";
   return {
     ...props,
     expressionType,
@@ -57,6 +58,7 @@ export const expressionNode = ({
     label,
     originalId: originalId !== undefined ? originalId : id,
     id: Math.random(),
+    value,
   };
 };
 
@@ -223,7 +225,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
 
 const nodeToDot = (
   id: ID | string,
-  { label, type, originalId, zipper, expressionType }: Node
+  { label, type, originalId, zipper, expressionType, value }: Node
 ) => {
   let borderColor = listColor;
   let fillColor = listColor;
@@ -252,29 +254,34 @@ const nodeToDot = (
 
   const short = true;
   let rounded = true; // maybe: terminals rounded, non-terminals squared?
-  if (expressionType === "Tok" && label === "") {
-    label = "ϵ";
-    rounded = false;
-  }
-  if ((expressionType === "Seq" || expressionType === "SeqC") && label === "") {
-    label = short ? "∙" : "Seq";
-    rounded = false;
-  }
-  if ((expressionType === "Alt" || expressionType === "AltC") && label === "") {
-    label = short ? "∪" : "Alt";
-    rounded = false;
-  }
-  // Ugly workaround
-  if (
-    (expressionType === "Seq" || expressionType === "SeqC") &&
-    label === "ϵ"
-  ) {
-    rounded = false;
-  }
-  // Extension
-  if (expressionType === "Rep" || expressionType === "RepC") {
-    label = short ? "∗" : "Rep";
-    rounded = false;
+
+  if (value !== undefined) {
+    if (value === "") {
+      label = "ϵ";
+      rounded = false;
+    } else {
+      label = value;
+    }
+  } else {
+    if (
+      (expressionType === "Seq" || expressionType === "SeqC") &&
+      label === ""
+    ) {
+      label = short ? "∙" : "Seq";
+      rounded = false;
+    }
+    if (
+      (expressionType === "Alt" || expressionType === "AltC") &&
+      label === ""
+    ) {
+      label = short ? "∪" : "Alt";
+      rounded = false;
+    }
+    // Extension
+    if (expressionType === "Rep" || expressionType === "RepC") {
+      label = short ? "∗" : "Rep";
+      rounded = false;
+    }
   }
 
   // https://graphviz.org/doc/info/shapes.html
@@ -427,6 +434,7 @@ export const down = (zipper: ExpressionZipper): ExpressionZipper => {
         m: zipper.focus.m,
         start: zipper.focus.start,
         end: zipper.focus.end,
+        value: zipper.focus.value,
       },
       zipper.up
     ),
@@ -452,6 +460,7 @@ export const up = (zipper: ExpressionZipper): ExpressionZipper => {
       m: zipper.up.value.m,
       start: zipper.up.value.start,
       end: zipper.up.value.end,
+      value: zipper.up.value.value,
     }),
   };
 };
@@ -536,12 +545,16 @@ export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
 const mems = new Memo<Mem>();
 export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 
+// primitive implementation, but good enough for prototype
+const memoInput: string[] = [];
+
 export function deriveStep(
   position: number,
   token: string,
   steps: Step[],
   stepNo = 0
 ): Step[] {
+  memoInput[position] = token;
   return steps.flatMap((step, i) => {
     if (i !== stepNo) return [step];
     const [direction, zipper, m] = step;
@@ -568,10 +581,6 @@ function deriveDownPrime(
   zipper: ExpressionZipper,
   m: Mem
 ): Step[] {
-  // empty token can be only in the end of the string, when position is `str.length + 1`
-  if (token === "") position = position - 1;
-  // in case when first = last token = ""
-  if (position === -1) position = 0;
   let x: ExpressionZipper;
   switch (zipper.focus.expressionType) {
     case "Tok":
@@ -585,9 +594,9 @@ function deriveDownPrime(
             expressionNode({
               ...zipper.focus,
               ...empty,
-              label: token,
+              value: token,
               start: position,
-              end: position,
+              end: position + 1,
             })
           ),
           m,
@@ -605,6 +614,7 @@ function deriveDownPrime(
                 ...zipper.focus,
                 start: position,
                 end: position,
+                value: "",
               })
             ),
             m,
@@ -693,6 +703,7 @@ function deriveDownPrime(
                     label: "",
                     start: position,
                     end: position,
+                    value: "",
                   })
                 ),
                 null
@@ -702,6 +713,24 @@ function deriveDownPrime(
           m,
         ],
         ["down", x, undefined],
+      ];
+    case "Lex":
+      return [
+        [
+          "down",
+          down(
+            replace(
+              zipper,
+              expressionNode({
+                ...zipper.focus,
+                expressionType: "LexC",
+                m,
+                start: position,
+              })
+            )
+          ),
+          undefined,
+        ],
       ];
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
@@ -773,6 +802,25 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           x.focus.m,
         ],
         ["down", y, undefined],
+      ];
+    case "LexC":
+      x = up(zipper);
+      return [
+        [
+          "up",
+          replace(
+            x,
+            expressionNode({
+              ...x.focus,
+              expressionType: "Lex",
+              m: undefined,
+              end: zipper.focus.end,
+              value: memoInput.slice(x.focus.start, zipper.focus.end).join(""),
+              children: null,
+            })
+          ),
+          x.focus.m,
+        ],
       ];
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
