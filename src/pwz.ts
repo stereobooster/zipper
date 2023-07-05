@@ -19,7 +19,9 @@ export type ExpressionType =
   | "Rep"
   | "RepC"
   | "Lex"
-  | "LexC";
+  | "LexC"
+  | "Ign"
+  | "IgnC";
 
 export type Expression = {
   expressionType: ExpressionType;
@@ -481,9 +483,14 @@ export const insertAfter = (
   right: cons(item, zipper.right),
 });
 
+export const deleteBefore = (zipper: ExpressionZipper): ExpressionZipper => ({
+  ...zipper,
+  left: zipper.left?.next || null,
+});
+
 export const deleteAfter = (zipper: ExpressionZipper): ExpressionZipper => ({
   ...zipper,
-  right: null,
+  right: zipper.right?.next || null,
 });
 
 export const mapToArray = <P, T>(list: List<P>, cb: (item: P) => T): T[] => {
@@ -581,7 +588,6 @@ function deriveDownPrime(
   zipper: ExpressionZipper,
   m: Mem
 ): Step[] {
-  let x: ExpressionZipper;
   switch (zipper.focus.expressionType) {
     case "Tok":
       // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
@@ -638,7 +644,7 @@ function deriveDownPrime(
           undefined,
         ],
       ];
-    case "Alt":
+    case "Alt": {
       // not sure about that
       // return mapToArray(zipper.focus.children, (e) => {
       //   return [
@@ -658,7 +664,7 @@ function deriveDownPrime(
       //   ];
       // )
       // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
-      x = down(
+      const x = down(
         replace(
           zipper,
           expressionNode({
@@ -673,9 +679,10 @@ function deriveDownPrime(
       return mapToArray(zipper.focus.children, (e) => {
         return ["down", replace(x, { ...e, start: position }), undefined];
       });
+    }
     // Extension
-    case "Rep":
-      x = down(
+    case "Rep": {
+      let x = down(
         replace(
           zipper,
           expressionNode({
@@ -704,6 +711,7 @@ function deriveDownPrime(
           m,
         ],
       ];
+    }
     case "Lex":
       return [
         [
@@ -722,6 +730,24 @@ function deriveDownPrime(
           undefined,
         ],
       ];
+    case "Ign":
+      return [
+        [
+          "down",
+          down(
+            replace(
+              zipper,
+              expressionNode({
+                ...zipper.focus,
+                expressionType: "IgnC",
+                m,
+                start: position,
+              })
+            )
+          ),
+          undefined,
+        ],
+      ];
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }
@@ -730,12 +756,32 @@ function deriveDownPrime(
 function deriveUpPrime(zipper: ExpressionZipper): Step[] {
   // | TopC -> []
   if (zipper.up === null) return [];
-  let x, y: ExpressionZipper;
   switch (zipper.up.value.expressionType) {
-    case "SeqC":
+    case "SeqC": {
+      const focusEmpty =
+        zipper.focus.start === zipper.focus.end ||
+        (zipper.focus.expressionType === "Seq" &&
+          zipper.focus.children === null &&
+          zipper.focus.value === "");
+      let x = up(zipper);
       // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
       if (zipper.right === null) {
-        x = up(zipper);
+        let children: List<Expression>;
+        // horizontal compaction
+        if (focusEmpty) {
+          if (zipper.left === null) {
+            children = null;
+          } else {
+            x = up(deleteAfter(left(zipper)));
+            children = x.focus.children;
+          }
+        } else {
+          children = x.focus.children;
+        }
+        // vertical compaction
+        if (children?.next === null && x.focus.label === "") {
+          return [["up", replace(x, children.value), x.focus.m]];
+        }
         return [
           [
             "up",
@@ -744,6 +790,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
               expressionNode({
                 ...x.focus,
                 expressionType: "Seq",
+                children: children,
                 m: undefined,
                 end: zipper.focus.end,
               })
@@ -753,10 +800,23 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         ];
       }
       // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
-      return [["down", right(zipper), undefined]];
-    case "AltC":
+      return [
+        [
+          "down",
+          // horizontal compaction
+          focusEmpty ? deleteBefore(right(zipper)) : right(zipper),
+          undefined,
+        ],
+      ];
+    }
+    case "AltC": {
       // | AltC (m) -> d↑ (Alt [e]) m
-      x = up(zipper);
+      const x = up(zipper);
+      const children = x.focus.children;
+      // vertical compaction
+      if (children?.next === null && x.focus.label === "") {
+        return [["up", replace(x, children.value), x.focus.m]];
+      }
       return [
         [
           "up",
@@ -772,14 +832,15 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           x.focus.m,
         ],
       ];
+    }
     // Extension
-    case "RepC":
+    case "RepC": {
       // if Kleene star derives empty string - return nothing,
       // because we already accounted for empty string in `deriveDownPrime` see `case "Rep":`
       if (zipper.focus.start === zipper.focus.end) return [];
-      y = right(zipper);
+      let y = right(zipper);
       y = insertAfter(y, expressionNode(y.focus));
-      x = up(deleteAfter(zipper));
+      const x = up(deleteAfter(zipper));
       return [
         [
           "up",
@@ -796,8 +857,9 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         ],
         ["down", y, undefined],
       ];
-    case "LexC":
-      x = up(zipper);
+    }
+    case "LexC": {
+      const x = up(zipper);
       return [
         [
           "up",
@@ -815,6 +877,26 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           x.focus.m,
         ],
       ];
+    }
+    case "IgnC": {
+      const x = up(zipper);
+      return [
+        [
+          "up",
+          replace(
+            x,
+            expressionNode({
+              ...x.focus,
+              ...empty,
+              m: undefined,
+              end: zipper.focus.end,
+              value: "",
+            })
+          ),
+          x.focus.m,
+        ],
+      ];
+    }
     default:
       throw new Error(`Unhandled type: ${zipper.focus.expressionType}`);
   }

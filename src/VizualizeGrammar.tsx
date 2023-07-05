@@ -12,6 +12,7 @@ import {
   Nobr,
   button,
   buttonRect,
+  code,
   controls,
   legend,
   row,
@@ -59,7 +60,7 @@ export const VizualizeGrammar = ({
   const [position, setPosition] = useState(0);
   const token = str[position] || "";
 
-  const strWIthPos =
+  const strWithPos =
     str.substring(0, position) +
     `<span style="text-decoration: underline;">${token}</span>` +
     str.substring(position + 1, str.length);
@@ -122,7 +123,7 @@ export const VizualizeGrammar = ({
   const [autoDerivate, setAutoDerivate] = useState(false);
   useEffect(() => {
     if (finished || !autoDerivate) return;
-    const i = setInterval(go, 1);
+    const i = setInterval(go, 20);
     return () => clearInterval(i);
   }, [autoDerivate, finished, go]);
 
@@ -179,7 +180,9 @@ export const VizualizeGrammar = ({
         <div>
           <Nobr>String to parse</Nobr>
           <br />
-          <div style={text} dangerouslySetInnerHTML={{ __html: strWIthPos }} />
+          <div style={text}>
+            <code style={code} dangerouslySetInnerHTML={{ __html: strWithPos }} />
+          </div>
         </div>
         <div>
           <Nobr>Direction and depth</Nobr>

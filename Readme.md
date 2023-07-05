@@ -95,13 +95,15 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
       - I think it is reasonable to collapse tree to the highest lexical node.
 
 TODO:
-- Operator to ignore spaces
-- Kleene plus and other quantifiers
-- `<pre>` for string to show spaces
+
 - Parser for a simplified "grammar"
+- Refactor DSL to allow omit `label`
+- Button for immediate result instead of "animation"?
+- `ign` doesn't work inside `lex`
+- Kleene plus and other quantifiers
+- Ignore consequent space without parsing?
 - Problem of disappering zippers in PwZ vizualization
   - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers
-- Tree compaction
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
 - BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges

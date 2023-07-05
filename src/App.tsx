@@ -7,8 +7,9 @@ import { paragraph } from "./common";
 import {
   alt,
   exc,
-  leftAssociative,
+  ign,
   lex,
+  plus,
   rec,
   rightAssociative,
   seq,
@@ -58,10 +59,11 @@ e.children = cons(cicledTree, null);
 
 // quoted string: S -> "(^"|\")*"
 // const str = '"a\\"c"';
-// const exp = lex(
-//   "Str",
-//   seq("", ['"', star("", alt("", [exc('"'), seq("", ["\\", '"'])])), '"'])
-// );
+// const exp = seq("", [
+//   ign("", '"'),
+//   lex("Str", star("", alt("", [exc('"'), seq("", ["\\", '"'])]))),
+//   ign("", '"'),
+// ]);
 
 // nested parentheses: S -> ("(" S ")")*
 // const str = "()(())";
@@ -69,20 +71,38 @@ e.children = cons(cicledTree, null);
 
 // highly ambigious: S -> a* a*
 // const str = "aa";
-// const exp = seq("S", [star("", "a"), star("", "a")])
+// const exp = seq("S", [star("1st", "a"), star("2nd", "a")])
 
 // E -> Letter Arrow Letter Alt Letter
-const terminal = lex("Ter", seq("", ["a-z", star("", "a-z")]));
-const arrow = lex("→", seq("", ["-", ">"]));
-const string = lex(
-  "Str",
-  seq("", ['"', star("", alt("", [exc('"'), seq("", ["\\", '"'])])), '"'])
-);
-const concat = rightAssociative("Seq", " ", [string, terminal]);
-const altern = seq("Alt", [concat, "|", concat]);
+// Non-terminal or symbol
+const nonTerminal = lex("NT", plus("", "a-z"));
+// Terminal or string
+const terminal = seq("", [
+  ign("", '"'),
+  lex("T", star("", alt("", [exc('"'), seq("", ["\\", '"'])]))),
+  ign("", '"'),
+]);
+const arrow = ign("→", seq("", ["-", ">"]));
+const spaceOptional = ign("", star("", " "));
+const space = ign("Space", plus("", " "));
 
-const str = 's->x "c" d';
-const exp = seq("Rule", [terminal, arrow, alt("", [concat, altern])]);
+const concat = rightAssociative("Seq", space, [terminal, nonTerminal]);
+const altern = seq("Alt", [
+  concat,
+  spaceOptional,
+  ign("", "|"),
+  spaceOptional,
+  concat,
+]);
+
+const str = 's ->  x "c"  d | b';
+const exp = seq("Rule", [
+  nonTerminal,
+  spaceOptional,
+  arrow,
+  spaceOptional,
+  alt("", [concat, altern]),
+]);
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

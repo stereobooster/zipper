@@ -55,12 +55,26 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 // export const star = (label: string, x: Expression) =>
 //   rec((s) => alt(label, [tok(""), seq("", [x, s])]));
 
+/**
+ * Kleene star, similar to `x*` from PCRE
+ */
 export const star = (label: string, child: StrExp) =>
   expressionNode({
     expressionType: "Rep",
     label,
     children: helper([child]),
   });
+
+/**
+ * Kleene plus, similar to `x+` from PCRE
+ */
+export const plus = (label: string, child: StrExp) =>
+  seq(label, [child, star("", child)]);
+
+/**
+ * Optional item, similar to `x?` from PCRE
+ */
+export const opt = (label: string, child: StrExp) => alt(label, ["", child]);
 
 /**
  * matches any character, similar to `.` from PCRE
@@ -82,9 +96,22 @@ export const exc = (label: string) =>
     children: null,
   });
 
+/**
+ * Lexical level grammar - for scannerless parser
+ */
 export const lex = (label: string, child: StrExp) =>
   expressionNode({
     expressionType: "Lex",
+    label,
+    children: helper([child]),
+  });
+
+/**
+ * Ignore input, for example spaces, tabs, newlines etc.
+ */
+export const ign = (label: string, child: StrExp) =>
+  expressionNode({
+    expressionType: "Ign",
     label,
     children: helper([child]),
   });

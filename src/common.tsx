@@ -52,7 +52,11 @@ export const legend: CSSProperties = {
   height: "min-content",
   borderRadius: 5,
 };
-
+export const code: CSSProperties = {
+  fontFamily:
+    "ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace",
+  whiteSpace: "break-spaces",
+};
 export const listColor = "#8b0000";
 export const zipperColor = "#ff69b4";
 export const leftColor = "#0000cd";
