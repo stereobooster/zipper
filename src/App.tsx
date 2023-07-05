@@ -4,17 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import {
-  alt,
-  exc,
-  ign,
-  lex,
-  plus,
-  rec,
-  rightAssociative,
-  seq,
-  star,
-} from "./pwzDSL";
+import { alt, exc, ign, lex, plus, recs, seq, star } from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -73,27 +63,31 @@ e.children = cons(cicledTree, null);
 // const str = "aa";
 // const exp = seq("S", [star("1st", "a"), star("2nd", "a")])
 
-// E -> Letter Arrow Letter Alt Letter
+// Chomsky-BNF-like grammar, for example `S -> a | "b"`
 // Non-terminal or symbol
-const nonTerminal = lex("NT", plus("", "a-z"));
+const nonTerminal = lex("NT", plus("a-z"));
 // Terminal or string
-const terminal = seq("", [
-  ign("", '"'),
-  lex("T", star("", alt("", [exc('"'), seq("", ["\\", '"'])]))),
-  ign("", '"'),
+const terminal = seq([
+  ign('"'),
+  lex("T", star(alt([exc('"'), seq(["\\", '"'])]))),
+  ign('"'),
 ]);
-const arrow = ign("→", seq("", ["-", ">"]));
-const spaceOptional = ign("", star("", " "));
-const space = ign("Space", plus("", " "));
-
-const concat = rightAssociative("Seq", space, [terminal, nonTerminal]);
-const altern = seq("Alt", [
-  concat,
-  spaceOptional,
-  ign("", "|"),
-  spaceOptional,
-  concat,
-]);
+const arrow = ign("→", seq(["-", ">"]));
+const spaceOptional = ign(star(" "));
+const space = ign("Space", plus(" "));
+const ruleBody = recs((al, se) => {
+  const variable = alt([
+    terminal,
+    nonTerminal,
+    seq([ign("("), spaceOptional, al, spaceOptional, ign(")")]),
+  ]);
+  return [
+    // ALt
+    alt([se, seq("Alt", [se, spaceOptional, ign("|"), spaceOptional, al])]),
+    // Seq
+    alt([variable, seq("Seq", [variable, space, se])]),
+  ];
+})[0];
 
 const str = 's ->  x "c"  d | b';
 const exp = seq("Rule", [
@@ -101,7 +95,7 @@ const exp = seq("Rule", [
   spaceOptional,
   arrow,
   spaceOptional,
-  alt("", [concat, altern]),
+  ruleBody,
 ]);
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a

@@ -97,7 +97,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - Parser for a simplified "grammar"
-- Refactor DSL to allow omit `label`
+  - convert parse tree to grammar tree
+  - parse function instead of step-by-step function
 - Button for immediate result instead of "animation"?
 - `ign` doesn't work inside `lex`
 - Kleene plus and other quantifiers
