@@ -4,7 +4,16 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { alt, exc, lex, rec, seq, star } from "./pwzDSL";
+import {
+  alt,
+  exc,
+  leftAssociative,
+  lex,
+  rec,
+  rightAssociative,
+  seq,
+  star,
+} from "./pwzDSL";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -43,17 +52,16 @@ e.children = cons(cicledTree, null);
 // const exp = star("S", "a")
 
 // arithmetic expression: S -> S + S | 0-9
-const str = "10+2+3";
-const int = lex("int", alt("", ["0", seq("", ["1-9", star("", "0-9")])]))
-const exp = rec((S) => alt("Exp", [seq("", [S, "+", S]), int]));
+// const str = "10+2+3";
+// const int = lex("int", alt("", ["0", seq("", ["1-9", star("", "0-9")])]))
+// const exp = rec((S) => alt("Exp", [seq("", [S, "+", S]), int]));
 
 // quoted string: S -> "(^"|\")*"
 // const str = '"a\\"c"';
-// const exp = seq("quoted", [
-//   '"',
-//   star("", alt("", [exc('"'), seq("", ["\\", '"'])])),
-//   '"',
-// ]);
+// const exp = lex(
+//   "Str",
+//   seq("", ['"', star("", alt("", [exc('"'), seq("", ["\\", '"'])])), '"'])
+// );
 
 // nested parentheses: S -> ("(" S ")")*
 // const str = "()(())";
@@ -64,8 +72,17 @@ const exp = rec((S) => alt("Exp", [seq("", [S, "+", S]), int]));
 // const exp = seq("S", [star("", "a"), star("", "a")])
 
 // E -> Letter Arrow Letter Alt Letter
-// const str = "S->a|b";
-// const exp = seq("E", ["A-Z", seq("→", ["-", ">"]), "a-z", "|", "a-z", ""]);
+const terminal = lex("Ter", seq("", ["a-z", star("", "a-z")]));
+const arrow = lex("→", seq("", ["-", ">"]));
+const string = lex(
+  "Str",
+  seq("", ['"', star("", alt("", [exc('"'), seq("", ["\\", '"'])])), '"'])
+);
+const concat = rightAssociative("Seq", " ", [string, terminal]);
+const altern = seq("Alt", [concat, "|", concat]);
+
+const str = 's->x "c" d';
+const exp = seq("Rule", [terminal, arrow, alt("", [concat, altern])]);
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

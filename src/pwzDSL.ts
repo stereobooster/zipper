@@ -88,3 +88,34 @@ export const lex = (label: string, child: StrExp) =>
     label,
     children: helper([child]),
   });
+
+/**
+ * When we combine operators to form expressions, the order in which the operators are to be applied may
+ * not be obvious. For example, `a + b + c` can be interpreted as `((a + b) + c)` or as `(a + (b + c))`.
+ * We say that `+` is left-associative if operands are grouped left to right as in `((a + b) + c)`.
+ * We say it is right-associative if it groups operands in the opposite direction, as in `(a + (b + c))`.
+ * A.V. Aho & J.D. Ullman 1977, p. 47
+ */
+export const leftAssociative = (
+  label: string,
+  operator: StrExp,
+  variables: StrExp[]
+) =>
+  rec((c) =>
+    alt("", [
+      ...variables,
+      ...variables.map((variable) => seq(label, [c, operator, variable])),
+    ])
+  );
+
+export const rightAssociative = (
+  label: string,
+  operator: StrExp,
+  variables: StrExp[]
+) =>
+  rec((c) =>
+    alt("", [
+      ...variables,
+      ...variables.map((variable) => seq(label, [variable, operator, c])),
+    ])
+  );

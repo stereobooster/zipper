@@ -122,7 +122,7 @@ export const VizualizeGrammar = ({
   const [autoDerivate, setAutoDerivate] = useState(false);
   useEffect(() => {
     if (finished || !autoDerivate) return;
-    const i = setInterval(go, 50);
+    const i = setInterval(go, 1);
     return () => clearInterval(i);
   }, [autoDerivate, finished, go]);
 

@@ -688,31 +688,21 @@ function deriveDownPrime(
       );
       x = insertAfter(x, expressionNode(x.focus));
       return [
+        ["down", x, undefined],
         [
           "up",
           replace(
             zipper,
             expressionNode({
               ...zipper.focus,
+              ...empty,
               start: position,
               end: position,
-              children: cons(
-                expressionNode(
-                  expressionNode({
-                    ...empty,
-                    label: "",
-                    start: position,
-                    end: position,
-                    value: "",
-                  })
-                ),
-                null
-              ),
+              value: "",
             })
           ),
           m,
         ],
-        ["down", x, undefined],
       ];
     case "Lex":
       return [
@@ -784,6 +774,9 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       ];
     // Extension
     case "RepC":
+      // if Kleene star derives empty string - return nothing,
+      // because we already accounted for empty string in `deriveDownPrime` see `case "Rep":`
+      if (zipper.focus.start === zipper.focus.end) return [];
       y = right(zipper);
       y = insertAfter(y, expressionNode(y.focus));
       x = up(deleteAfter(zipper));
