@@ -493,12 +493,6 @@ export const deleteAfter = (zipper: ExpressionZipper): ExpressionZipper => ({
   right: zipper.right?.next || null,
 });
 
-export const mapToArray = <P, T>(list: List<P>, cb: (item: P) => T): T[] => {
-  const res: T[] = [];
-  forEach(list, (x) => res.push(cb(x)));
-  return res;
-};
-
 export const replaceType = (
   zipper: ExpressionZipper,
   expressionType: ExpressionType
@@ -506,6 +500,21 @@ export const replaceType = (
   ...zipper,
   focus: expressionNode({ ...zipper.focus, expressionType }),
 });
+
+export const chain = (
+  zipper: ExpressionZipper,
+  ...rest: Array<(x: ExpressionZipper) => ExpressionZipper>
+) => {
+  let result = zipper;
+  for (const cb of rest) result = cb(result);
+  return result;
+};
+
+export const mapToArray = <P, T>(list: List<P>, cb: (item: P) => T): T[] => {
+  const res: T[] = [];
+  forEach(list, (x) => res.push(cb(x)));
+  return res;
+};
 
 // Derivative ---------------------------------------------------------------------
 // https://dl.acm.org/doi/pdf/10.1145/3408990
@@ -555,31 +564,79 @@ export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
 
-export function deriveStep(
-  position: number,
+export function parse(str: string, tree: Expression) {
+  const [steps] = deriveFinalSteps(str, tree);
+  return steps.map(([, z]) => z.focus);
+}
+
+export function deriveFinalSteps(str: string, tree: Expression) {
+  mems.reset();
+  memoInput.length = 0;
+  let steps: Step[] = [["down", expressionToZipper(tree), undefined]];
+  let position = 0;
+  let step = 0;
+  do {
+    const token = str[position] || "";
+    const [newSteps, newPosition, newStep] = processSteps(
+      token,
+      position === str.length,
+      position,
+      steps
+    );
+    position = newPosition;
+    steps = newSteps;
+    step = newStep;
+    if (steps.length === 0) break;
+  } while (position <= str.length);
+
+  mems.reset();
+  memoInput.length = 0;
+  return [steps, position, step] as const;
+}
+
+export function processSteps(
   token: string,
-  steps: Step[],
-  stepNo = 0
-): Step[] {
+  end: boolean,
+  position: number,
+  steps: Step[]
+) {
   memoInput[position] = token;
-  return steps.flatMap((step, i) => {
-    if (i !== stepNo) return [step];
-    const [direction, zipper, m] = step;
-    switch (direction) {
-      case "down":
-        return deriveDown(position, zipper);
-      case "up":
-        if (!m) console.log("undefined m");
-        return deriveUp(position, zipper, m!);
-      case "downPrime":
-        if (!m) console.log("undefined m");
-        return deriveDownPrime(position, token, zipper, m!);
-      case "upPrime":
-        return deriveUpPrime(zipper);
-      case "none":
-        return [step];
-    }
-  });
+
+  let stepNo = steps.findIndex(([d]) => d !== "none");
+  if (stepNo === -1) {
+    stepNo = 0;
+    position = position + 1;
+    if (!end) steps = steps.map(([, z, m]) => ["up", z, m]);
+  }
+
+  steps = steps.flatMap((step, i) =>
+    i === stepNo ? deriveStep(position, token, step) : [step]
+  );
+
+  if (end)
+    steps = steps.map(([d, z, m]) =>
+      d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
+    );
+
+  return [steps, position, stepNo] as const;
+}
+
+function deriveStep(position: number, token: string, step: Step): Step[] {
+  const [direction, zipper, m] = step;
+  switch (direction) {
+    case "down":
+      return deriveDown(position, zipper);
+    case "up":
+      if (!m) console.log("undefined m");
+      return deriveUp(position, zipper, m!);
+    case "downPrime":
+      if (!m) console.log("undefined m");
+      return deriveDownPrime(position, token, zipper, m!);
+    case "upPrime":
+      return deriveUpPrime(zipper);
+    case "none":
+      return [step];
+  }
 }
 
 function deriveDownPrime(

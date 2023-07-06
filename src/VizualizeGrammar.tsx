@@ -4,9 +4,10 @@ import {
   DeriveDirection,
   Expression,
   Step,
-  deriveStep,
+  deriveFinalSteps,
   expressionToZipper,
   expressionZipperToDot,
+  processSteps,
 } from "./pwz";
 import {
   Nobr,
@@ -90,30 +91,39 @@ export const VizualizeGrammar = ({
   const [finished, setFinished] = useState(false);
   const go = useCallback(() => {
     if (position > str.length) return setFinished(true);
-    let newSteps = deriveStep(position, token, steps, step);
-    if (position == str.length)
-      newSteps = newSteps.map(([d, z, m]) =>
-        d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
-      );
-
-    let newStep = newSteps.findIndex(([d]) => d !== "none");
-    if (newStep === -1) {
-      newStep = 0;
-      setPosition((x) => x + 1);
-      if (position < str.length)
-        newSteps = newSteps.map(([, z, m]) => ["up", z, m]);
-    }
-
-    if (displayZipper != -1) setDisplayZipper(newStep);
+    const [newSteps, newPosition, newStep] = processSteps(
+      token,
+      position === str.length,
+      position,
+      steps
+    );
+    setPosition(newPosition);
     setStep(newStep);
     setSteps(newSteps);
+    if (displayZipper != -1) setDisplayZipper(newStep);
   }, [
     position,
     token,
     steps,
-    step,
     displayZipper,
     str,
+    setFinished,
+    setDisplayZipper,
+    setStep,
+    setSteps,
+  ]);
+
+  const goFinish = useCallback(() => {
+    const [newSteps, newPosition, newStep] = deriveFinalSteps(str, tree);
+    setFinished(true);
+    setPosition(newPosition);
+    setStep(newStep);
+    setSteps(newSteps);
+    if (displayZipper != -1) setDisplayZipper(newStep);
+  }, [
+    str,
+    tree,
+    displayZipper,
     setFinished,
     setDisplayZipper,
     setStep,
@@ -181,7 +191,10 @@ export const VizualizeGrammar = ({
           <Nobr>String to parse</Nobr>
           <br />
           <div style={text}>
-            <code style={code} dangerouslySetInnerHTML={{ __html: strWithPos }} />
+            <code
+              style={code}
+              dangerouslySetInnerHTML={{ __html: strWithPos }}
+            />
           </div>
         </div>
         <div>
@@ -206,10 +219,16 @@ export const VizualizeGrammar = ({
         <div>
           <br />
           <button
-            style={button}
+            style={buttonRect}
             onClick={() => setAutoDerivate((x) => !x)}
             disabled={finished}
           >
+            ▶
+          </button>
+        </div>
+        <div>
+          <br />
+          <button style={button} onClick={goFinish} disabled={finished}>
             Derivate
           </button>
         </div>

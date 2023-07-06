@@ -98,10 +98,19 @@ TODO:
 
 - Parser for a simplified "grammar"
   - convert parse tree to grammar tree
-  - parse function instead of step-by-step function
-- Button for immediate result instead of "animation"?
+- UI: input for grammar, for string
+  - parsing error (at position n expected ... but found ...)
+- Tree comapction
+  - [x] remove empty strings from `seq`
+  - [x] if there is only one child in `seq` and `seq` doesn't have label - replace `seq` with child
+  - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
+  - [ ] if we have `star` without label in `seq` - replace `star` with it's children
+  - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
 - `ign` doesn't work inside `lex`
 - Kleene plus and other quantifiers
+- Compact display of grammar
+  - Collapse `lex` nodes on click
+  - Semi-transparent `ign` nodes
 - Ignore consequent space without parsing?
 - Problem of disappering zippers in PwZ vizualization
   - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers

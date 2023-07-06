@@ -17,6 +17,10 @@ export class Memo<T = any> {
       [position]: value,
     });
   }
+
+  reset() {
+    this.map = new WeakMap();
+  }
 }
 
 // export class Memo<T = any> {
