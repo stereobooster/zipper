@@ -5,6 +5,7 @@ import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
 import { alt, exc, ign, lex, plus, recs, seq, star } from "./pwzDSL";
+import { grammarExpression, parseGrammar } from "./pwzGrammar";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -63,40 +64,12 @@ e.children = cons(cicledTree, null);
 // const str = "aa";
 // const exp = seq("S", [star("1st", "a"), star("2nd", "a")])
 
-// Chomsky-BNF-like grammar, for example `S -> a | "b"`
-// Non-terminal or symbol
-const nonTerminal = lex("NT", plus("a-z"));
-// Terminal or string
-const terminal = seq([
-  ign('"'),
-  lex("T", star(alt([exc('"'), seq(["\\", '"'])]))),
-  ign('"'),
-]);
-const arrow = ign("→", seq(["-", ">"]));
-const spaceOptional = ign(star(" "));
-const space = ign("Space", plus(" "));
-const ruleBody = recs((al, se) => {
-  const variable = alt([
-    terminal,
-    nonTerminal,
-    seq([ign("("), spaceOptional, al, spaceOptional, ign(")")]),
-  ]);
-  return [
-    // ALt
-    alt([se, seq("Alt", [se, spaceOptional, ign("|"), spaceOptional, al])]),
-    // Seq
-    alt([variable, seq("Seq", [variable, space, se])]),
-  ];
-})[0];
+// const str = 's -> "" | "a" s';
+// const exp = grammarExpression;
+// const str = 's -> "" | "(" s ")"'
 
-const str = 's ->  x "c"  d | b';
-const exp = seq("Rule", [
-  nonTerminal,
-  spaceOptional,
-  arrow,
-  spaceOptional,
-  ruleBody,
-]);
+const exp = parseGrammar('s -> "" | "a" s');
+const str = "aa";
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

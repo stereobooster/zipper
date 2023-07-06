@@ -97,7 +97,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - Parser for a simplified "grammar"
-  - convert parse tree to grammar tree
+  - add support many rules
+  - add support for quantifiers (`*`, `+`, `?`)
+  - add support for wider alphabet for NT (`A-Za-z_` at least)
+  - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
 - UI: input for grammar, for string
   - parsing error (at position n expected ... but found ...)
 - Tree comapction
@@ -106,6 +109,7 @@ TODO:
   - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
   - [ ] if we have `star` without label in `seq` - replace `star` with it's children
   - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
+- visualization for `Mem`
 - `ign` doesn't work inside `lex`
 - Kleene plus and other quantifiers
 - Compact display of grammar

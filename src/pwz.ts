@@ -1,4 +1,4 @@
-import { List, cons, forEach, unwind } from "./List";
+import { List, cons, forEach, map, unwind } from "./List";
 import {
   grayColor,
   leftColor,
@@ -558,14 +558,17 @@ const empty = {
 } as const;
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
-const mems = new Memo<Mem>();
 export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 
+const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
+let treeCompaction = false
 
 export function parse(str: string, tree: Expression) {
+  treeCompaction = true
   const [steps] = deriveFinalSteps(str, tree);
+  treeCompaction = false
   return steps.map(([, z]) => z.focus);
 }
 
@@ -816,7 +819,8 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
   switch (zipper.up.value.expressionType) {
     case "SeqC": {
       const focusEmpty =
-        zipper.focus.start === zipper.focus.end ||
+        (zipper.focus.expressionType !== "Lex" &&
+          zipper.focus.start === zipper.focus.end) ||
         (zipper.focus.expressionType === "Seq" &&
           zipper.focus.children === null &&
           zipper.focus.value === "");
@@ -825,7 +829,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       if (zipper.right === null) {
         let children: List<Expression>;
         // horizontal compaction
-        if (focusEmpty) {
+        if (treeCompaction && focusEmpty) {
           if (zipper.left === null) {
             children = null;
           } else {
@@ -836,7 +840,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           children = x.focus.children;
         }
         // vertical compaction
-        if (children?.next === null && x.focus.label === "") {
+        if (treeCompaction && children?.next === null && x.focus.label === "") {
           return [["up", replace(x, children.value), x.focus.m]];
         }
         return [
@@ -861,7 +865,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         [
           "down",
           // horizontal compaction
-          focusEmpty ? deleteBefore(right(zipper)) : right(zipper),
+          treeCompaction && focusEmpty ? deleteBefore(right(zipper)) : right(zipper),
           undefined,
         ],
       ];
@@ -871,7 +875,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       const x = up(zipper);
       const children = x.focus.children;
       // vertical compaction
-      if (children?.next === null && x.focus.label === "") {
+      if (treeCompaction && children?.next === null && x.focus.label === "") {
         return [["up", replace(x, children.value), x.focus.m]];
       }
       return [
