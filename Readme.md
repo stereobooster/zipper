@@ -96,19 +96,17 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 TODO:
 
-- Parser for a simplified "grammar"
-  - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
-- UI: input for grammar, for string
-  - parsing error (at position n expected ... but found ...)
-- Tree comapction
+- Tree compaction
   - [x] remove empty strings from `seq`
   - [x] if there is only one child in `seq` and `seq` doesn't have label - replace `seq` with child
   - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
   - [ ] if we have `star` without label in `seq` - replace `star` with it's children
   - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
 - visualization for `Mem`
+- Improve parsing error messages
+- refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
 - `ign` doesn't work inside `lex`
-- `ign` + `opt` = ambigious parsing
+- `alt(["\n", "\r\n"])` ambigious, because second treated as set, not as consequence
 - `Warning: no value for width of non-ASCII character 207. Falling back to width of space character`
 - Kleene plus and other quantifiers
 - Compact display of grammar

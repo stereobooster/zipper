@@ -1,10 +1,9 @@
+import { GrammarPlayground } from "./GrammarPlayground";
 import { arrayToList, cons } from "./List";
 import { narryTreeToTree } from "./Tree";
-import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { parseGrammar } from "./pwzGrammar";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -32,45 +31,6 @@ const cicledTree = narryTreeToTree([
 ]);
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
-
-// Diffrent trees for almost the same grammar:
-// const str = "aa";
-// S -> ϵ | x S
-// const exp = rec((S) => alt("S", ["", seq("", ["a", S])]));
-// S -> ϵ | S x
-// const exp = rec((S) => alt("S", ["", seq("", [S, "a"])]));
-// Kleene star: S -> a*
-// const exp = star("S", "a")
-
-// arithmetic expression: S -> S + S | 0-9
-// const str = "10+2+3";
-// const int = lex("int", alt("", ["0", seq("", ["1-9", star("", "0-9")])]))
-// const exp = rec((S) => alt("Exp", [seq("", [S, "+", S]), int]));
-
-// quoted string: S -> "(^"|\")*"
-// const str = '"a\\"c"';
-// const exp = seq("", [
-//   ign("", '"'),
-//   lex("Str", star("", alt("", [exc('"'), seq("", ["\\", '"'])]))),
-//   ign("", '"'),
-// ]);
-
-// nested parentheses: S -> ("(" S ")")*
-// const str = "()(())";
-// const exp = rec((S) => star("S", seq("", ["(", S, ")"])))
-
-// highly ambigious: S -> a* a*
-// const str = "aa";
-// const exp = seq("S", [star("1st", "a"), star("2nd", "a")])
-
-// const str = `a -> "a"; s -> "" | a s;`
-// const exp = grammarExpression;
-
-// const exp = parseGrammar(`a -> "a"; s -> "" | a s;`);
-const exp = parseGrammar(`Start -> ("b" | "a")*;`);
-const str = "aaba";
-
-// TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 
 const App = () => {
   return (
@@ -251,7 +211,7 @@ const App = () => {
             </li>
           </ul>
         </div>
-        <VizualizeGrammar tree={exp} str={str} />
+        <GrammarPlayground />
       </section>
     </>
   );

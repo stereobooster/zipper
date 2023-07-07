@@ -1,4 +1,4 @@
-import { List, cons, forEach, map, unwind } from "./List";
+import { List, cons, forEach, unwind } from "./List";
 import {
   grayColor,
   leftColor,
@@ -563,12 +563,12 @@ export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
-let treeCompaction = false
+let treeCompaction = false;
 
 export function parse(str: string, tree: Expression) {
-  treeCompaction = true
+  treeCompaction = true;
   const [steps] = deriveFinalSteps(str, tree);
-  treeCompaction = false
+  treeCompaction = false;
   return steps.map(([, z]) => z.focus);
 }
 
@@ -865,7 +865,9 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         [
           "down",
           // horizontal compaction
-          treeCompaction && focusEmpty ? deleteBefore(right(zipper)) : right(zipper),
+          treeCompaction && focusEmpty
+            ? deleteBefore(right(zipper))
+            : right(zipper),
           undefined,
         ],
       ];

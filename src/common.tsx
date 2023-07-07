@@ -14,8 +14,9 @@ export const subControls: CSSProperties = {
 };
 export const select: CSSProperties = {
   height: 36,
+  minHeight: 36,
   fontSize: 24,
-  textAlign: "center",
+  textAlign: "left",
 };
 export const button: CSSProperties = {
   width: "min-content",

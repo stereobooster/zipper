@@ -12,8 +12,8 @@ const terminal = seq([
   ign('"'),
 ]);
 const arrow = ign("→", seq(["-", ">"]));
-const spaceOptional = ign(star(" "));
-const space = ign("Space", plus(" "));
+const spaceOptional = ign(star(" \t"));
+const space = ign("Space", plus(" \t"));
 const ruleBody = recs((al, se) => {
   const variable = alt([
     terminal,
@@ -41,7 +41,7 @@ const rule = seq("Rule", [
   ruleBody,
   spaceOptional,
 ]);
-const lineEnd = ign(star(alt([" ", "\n", seq(["\r", "\n"])])));
+const lineEnd = ign(star("  \t\r\n"));
 const rules = star("Rules", seq([rule, ign(";"), lineEnd]));
 
 export const grammarExpression = rules;
@@ -96,7 +96,9 @@ export function evaluate(tree: Expression) {
 }
 
 export const parseGrammar = (str: string) => {
-  const exps = parse(str.trim(), grammarExpression);
+  str = str.trim()
+  if (str.length === 0) throw new Error("Empty input");
+  const exps = parse(str, grammarExpression);
   if (exps.length === 0) throw new Error("Failed to parse grammar");
   if (exps.length > 1) throw new Error("Result is ambigious");
   return evaluate(exps[0]);
