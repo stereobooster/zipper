@@ -97,8 +97,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - Parser for a simplified "grammar"
-  - add support for quantifiers (`*`, `+`, `?`)
-  - add support for wider alphabet for NT (`A-Za-z_` at least)
   - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
 - UI: input for grammar, for string
   - parsing error (at position n expected ... but found ...)

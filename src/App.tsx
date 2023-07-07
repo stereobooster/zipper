@@ -65,10 +65,10 @@ e.children = cons(cicledTree, null);
 
 // const str = `a -> "a"; s -> "" | a s;`
 // const exp = grammarExpression;
-// const str = 's -> "" | "(" s ")"'
 
-const exp = parseGrammar(`a -> "a"; s -> "" | a s;`);
-const str = "aa";
+// const exp = parseGrammar(`a -> "a"; s -> "" | a s;`);
+const exp = parseGrammar(`Start -> ("b" | "a")*;`);
+const str = "aaba";
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

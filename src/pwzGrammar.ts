@@ -4,7 +4,7 @@ import { Expression, mapToArray, parse } from "./pwz";
 import { alt, exc, ign, lex, opt, plus, recs, seq, star, tok } from "./pwzDSL";
 
 // Non-terminal or symbol
-const nonTerminal = lex("NT", plus("a-z"));
+const nonTerminal = lex("NT", plus(alt(["a-z", "A-Z", "_"])));
 // Terminal or string
 const terminal = seq([
   ign('"'),
@@ -20,12 +20,18 @@ const ruleBody = recs((al, se) => {
     nonTerminal,
     seq([ign("("), spaceOptional, al, spaceOptional, ign(")")]),
   ]);
-  return [
-    // ALt
-    alt([se, seq("Alt", [se, spaceOptional, ign("|"), spaceOptional, al])]),
-    // Seq
-    alt([variable, seq("Seq", [variable, space, se])]),
-  ];
+  const starRule = seq("Star", [variable, ign("*")]);
+  const plusRule = seq("Plus", [variable, ign("+")]);
+  const optRule = seq("Opt", [variable, ign("?")]);
+  const altRule = alt([
+    se,
+    starRule,
+    plusRule,
+    optRule,
+    seq("Alt", [se, spaceOptional, ign("|"), spaceOptional, al]),
+  ]);
+  const seqRule = alt([variable, seq("Seq", [variable, space, se])]);
+  return [altRule, seqRule];
 })[0];
 const rule = seq("Rule", [
   nonTerminal,
@@ -62,6 +68,12 @@ export function evaluate(tree: Expression) {
       return seq(label, mapToArray(tree.children, ruleToExpression));
     if (tree.label === "Alt")
       return alt(label, mapToArray(tree.children, ruleToExpression));
+    if (tree.label === "Star")
+      return star(label, ruleToExpression(tree.children?.value as any));
+    if (tree.label === "Plus")
+      return plus(label, ruleToExpression(tree.children?.value as any));
+    if (tree.label === "Opt")
+      return opt(label, ruleToExpression(tree.children?.value as any));
     throw new Error(`Unkown type ${tree.label}`);
   }
   const addRule = (tree: Expression) => {
