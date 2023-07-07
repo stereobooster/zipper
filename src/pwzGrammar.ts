@@ -1,6 +1,7 @@
 // Chomsky-BNF-like grammar, for example `S -> a | "b"`
+import { forEach } from "./List";
 import { Expression, mapToArray, parse } from "./pwz";
-import { alt, exc, ign, lex, plus, recs, seq, star, tok } from "./pwzDSL";
+import { alt, exc, ign, lex, opt, plus, recs, seq, star, tok } from "./pwzDSL";
 
 // Non-terminal or symbol
 const nonTerminal = lex("NT", plus("a-z"));
@@ -26,16 +27,18 @@ const ruleBody = recs((al, se) => {
     alt([variable, seq("Seq", [variable, space, se])]),
   ];
 })[0];
-
 const rule = seq("Rule", [
   nonTerminal,
   spaceOptional,
   arrow,
   spaceOptional,
   ruleBody,
+  spaceOptional,
 ]);
+const lineEnd = ign(star(alt([" ", "\n", seq(["\r", "\n"])])));
+const rules = star("Rules", seq([rule, ign(";"), lineEnd]));
 
-export const grammarExpression = rule;
+export const grammarExpression = rules;
 
 const isEmpty = (obj: Record<any, any>) => Object.keys(obj).length === 0;
 
@@ -70,13 +73,18 @@ export function evaluate(tree: Expression) {
       throw new Error(`Expects non terminale for the name of the Rule`);
     return set(first.value!, ruleToExpression(second, first.value!));
   };
-  // TODO: support many rules
-  // TODO: check for missing NT definitions
-  return addRule(tree);
+  if (tree.label !== "Rules") throw new Error(`Expects Rules`);
+  forEach(tree.children, addRule);
+  const keys = Object.keys(env);
+  keys.forEach((key) => {
+    if (isEmpty(env[key])) throw new Error(`Undefined non-terminal ${key}`);
+  });
+  // last line considered as "start" rule
+  return env[keys[keys.length - 1]];
 }
 
 export const parseGrammar = (str: string) => {
-  const exps = parse(str, grammarExpression);
+  const exps = parse(str.trim(), grammarExpression);
   if (exps.length === 0) throw new Error("Failed to parse grammar");
   if (exps.length > 1) throw new Error("Result is ambigious");
   return evaluate(exps[0]);

@@ -97,7 +97,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - Parser for a simplified "grammar"
-  - add support many rules
   - add support for quantifiers (`*`, `+`, `?`)
   - add support for wider alphabet for NT (`A-Za-z_` at least)
   - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
@@ -111,6 +110,8 @@ TODO:
   - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
 - visualization for `Mem`
 - `ign` doesn't work inside `lex`
+- `ign` + `opt` = ambigious parsing
+- `Warning: no value for width of non-ASCII character 207. Falling back to width of space character`
 - Kleene plus and other quantifiers
 - Compact display of grammar
   - Collapse `lex` nodes on click

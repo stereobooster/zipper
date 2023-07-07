@@ -4,8 +4,7 @@ import { VizualizeGrammar } from "./VizualizeGrammar";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { alt, exc, ign, lex, plus, recs, seq, star } from "./pwzDSL";
-import { grammarExpression, parseGrammar } from "./pwzGrammar";
+import { parseGrammar } from "./pwzGrammar";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -64,11 +63,11 @@ e.children = cons(cicledTree, null);
 // const str = "aa";
 // const exp = seq("S", [star("1st", "a"), star("2nd", "a")])
 
-// const str = 's -> "" | "a" s';
+// const str = `a -> "a"; s -> "" | a s;`
 // const exp = grammarExpression;
 // const str = 's -> "" | "(" s ")"'
 
-const exp = parseGrammar('s -> "" | "a" s');
+const exp = parseGrammar(`a -> "a"; s -> "" | a s;`);
 const str = "aa";
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
