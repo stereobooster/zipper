@@ -1,13 +1,15 @@
 import { GrammarPlayground } from "./GrammarPlayground";
+import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";
 import { narryTreeToTree } from "./Tree";
+import { VizualizeLcrsTreeZipper } from "./VizualizeLcrsTreeZipper";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
-const tree = narryTreeToTree([
+const narryTree = [
   "a",
   [
     [
@@ -20,7 +22,8 @@ const tree = narryTreeToTree([
     ["c", [["j", []]]],
     ["d", [["h", []]]],
   ],
-]);
+];
+const tree = narryTreeToTree<string>(narryTree as any);
 
 const cicledTree = narryTreeToTree([
   "a",
@@ -31,6 +34,8 @@ const cicledTree = narryTreeToTree([
 ]);
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
+
+const lcrsTree = narryToLcrsTree<string>(narryTree as any);
 
 const App = () => {
   return (
@@ -212,6 +217,12 @@ const App = () => {
           </ul>
         </div>
         <GrammarPlayground />
+      </section>
+      <section>
+        <div style={paragraph}>
+          <h2>LCRS tree</h2>
+        </div>
+        <VizualizeLcrsTreeZipper tree={lcrsTree} />
       </section>
     </>
   );
