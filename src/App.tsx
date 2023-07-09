@@ -222,7 +222,7 @@ const App = () => {
         <div style={paragraph}>
           <h2>LCRS tree</h2>
         </div>
-        <VizualizeLcrsTreeZipper tree={lcrsTree} />
+        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper/>
       </section>
     </>
   );

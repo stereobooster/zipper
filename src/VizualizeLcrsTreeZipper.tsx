@@ -3,6 +3,7 @@ import { Graphviz } from "./Graphviz";
 import {
   LcrsTree,
   down,
+  lcrsZipperToDot,
   left,
   replace,
   right,
@@ -31,21 +32,28 @@ export const VizualizeLcrsTreeZipper = ({
   const [mode, setMode] = useState("zipper");
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const dot = treeToDot({ tree, logical: layout === "dag" });
+  const dot = showZipper
+    ? lcrsZipperToDot({ zipper, logical: layout === "dag" })
+    : treeToDot({ tree, logical: layout === "dag" });
 
-  const callback = (direction: "u" | "l" | "r" | "d") => () =>
+  const callback = (direction: "u" | "l" | "r" | "d") => () => {
     setZipper((zipper) => {
-      switch (direction) {
-        case "d":
-          return down(zipper);
-        case "l":
-          return left(zipper);
-        case "r":
-          return right(zipper);
-        case "u":
-          return up(zipper);
+      try {
+        switch (direction) {
+          case "d":
+            return down(zipper);
+          case "l":
+            return left(zipper);
+          case "r":
+            return right(zipper);
+          case "u":
+            return up(zipper);
+        }
+      } catch (e) {
+        return zipper;
       }
     });
+  };
 
   return (
     <>
@@ -68,16 +76,16 @@ export const VizualizeLcrsTreeZipper = ({
               Use arrows to navigate
               <br />
               <div style={subControls}>
-                <button onClick={callback("l")} style={buttonRect}>
+                <button onClick={callback("l")} style={buttonRect} disabled={zipper.left === null}>
                   ←
                 </button>
-                <button onClick={callback("r")} style={buttonRect}>
+                <button onClick={callback("r")} style={buttonRect} disabled={zipper.right === null}>
                   →
                 </button>
-                <button onClick={callback("d")} style={buttonRect}>
+                <button onClick={callback("d")} style={buttonRect} disabled={zipper.down === null}>
                   ↓
                 </button>
-                <button onClick={callback("u")} style={buttonRect}>
+                <button onClick={callback("u")} style={buttonRect} disabled={zipper.up === null}>
                   ↑
                 </button>
               </div>
