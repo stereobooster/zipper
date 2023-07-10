@@ -7,7 +7,6 @@ import {
   left,
   replace,
   right,
-  treeToDot,
   treeToZipper,
   up,
 } from "./LcrsTree";
@@ -32,9 +31,7 @@ export const VizualizeLcrsTreeZipper = ({
   const [mode, setMode] = useState("zipper");
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const dot = showZipper
-    ? lcrsZipperToDot({ zipper, logical: layout === "dag" })
-    : treeToDot({ tree, logical: layout === "dag" });
+  const dot = lcrsZipperToDot({ zipper, logical: layout === "dag" });
 
   const callback = (direction: "u" | "l" | "r" | "d") => () => {
     setZipper((zipper) => {
@@ -76,16 +73,32 @@ export const VizualizeLcrsTreeZipper = ({
               Use arrows to navigate
               <br />
               <div style={subControls}>
-                <button onClick={callback("l")} style={buttonRect} disabled={zipper.left === null}>
+                <button
+                  onClick={callback("l")}
+                  style={buttonRect}
+                  disabled={zipper.left === null}
+                >
                   ←
                 </button>
-                <button onClick={callback("r")} style={buttonRect} disabled={zipper.right === null}>
+                <button
+                  onClick={callback("r")}
+                  style={buttonRect}
+                  disabled={zipper.right === null}
+                >
                   →
                 </button>
-                <button onClick={callback("d")} style={buttonRect} disabled={zipper.down === null}>
+                <button
+                  onClick={callback("d")}
+                  style={buttonRect}
+                  disabled={zipper.down === null}
+                >
                   ↓
                 </button>
-                <button onClick={callback("u")} style={buttonRect} disabled={zipper.up === null}>
+                <button
+                  onClick={callback("u")}
+                  style={buttonRect}
+                  disabled={zipper.up === null}
+                >
                   ↑
                 </button>
               </div>

@@ -112,6 +112,7 @@ export const leftEnd = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   return zipper;
 };
 
+// maybe go up without rewind?
 export const up = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   if (zipper.up === null) throw new Error("Can't move up");
   return node({
@@ -127,6 +128,84 @@ export const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
   });
 };
 
+const forEach = <T, P>(
+  direction: "left" | "right" | "up" | "down",
+  zipper: LcrsZipperPath<T>,
+  cb: (x: LcrsZipper<T>) => P
+) => {
+  while (zipper !== null) {
+    cb(zipper);
+    zipper = zipper[direction];
+  }
+};
+
+// memoization ---
+
+const memoizePlaceholder = Symbol();
+const memoizeWeak = <K extends object, V, R extends Array<unknown>>(
+  bottom: V,
+  cb: (input: K | null, ...rest: R) => V
+) => {
+  const memo = new WeakMap<K, V>();
+  return (input: K | null, ...rest: R) => {
+    if (input === null) return cb(input, ...rest);
+    if (memo.has(input)) {
+      const m = memo.get(input);
+      return m === memoizePlaceholder ? bottom : (m as V);
+    }
+    memo.set(input, memoizePlaceholder as any);
+    const result = cb(input, ...rest);
+    memo.set(input, result);
+    return result;
+  };
+};
+
+const getChain = (obj: Record<any, any> | undefined, keys: any[]) => {
+  if (!obj) return;
+  let current = obj;
+  for (const key of keys) {
+    current = current[key];
+    if (current === undefined) break;
+  }
+  return current;
+};
+
+const setChain = (
+  obj: Record<any, any> | undefined,
+  keys: any[],
+  value: any
+) => {
+  if (!obj) obj = {};
+  let current = obj;
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (i === keys.length - 1) {
+      current[key] = value;
+    } else {
+      current[key] = current[key] || {};
+      current = current[key];
+    }
+  }
+  return obj;
+};
+
+const memoizeWeakChain = <K extends object, V, R extends Array<unknown>>(
+  bottom: V,
+  cb: (input: K | null, ...rest: R) => V
+) => {
+  const memo = new WeakMap<K, Record<any, any>>();
+  return (input: K | null, ...rest: R) => {
+    if (input === null) return cb(input, ...rest);
+    const m = getChain(memo.get(input), rest) as V;
+    if (m === memoizePlaceholder) return bottom;
+    if (m !== undefined) return m;
+    memo.set(input, setChain(memo.get(input), rest, memoizePlaceholder));
+    const result = cb(input, ...rest);
+    memo.set(input, setChain(memo.get(input), rest, result));
+    return result;
+  };
+};
+
 // Vizualization ----------------------------------------------------------------------------
 
 type Level = number;
@@ -139,113 +218,11 @@ type Edge = {
   // https://graphviz.org/docs/attrs/constraint/
   constraint?: boolean;
 };
-// TODO: remove value, add level
 type Node = {
   level: Level;
   id: ID;
   type?: "green" | "blue" | "empty" | "focus" | "gray";
   zipper?: boolean;
-};
-type Trie = Record<ID, Record<ID, Edge>>;
-type Display = {
-  logicalEdges: Trie;
-  memoryEdges: Trie;
-  ranks: Record<ID, Level>;
-  nodes: Record<ID, Node>;
-  zipperNodes: Record<ID, LcrsZipper<unknown>>;
-};
-
-const addToTrie = (trie: Trie, edge: Edge) => {
-  if (!trie[edge.from]) trie[edge.from] = {};
-  trie[edge.from][edge.to] = edge;
-};
-
-const addNode = (
-  display: Display,
-  node: Node,
-  zipperNode: LcrsZipper<unknown>
-) => {
-  display.nodes[node.id] = node;
-  display.ranks[node.id] = node.level;
-  display.zipperNodes[node.id] = zipperNode;
-};
-
-const addEdge = (
-  display: Display,
-  logical: boolean | number,
-  memory: boolean | number,
-  edge: Edge
-) => {
-  if (logical) addToTrie(display.logicalEdges, edge);
-  if (memory) addToTrie(display.memoryEdges, edge);
-};
-
-const forEach = <T, P>(
-  direction: "left" | "right" | "up" | "down",
-  zipper: LcrsZipperPath<T>,
-  cb: (x: LcrsZipper<T>) => P
-) => {
-  while (zipper !== null) {
-    cb(zipper);
-    zipper = zipper[direction];
-  }
-};
-
-const forEachPair = <T, P>(
-  direction: "left" | "right" | "up" | "down",
-  zipper: LcrsZipperPath<T>,
-  cb: (current: LcrsZipper<T>, next: LcrsZipper<T>) => P,
-  initial?: LcrsZipper<T>
-) => {
-  let current = initial !== undefined ? initial : (zipper as LcrsZipper<T>);
-  const iterOver =
-    initial !== undefined ? zipper : (zipper as LcrsZipper<T>)[direction];
-  forEach(direction, iterOver, (next) => {
-    cb(current, next);
-    current = next;
-  });
-};
-
-const forEachRight = <T, P>(
-  zipper: LcrsZipperPath<T>,
-  cb: (current: LcrsZipper<T>, next: LcrsZipper<T>) => P,
-  initial?: LcrsZipper<T>
-) => forEachPair("right", zipper, cb, initial);
-
-const forEachLeft = <T, P>(
-  zipper: LcrsZipperPath<T>,
-  cb: (current: LcrsZipper<T>, next: LcrsZipper<T>) => P,
-  initial?: LcrsZipper<T>
-) => forEachPair("left", zipper, cb, initial);
-
-export const traverseLcrsTree = <T>(
-  tree: LcrsTreePath<T>,
-  display: Display = {
-    logicalEdges: {},
-    memoryEdges: {},
-    ranks: {},
-    nodes: {},
-    zipperNodes: {},
-  },
-  level = 0
-) => {
-  if (tree === null) return display;
-  // loop detection
-  if (display.nodes[tree.id]) return display;
-  const { id } = tree;
-  addNode(display, { id, level }, tree);
-  forEachRight(
-    tree.down,
-    (from, to) => {
-      addEdge(display, 1, 0, { from: tree.id, to: to.id });
-      if (tree !== from)
-        addEdge(display, 1, 0, { from: from.id, to: to.id, type: "invisible" });
-      addEdge(display, 0, 1, { from: from.id, to: to.id });
-      traverseLcrsTree(to as LcrsTree<T>, display, level + 1);
-    },
-    tree
-  );
-  return display;
 };
 
 const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
@@ -268,13 +245,12 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   }
   return `${from} -> ${to} [penwidth=${borderWidth} ${arrow} ${dir} color="${color}" ${
     constraint === false ? "constraint=false" : ""
-  }]`;
+  }];`;
 };
 
 const nodeToDot = (
-  id: ID | string,
-  { type, zipper }: Node,
-  zipperNode: LcrsZipper<unknown>
+  { id, value, originalId }: LcrsZipper<unknown>,
+  type: Node["type"]
 ) => {
   let borderColor = listColor;
   let fillColor = listColor;
@@ -286,10 +262,11 @@ const nodeToDot = (
   } else if (type === "focus") {
     fillColor = "white";
     fontcolor = "black";
-  } else if (type === "green") {
+    borderColor = zipperColor;
+  } else if (type === "green" && originalId) {
     fillColor = rightColor;
     borderColor = rightColor;
-  } else if (type === "blue") {
+  } else if (type === "blue" && originalId) {
     fillColor = leftColor;
     borderColor = leftColor;
   } else if (type === "gray") {
@@ -297,156 +274,84 @@ const nodeToDot = (
     borderColor = grayColor;
   }
 
-  if (zipper) {
-    borderColor = zipperColor;
-  }
+  // if (zipper) {
+  //   borderColor = zipperColor;
+  // }
 
-  let label = zipperNode.value as string;
+  let label = value as string;
   // https://graphviz.org/doc/info/shapes.html
   const shape = label.length <= 1 ? "square" : "rect";
 
   label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
-  return `${id} [penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
+  return `${id} [penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
 };
 
-const levelsDot = (ranks: Record<ID, Level>) => `{
+const levelsDot = (ranks: Record<ID, DisplayItem>) => `{
   node [style=invis];
   edge [style=invis];
-  ${[...new Set(Object.values(ranks))].sort((a, b) => a - b).join(" -> ")}
+  ${[...new Set(Object.values(ranks).map((x) => x.level))]
+    .sort((a, b) => a - b)
+    .join(" -> ")}
 }`;
 
-const ranksDot = (ranks: Record<ID, Level>) => {
+const ranksDot = (ranks: Record<ID, DisplayItem>) => {
   const res = {} as Record<Level, ID[]>;
+
   Object.entries(ranks).forEach(([k, v]) => {
-    if (!res[v]) res[v] = [];
-    res[v].push(k as any);
+    if (!res[v.level]) res[v.level] = [];
+    res[v.level].push(k as any);
   });
   return Object.entries(res)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
     .join("\n");
 };
 
-const nodesDot = (
-  nodes: Record<ID, Node>,
-  zipperNodes: Record<ID, LcrsZipper<unknown>>
-) =>
-  Object.entries(nodes)
-    .map(([id, node]) => nodeToDot(id, node, zipperNodes[id as any]))
-    .join("\n");
-
-const edgesDot = (edges: Trie) =>
-  Object.values(edges)
-    .flatMap((toEdges) => Object.values(toEdges))
-    .map(edgeToDot)
-    .join("\n");
-
-const toDot = (
-  { logicalEdges, memoryEdges, ranks, nodes, zipperNodes }: Display,
-  logical = false
-) => {
-  const x = `
-    ${levelsDot(ranks)}
-    ${ranksDot(ranks)}
-    ${nodesDot(nodes, zipperNodes)}
-    ${edgesDot(logical ? logicalEdges : memoryEdges)}
-  `.trim();
-  // console.log(x);
-  return x;
-};
-
-export const treeToDot = <T>({
-  logical,
-  tree,
-}: {
-  logical: boolean;
-  tree: LcrsTree<T>;
-}) =>
-  `digraph {
-    node [fontcolor=white fixedsize=true height=0.3]
-    edge [color="${listColor}"]
-    ${toDot(traverseLcrsTree(tree), logical)}
-  }`.trim();
-
-// ---
-
-const memoizeWeak = <K extends object, V>(cb: (input: K | null) => V) => {
-  const memo = new WeakMap<K, V>();
-  return (input: K | null) => {
-    if (input === null) return cb(input);
-    if (memo.has(input)) return memo.get(input) as V;
-    const result = cb(input);
-    memo.set(input, result);
-    return result;
-  };
-};
-
-const getLevel = memoizeWeak((zipper: LcrsZipperPath<unknown>): number => {
+const getLevel = memoizeWeak(0, (zipper: LcrsZipperPath<unknown>): number => {
   if (zipper === null) return 0;
   return getLevel(zipper.up) + 1;
 });
 
-type LcrsZipperDisplay = {
-  focus: LcrsZipper<unknown>;
-  focusUp: LcrsZipperPath<unknown>;
-  focusRight: LcrsZipperPath<unknown>;
-  focusLeft: LcrsZipperPath<unknown>;
-  meta: WeakMap<LcrsZipper<unknown>, { level: number }>;
+type DisplayItem = {
+  level: number;
+  zipper: LcrsZipper<unknown>;
 };
 
-/**
- * Zipper is immutable, so functions over ziperrs are perfect candidates for memoization.
- * Function can return array of "display items", then iterative call would do flatMap,
- * but the same time it should detect loop.
- * Display item can be: node, array of outgoing edges
- * Then we iterate over "display items" to create display
- * - index by level
- * - index by id
- * - or I can directly convert display item to dot
- * - or instead of display item I can return Zipper node and metadata (level, for example collect in WeakMap)
- */
-export const traverseLcrsZipper = <T>(
-  zipper: LcrsZipperPath<T>,
-  display: Display = {
-    logicalEdges: {},
-    memoryEdges: {},
-    ranks: {},
-    nodes: {},
-    zipperNodes: {},
-  },
-  givenLevel?: number,
-  givenType?: "green" | "blue",
+const zipperIndex = memoizeWeak(
+  {},
+  (
+    zipper: LcrsZipperPath<unknown>,
+    level?: number
+  ): Record<ID, DisplayItem> => {
+    if (zipper === null) return [];
+    if (level === undefined) level = getLevel(zipper);
+    return {
+      [zipper.id]: { zipper, level },
+      ...zipperIndex(zipper.up, level - 1),
+      ...zipperIndex(zipper.left, level),
+      ...zipperIndex(zipper.right, level),
+      ...zipperIndex(zipper.down, level + 1),
+    };
+  }
+);
+
+const getEdges = (
+  zipper: LcrsZipperPath<unknown>,
+  givenType: Edge["type"],
+  logical = false,
   zipperTraverse = false
 ) => {
-  if (!zipper) return display;
-  // loop detection
-  if (display.nodes[zipper.id]) return display;
+  // TODO: add support for zipper nodes/edges
+  const isFocus = false;
 
-  const isFocus = givenLevel === undefined;
-  const level = isFocus ? getLevel(zipper) : givenLevel;
-  const { id, originalId } = zipper;
-  let type = originalId ? givenType : undefined;
-  addNode(
-    display,
-    {
-      level,
-      id,
-      zipper: isFocus,
-      type: isFocus ? "focus" : type,
-    },
-    zipper
-  );
+  const result: Edge[] = [];
+  if (zipper === null) return result;
 
   if (zipper.up) {
-    traverseLcrsZipper(zipper.up, display, level - 1, "blue", true);
-    addEdge(display, 1, 1, {
-      from: zipper.id,
-      to: zipper.up.id,
-      type: isFocus ? "zipper" : "blue",
-    });
-    // TODO: remove mutation
-    if (isFocus) display.nodes[zipper.up.id].zipper = true;
+    result.push({ from: zipper.id, to: zipper.up.id, type: "blue" });
   }
+
+  let type: Edge["type"];
 
   if (zipper.left) {
     type = zipper.originalId ? givenType || "blue" : undefined;
@@ -455,60 +360,122 @@ export const traverseLcrsZipper = <T>(
       to: zipper.id,
       direction: "backward",
     } as const;
-    addEdge(display, 1, 0, {
-      ...edge,
-      type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
-    });
-    addEdge(display, 0, 1, {
-      ...edge,
-      type: isFocus ? "zipper" : type,
-    });
-    traverseLcrsZipper(zipper.left, display, level, type, isFocus || zipperTraverse);
-    // TODO: remove mutation
-    if (isFocus) display.nodes[zipper.left.id].zipper = true;
+    if (logical) {
+      result.push({
+        ...edge,
+        type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
+      });
+    } else {
+      result.push({ ...edge, type: isFocus ? "zipper" : type });
+    }
   }
 
   if (zipper.right) {
     type = zipper.originalId ? givenType || "green" : undefined;
     const edge = { from: zipper.id, to: zipper.right.id };
-    addEdge(display, 1, 0, {
-      ...edge,
-      type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
-    });
-    addEdge(display, 0, 1, {
-      ...edge,
-      type: isFocus ? "zipper" : type,
-    });
-    traverseLcrsZipper(zipper.right, display, level, type, isFocus || zipperTraverse);
-    // TODO: remove mutation
-    if (isFocus) display.nodes[zipper.right.id].zipper = true;
+    if (logical) {
+      result.push({
+        ...edge,
+        type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
+      });
+    } else {
+      result.push({
+        ...edge,
+        type: isFocus ? "zipper" : type,
+      });
+    }
   }
 
   if (zipper.down) {
     type = zipper.originalId ? givenType || "green" : undefined;
-    addEdge(display, 1, 1, {
-      from: zipper.id,
-      to: zipper.down.id,
-      type,
-    });
-    forEach("right", zipper.down, (to) => {
-      addEdge(display, 1, 0, { from: zipper.id, to: to.id, type });
-    });
-    traverseLcrsZipper(zipper.down, display, level + 1, type, false);
+    if (logical) {
+      forEach("right", zipper.down, (to) => {
+        result.push({ from: zipper.id, to: to.id, type });
+      });
+    } else {
+      result.push({
+        from: zipper.id,
+        to: zipper.down.id,
+        type,
+      });
+    }
   }
 
-  return display;
+  return result;
 };
 
+// maybe replace type with direction ??
+// what about cycled structure and level
+const nodesDot = memoizeWeakChain(
+  "",
+  (zipper: LcrsZipperPath<unknown>, type: Node["type"]): string => {
+    if (!zipper) return "";
+    return `${nodesDot(zipper.up, type === "focus" ? "blue" : type)}
+    ${nodesDot(zipper.left, type === "focus" ? "blue" : type)}
+    ${nodeToDot(zipper, type)}
+    
+    ${nodesDot(zipper.right, type === "focus" ? "green" : type)}
+    ${nodesDot(zipper.down, type === "focus" ? "green" : type)}`;
+  }
+);
+
+const edgesDot = memoizeWeakChain(
+  "",
+  (
+    zipper: LcrsZipperPath<unknown>,
+    type: Node["type"],
+    logical: boolean,
+    zipperTraverse = true
+  ): string => {
+    if (!zipper) return "";
+    return `${edgesDot(
+      zipper.up,
+      type === "focus" ? "blue" : type,
+      logical,
+      zipperTraverse
+    )}
+    ${edgesDot(
+      zipper.left,
+      type === "focus" ? "blue" : type,
+      logical,
+      zipperTraverse
+    )}
+    ${getEdges(
+      zipper,
+      // there is a bug in left edge from focus
+      type === "focus" ? "green" : (type as any),
+      logical,
+      zipperTraverse as boolean
+    )
+      .map(edgeToDot)
+      .join("\n")}
+    ${edgesDot(
+      zipper.right,
+      type === "focus" ? "green" : type,
+      logical,
+      zipperTraverse
+    )}
+    ${edgesDot(
+      zipper.down,
+      type === "focus" ? "green" : type,
+      logical,
+      false
+    )}`;
+  }
+);
+
 export const lcrsZipperToDot = <T>({
-  logical,
   zipper,
+  logical,
 }: {
-  logical: boolean;
   zipper: LcrsZipper<T>;
+  logical: boolean;
 }) =>
   `digraph {
+    ${levelsDot(zipperIndex(zipper))}
     node [fontcolor=white fixedsize=true height=0.3]
     edge [color="${listColor}"]
-    ${toDot(traverseLcrsZipper(zipper), logical)}
-  }`.trim();
+    ${ranksDot(zipperIndex(zipper))}
+    ${nodesDot(zipper, "focus")}
+    ${edgesDot(zipper, "focus", logical)}
+  }`;
