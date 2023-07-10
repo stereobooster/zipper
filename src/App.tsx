@@ -23,19 +23,26 @@ const narryTree = [
     ["d", [["h", []]]],
   ],
 ];
-const tree = narryTreeToTree<string>(narryTree as any);
-
-const cicledTree = narryTreeToTree([
+const narryTree2 = [
   "a",
   [
     ["b", [["d", []]]],
     ["c", []],
   ],
-]);
+];
+const tree = narryTreeToTree<string>(narryTree as any);
+
+const cicledTree = narryTreeToTree<string>(narryTree2 as any);
 const e = cicledTree?.children?.value?.children?.value as any;
 e.children = cons(cicledTree, null);
 
-const lcrsTree = narryToLcrsTree<string>(narryTree as any);
+// const lcrsTree = narryToLcrsTree<string>(narryTree as any);
+// const x = lcrsTree.down?.right?.right as any
+// x.right = lcrsTree
+
+const lcrsTree = narryToLcrsTree<string>(narryTree2 as any);
+const x = lcrsTree.down?.down as any
+x.down = lcrsTree
 
 const App = () => {
   return (
@@ -222,7 +229,7 @@ const App = () => {
         <div style={paragraph}>
           <h2>LCRS tree</h2>
         </div>
-        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper/>
+        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper height={300}/>
       </section>
     </>
   );

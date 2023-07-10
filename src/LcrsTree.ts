@@ -140,14 +140,19 @@ const forEach = <T, P>(
 };
 
 // memoization ---
+// options:
+// WeakMap based, Map based
+// Loop detection - bottom value
+// original (unmemoized version)
+// one, n-arguments
 
 const memoizePlaceholder = Symbol();
-const memoizeWeak = <K extends object, V, R extends Array<unknown>>(
+const memoizeWeak = <K extends object | null, V, R extends Array<unknown>>(
   bottom: V,
-  cb: (input: K | null, ...rest: R) => V
+  cb: (input: K, ...rest: R) => V
 ) => {
-  const memo = new WeakMap<K, V>();
-  return (input: K | null, ...rest: R) => {
+  const memo = new WeakMap<NonNullable<K>, V>();
+  return (input: K, ...rest: R) => {
     if (input === null) return cb(input, ...rest);
     if (memo.has(input)) {
       const m = memo.get(input);
@@ -189,24 +194,69 @@ const setChain = (
   return obj;
 };
 
-const memoizeWeakChain = <K extends object, V, R extends Array<unknown>>(
+function memoizeWeakChain<K extends object | null, V, R extends Array<unknown>>(
   bottom: V,
-  cb: (input: K | null, ...rest: R) => V
-) => {
-  const memo = new WeakMap<K, Record<any, any>>();
-  return (input: K | null, ...rest: R) => {
+  cb: (input: K, ...rest: R) => V
+): (input: K, ...rest: R) => V {
+  const memo = new WeakMap<NonNullable<K>, Record<any, any>>();
+  const fn = (input: K, ...rest: R) => {
     if (input === null) return cb(input, ...rest);
     const m = getChain(memo.get(input), rest) as V;
     if (m === memoizePlaceholder) return bottom;
-    if (m !== undefined) return m;
+    // if (m !== undefined) return m;
     memo.set(input, setChain(memo.get(input), rest, memoizePlaceholder));
     const result = cb(input, ...rest);
     memo.set(input, setChain(memo.get(input), rest, result));
     return result;
   };
-};
+  fn.original = cb;
+  return fn;
+}
 
 // Vizualization ----------------------------------------------------------------------------
+
+// type DisplayItem = {
+//   level: number;
+//   zipper: LcrsZipper<unknown>;
+// };
+
+// const zipperIndex = memoizeWeak(
+//   {},
+//   (
+//     zipper: LcrsZipperPath<unknown>,
+//     level?: number
+//   ): Record<ID, DisplayItem> => {
+//     if (zipper === null) return [];
+//     if (level === undefined) level = getLevel(zipper);
+//     return {
+//       [zipper.id]: { zipper, level },
+//       ...zipperIndex(zipper.up, level - 1),
+//       ...zipperIndex(zipper.left, level),
+//       ...zipperIndex(zipper.right, level),
+//       ...zipperIndex(zipper.down, level + 1),
+//     };
+//   }
+// );
+
+// const levelsDot = (ranks: Record<ID, DisplayItem>) => `{
+//   node [style=invis];
+//   edge [style=invis];
+//   ${[...new Set(Object.values(ranks).map((x) => x.level))]
+//     .sort((a, b) => a - b)
+//     .join(" -> ")}
+// }`;
+
+// const ranksDot = (ranks: Record<ID, DisplayItem>) => {
+//   const res = {} as Record<Level, ID[]>;
+
+//   Object.entries(ranks).forEach(([k, v]) => {
+//     if (!res[v.level]) res[v.level] = [];
+//     res[v.level].push(k as any);
+//   });
+//   return Object.entries(res)
+//     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
+//     .join("\n");
+// };
 
 type Level = number;
 type Edge = {
@@ -248,59 +298,59 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   }];`;
 };
 
-const nodeToDot = (
-  { id, value, originalId }: LcrsZipper<unknown>,
-  type: Node["type"]
-) => {
-  let borderColor = listColor;
-  let fillColor = listColor;
-  let fontcolor = "white";
+const nodeToDot = memoizeWeakChain(
+  "",
+  (
+    { id, value, originalId }: LcrsZipper<unknown>,
+    type: Node["type"]
+  ): string => {
+    let borderColor = listColor;
+    let fillColor = listColor;
+    let fontcolor = "white";
 
-  if (type === "empty") {
-    fillColor = "white";
-    borderColor = "white";
-  } else if (type === "focus") {
-    fillColor = "white";
-    fontcolor = "black";
-    borderColor = zipperColor;
-  } else if (type === "green" && originalId) {
-    fillColor = rightColor;
-    borderColor = rightColor;
-  } else if (type === "blue" && originalId) {
-    fillColor = leftColor;
-    borderColor = leftColor;
-  } else if (type === "gray") {
-    fillColor = grayColor;
-    borderColor = grayColor;
+    if (type === "empty") {
+      fillColor = "white";
+      borderColor = "white";
+    } else if (type === "focus") {
+      fillColor = "white";
+      fontcolor = "black";
+      borderColor = zipperColor;
+    } else if (type === "green" && originalId) {
+      fillColor = rightColor;
+      borderColor = rightColor;
+    } else if (type === "blue" && originalId) {
+      fillColor = leftColor;
+      borderColor = leftColor;
+    } else if (type === "gray") {
+      fillColor = grayColor;
+      borderColor = grayColor;
+    }
+
+    // if (zipper) {
+    //   borderColor = zipperColor;
+    // }
+
+    let label = value as string;
+    // https://graphviz.org/doc/info/shapes.html
+    const shape = label.length <= 1 ? "square" : "rect";
+
+    label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+    return `${id} [penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
   }
+);
 
-  // if (zipper) {
-  //   borderColor = zipperColor;
-  // }
-
-  let label = value as string;
-  // https://graphviz.org/doc/info/shapes.html
-  const shape = label.length <= 1 ? "square" : "rect";
-
-  label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-
-  return `${id} [penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
-};
-
-const levelsDot = (ranks: Record<ID, DisplayItem>) => `{
+const levelsDot = (ranks: Record<ID, Level>) => `{
   node [style=invis];
   edge [style=invis];
-  ${[...new Set(Object.values(ranks).map((x) => x.level))]
-    .sort((a, b) => a - b)
-    .join(" -> ")}
+  ${[...new Set(Object.values(ranks))].sort((a, b) => a - b).join(" -> ")}
 }`;
 
-const ranksDot = (ranks: Record<ID, DisplayItem>) => {
+const ranksDot = (ranks: Record<ID, Level>) => {
   const res = {} as Record<Level, ID[]>;
-
   Object.entries(ranks).forEach(([k, v]) => {
-    if (!res[v.level]) res[v.level] = [];
-    res[v.level].push(k as any);
+    if (!res[v]) res[v] = [];
+    res[v].push(k as any);
   });
   return Object.entries(res)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
@@ -311,29 +361,6 @@ const getLevel = memoizeWeak(0, (zipper: LcrsZipperPath<unknown>): number => {
   if (zipper === null) return 0;
   return getLevel(zipper.up) + 1;
 });
-
-type DisplayItem = {
-  level: number;
-  zipper: LcrsZipper<unknown>;
-};
-
-const zipperIndex = memoizeWeak(
-  {},
-  (
-    zipper: LcrsZipperPath<unknown>,
-    level?: number
-  ): Record<ID, DisplayItem> => {
-    if (zipper === null) return [];
-    if (level === undefined) level = getLevel(zipper);
-    return {
-      [zipper.id]: { zipper, level },
-      ...zipperIndex(zipper.up, level - 1),
-      ...zipperIndex(zipper.left, level),
-      ...zipperIndex(zipper.right, level),
-      ...zipperIndex(zipper.down, level + 1),
-    };
-  }
-);
 
 const getEdges = (
   zipper: LcrsZipperPath<unknown>,
@@ -404,63 +431,103 @@ const getEdges = (
   return result;
 };
 
-// maybe replace type with direction ??
-// what about cycled structure and level
-const nodesDot = memoizeWeakChain(
+const edgesToDot = memoizeWeakChain(
   "",
-  (zipper: LcrsZipperPath<unknown>, type: Node["type"]): string => {
-    if (!zipper) return "";
-    return `${nodesDot(zipper.up, type === "focus" ? "blue" : type)}
-    ${nodesDot(zipper.left, type === "focus" ? "blue" : type)}
-    ${nodeToDot(zipper, type)}
-    
-    ${nodesDot(zipper.right, type === "focus" ? "green" : type)}
-    ${nodesDot(zipper.down, type === "focus" ? "green" : type)}`;
+  (
+    zipper: LcrsZipperPath<unknown>,
+    givenType: Edge["type"],
+    logical = false,
+    zipperTraverse = false
+  ) => {
+    return getEdges(
+      zipper,
+      givenType,
+      logical as boolean,
+      zipperTraverse as boolean
+    )
+      .map(edgeToDot)
+      .join("\n");
   }
 );
 
-const edgesDot = memoizeWeakChain(
-  "",
+// maybe replace `type` with `direction`?
+// memoization is problematic with cycled structure:
+// - maybe memoize zipper segment if it doesn't contain loop
+const zipperDot = memoizeWeakChain(
+  [[], {}] as [string[], Record<ID, Level>],
   (
     zipper: LcrsZipperPath<unknown>,
     type: Node["type"],
     logical: boolean,
-    zipperTraverse = true
-  ): string => {
-    if (!zipper) return "";
-    return `${edgesDot(
+    zipperTraverse = true,
+    // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+    level: number = -1,
+    memo: Record<ID, Level> = {}
+  ): [string[], Record<ID, Level>] => {
+    if (!zipper) return [[], {}];
+    level = level === -1 ? getLevel(zipper) : level;
+    if (memo[zipper.id] !== undefined) {
+      // how to set different level here?
+      // memo[zipper.id] = level;
+      return [[], {}];
+    }
+    memo[zipper.id] = level;
+
+    const str = `${nodeToDot(zipper, type)}
+      ${edgesToDot(
+        zipper,
+        // there is a bug in left edge from focus
+        type === "focus" ? "green" : (type as any),
+        logical,
+        zipperTraverse as boolean
+      )}`;
+
+    const up = zipperDot(
       zipper.up,
       type === "focus" ? "blue" : type,
       logical,
-      zipperTraverse
-    )}
-    ${edgesDot(
+      zipperTraverse,
+      level - 1
+    );
+    const left = zipperDot(
       zipper.left,
       type === "focus" ? "blue" : type,
       logical,
-      zipperTraverse
-    )}
-    ${getEdges(
-      zipper,
-      // there is a bug in left edge from focus
-      type === "focus" ? "green" : (type as any),
-      logical,
-      zipperTraverse as boolean
-    )
-      .map(edgeToDot)
-      .join("\n")}
-    ${edgesDot(
+      zipperTraverse,
+      level
+    );
+    //   type === "blue"
+    //     ? zipperDot(zipper.right, type, logical, zipperTraverse, level)
+    // @ts-expect-error need to add type
+    const right = zipperDot.original(
       zipper.right,
       type === "focus" ? "green" : type,
       logical,
-      zipperTraverse
-    )}
-    ${edgesDot(
+      zipperTraverse,
+      level,
+      memo
+    );
+    // type === "blue"
+    //   ? zipperDot(zipper.down, type, logical, false, level + 1)
+    // @ts-expect-error need to add type
+    const down = zipperDot.original(
       zipper.down,
       type === "focus" ? "green" : type,
       logical,
-      false
-    )}`;
+      false,
+      level + 1,
+      memo
+    );
+    return [
+      [...up[0], ...left[0], str, ...right[0], ...down[0]],
+      {
+        ...up[1],
+        ...left[1],
+        ...memo,
+        ...right[1],
+        ...down[1],
+      },
+    ];
   }
 );
 
@@ -470,12 +537,13 @@ export const lcrsZipperToDot = <T>({
 }: {
   zipper: LcrsZipper<T>;
   logical: boolean;
-}) =>
-  `digraph {
-    ${levelsDot(zipperIndex(zipper))}
+}) => {
+  const [tmp, ranks] = zipperDot(zipper, "focus", logical, true);
+  return `digraph {
+    ${levelsDot(ranks)}
     node [fontcolor=white fixedsize=true height=0.3]
     edge [color="${listColor}"]
-    ${ranksDot(zipperIndex(zipper))}
-    ${nodesDot(zipper, "focus")}
-    ${edgesDot(zipper, "focus", logical)}
+    ${ranksDot(ranks)}
+    ${tmp.join("\n")}
   }`;
+};
