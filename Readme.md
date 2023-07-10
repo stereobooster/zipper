@@ -96,13 +96,21 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 TODO:
 
+- LCRSZipper
+  - PwZ
+  - visualization for `Mem`
+  - doesn't show zipper edges and nodes (except focus)
+    - maybe move it to DOM level?
+  - sometimes level is not what expeted
+  - left-edge of focus is wrong color
+  - memoization if there is no loop
+  - doesn't shwo original tree
 - Tree compaction
   - [x] remove empty strings from `seq`
   - [x] if there is only one child in `seq` and `seq` doesn't have label - replace `seq` with child
   - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
   - [ ] if we have `star` without label in `seq` - replace `star` with it's children
   - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
-- visualization for `Mem`
 - Improve parsing error messages
 - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
 - `ign` doesn't work inside `lex`

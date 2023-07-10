@@ -12,23 +12,20 @@ import {
 } from "./LcrsTree";
 import { buttonRect, controls, select, subControls } from "./common";
 
-type VizualizeLcrsTreeZipperProps = {
-  tree: LcrsTree<string>;
+type VizualizeLcrsTreeZipperProps<T> = {
+  tree: LcrsTree<T>;
   showZipper?: boolean;
-  showTree?: boolean;
   height?: number;
   width?: number;
 };
 
-export const VizualizeLcrsTreeZipper = ({
+export function VizualizeLcrsTreeZipper<T>({
   tree,
   showZipper,
-  showTree,
   height,
   width,
-}: VizualizeLcrsTreeZipperProps) => {
+}: VizualizeLcrsTreeZipperProps<T>) {
   const [layout, setLayout] = useState("dag");
-  const [mode, setMode] = useState("zipper");
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
   const dot = lcrsZipperToDot({ zipper, logical: layout === "dag" });
@@ -103,7 +100,7 @@ export const VizualizeLcrsTreeZipper = ({
                 </button>
               </div>
             </div>
-            <label>
+            {/* <label>
               Value at focus
               <br />
               <input
@@ -111,21 +108,7 @@ export const VizualizeLcrsTreeZipper = ({
                 onChange={(e) => setZipper((x) => replace(x, e.target.value))}
                 style={buttonRect}
               />
-            </label>
-            {showTree && (
-              <label>
-                Zipper or tree?
-                <br />
-                <select
-                  onChange={(e) => setMode(e.target.value)}
-                  value={mode}
-                  style={select}
-                >
-                  <option value="zipper">Zipper</option>
-                  <option value="zipper-tree">Zipper + tree</option>
-                </select>
-              </label>
-            )}
+            </label> */}
             <div>
               <br />
               <label>
@@ -154,4 +137,4 @@ export const VizualizeLcrsTreeZipper = ({
       />
     </>
   );
-};
+}

@@ -54,6 +54,9 @@ export const narryToLcrsTree = <T>(
 
 // Zipper ----------------------------------------------------------------------------
 
+// Key difference from classical Zipper is that it modifies node immediately on navigation,
+// but classical Zipper modifies node only whne navigates away
+// this can be changed if I move `down` and `right` inside of `value`
 export type LcrsZipper<T> = {
   id: ID;
   value: T;
@@ -62,22 +65,29 @@ export type LcrsZipper<T> = {
   up: LcrsZipperPath<T>;
   left: LcrsZipperPath<T>;
   originalId?: ID;
+  prevId?: ID;
 };
 
 export type LcrsZipperPath<T> = LcrsZipper<T> | null;
 
 export const treeToZipper = <T>(tree: LcrsTree<T>): LcrsZipper<T> => tree;
 
-type PartialLcrsZipper<T> = Omit<LcrsZipper<T>, "id"> & {
-  id?: ID;
+export type PartialLcrsZipper<T> = Partial<LcrsZipper<T>> & {
+  value: T;
 };
+
 export const node = <T>({
   originalId,
   id,
   ...props
 }: PartialLcrsZipper<T>): LcrsZipper<T> => ({
+  up: null,
+  left: null,
+  right: null,
+  down: null,
   ...props,
   id: getId(),
+  prevId: id,
   originalId: originalId || id,
 });
 
@@ -121,12 +131,31 @@ export const up = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   });
 };
 
+// TODO: refactor replace
 export const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
   return node({
     ...zipper,
     value,
   });
 };
+
+export const insertAfter = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
+  node({
+    ...zipper,
+    right: node({ ...item, right: zipper.right }),
+  });
+
+export const deleteBefore = <T>(zipper: LcrsZipper<T>) =>
+  node({
+    ...zipper,
+    left: zipper.left?.left || null,
+  });
+
+export const deleteAfter = <T>(zipper: LcrsZipper<T>) =>
+  node({
+    ...zipper,
+    right: zipper.right?.right || null,
+  });
 
 const forEach = <T, P>(
   direction: "left" | "right" | "up" | "down",
@@ -138,6 +167,36 @@ const forEach = <T, P>(
     zipper = zipper[direction];
   }
 };
+
+export const mapToArray = <T, P>(
+  direction: "left" | "right" | "up" | "down",
+  zipper: LcrsZipperPath<T>,
+  cb: (x: LcrsZipper<T>) => P
+) => {
+  const res: P[] = [];
+  while (zipper !== null) {
+    res.push(cb(zipper));
+    zipper = zipper[direction];
+  }
+  return res;
+};
+
+// export const replaceType = (
+//   zipper: ExpressionZipper,
+//   expressionType: ExpressionType
+// ): ExpressionZipper => ({
+//   ...zipper,
+//   focus: expressionNode({ ...zipper.value, expressionType }),
+// });
+
+// export const chain = (
+//   zipper: ExpressionZipper,
+//   ...rest: Array<(x: ExpressionZipper) => ExpressionZipper>
+// ) => {
+//   let result = zipper;
+//   for (const cb of rest) result = cb(result);
+//   return result;
+// };
 
 // memoization ---
 // options:
@@ -215,49 +274,6 @@ function memoizeWeakChain<K extends object | null, V, R extends Array<unknown>>(
 
 // Vizualization ----------------------------------------------------------------------------
 
-// type DisplayItem = {
-//   level: number;
-//   zipper: LcrsZipper<unknown>;
-// };
-
-// const zipperIndex = memoizeWeak(
-//   {},
-//   (
-//     zipper: LcrsZipperPath<unknown>,
-//     level?: number
-//   ): Record<ID, DisplayItem> => {
-//     if (zipper === null) return [];
-//     if (level === undefined) level = getLevel(zipper);
-//     return {
-//       [zipper.id]: { zipper, level },
-//       ...zipperIndex(zipper.up, level - 1),
-//       ...zipperIndex(zipper.left, level),
-//       ...zipperIndex(zipper.right, level),
-//       ...zipperIndex(zipper.down, level + 1),
-//     };
-//   }
-// );
-
-// const levelsDot = (ranks: Record<ID, DisplayItem>) => `{
-//   node [style=invis];
-//   edge [style=invis];
-//   ${[...new Set(Object.values(ranks).map((x) => x.level))]
-//     .sort((a, b) => a - b)
-//     .join(" -> ")}
-// }`;
-
-// const ranksDot = (ranks: Record<ID, DisplayItem>) => {
-//   const res = {} as Record<Level, ID[]>;
-
-//   Object.entries(ranks).forEach(([k, v]) => {
-//     if (!res[v.level]) res[v.level] = [];
-//     res[v.level].push(k as any);
-//   });
-//   return Object.entries(res)
-//     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
-//     .join("\n");
-// };
-
 type Level = number;
 type Edge = {
   from: ID;
@@ -330,7 +346,21 @@ const nodeToDot = memoizeWeakChain(
     //   borderColor = zipperColor;
     // }
 
-    let label = value as string;
+    // tmp hack
+    let label: string
+    // @ts-expect-error xxx
+    if (value.label !== undefined) {
+      // @ts-expect-error xxx
+      label = value.label
+    } else 
+    // @ts-expect-error xxx
+    if (value.value !== undefined) {
+      // @ts-expect-error xxx
+      label = value.value
+    } else {
+      label = `${value}`
+    }
+
     // https://graphviz.org/doc/info/shapes.html
     const shape = label.length <= 1 ? "square" : "rect";
 
@@ -357,10 +387,13 @@ const ranksDot = (ranks: Record<ID, Level>) => {
     .join("\n");
 };
 
-const getLevel = memoizeWeak(0, (zipper: LcrsZipperPath<unknown>): number => {
-  if (zipper === null) return 0;
-  return getLevel(zipper.up) + 1;
-});
+export const getLevel = memoizeWeak(
+  0,
+  (zipper: LcrsZipperPath<unknown>): number => {
+    if (zipper === null) return 0;
+    return getLevel(zipper.up) + 1;
+  }
+);
 
 const getEdges = (
   zipper: LcrsZipperPath<unknown>,
@@ -451,8 +484,7 @@ const edgesToDot = memoizeWeakChain(
 );
 
 // maybe replace `type` with `direction`?
-// memoization is problematic with cycled structure:
-// - maybe memoize zipper segment if it doesn't contain loop
+// Can we memoize zipper segment if it doesn't contain loop?
 const zipperDot = memoizeWeakChain(
   [[], {}] as [string[], Record<ID, Level>],
   (
@@ -520,13 +552,7 @@ const zipperDot = memoizeWeakChain(
     );
     return [
       [...up[0], ...left[0], str, ...right[0], ...down[0]],
-      {
-        ...up[1],
-        ...left[1],
-        ...memo,
-        ...right[1],
-        ...down[1],
-      },
+      { ...up[1], ...left[1], ...memo, ...right[1], ...down[1] },
     ];
   }
 );
