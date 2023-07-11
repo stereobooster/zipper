@@ -78,10 +78,9 @@ export const VizualizeLcrsGrammar = ({
   const dot = useMemo(
     () =>
       lcrsZipperToDot({
-        // zipper: !steps[displayZipper]
-        //   ? steps.map(([, zipper]) => zipper)
-        //   : [steps[displayZipper][1]],
-        zipper: steps[0][1],
+        zipper: !steps[displayZipper]
+          ? steps[0][1] //steps.map(([, zipper]) => zipper)
+          : steps[displayZipper][1],
         logical: layout === "dag",
         // tree,
       }),
