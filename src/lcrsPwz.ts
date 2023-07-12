@@ -127,7 +127,7 @@ export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
-let treeCompaction = true;
+let treeCompaction = false;
 
 export function parse(str: string, tree: Expression) {
   treeCompaction = true;

@@ -86,11 +86,11 @@ export function evaluate(tree: Expression) {
         mapToArray("right", tree.down, (x) => ruleToExpression(x as Expression))
       );
     if (tree.value.label === "Star")
-      return star(label, ruleToExpression(tree.down?.value as any));
+      return star(label, ruleToExpression(tree.down!));
     if (tree.value.label === "Plus")
-      return plus(label, ruleToExpression(tree.down?.value as any));
+      return plus(label, ruleToExpression(tree.down!));
     if (tree.value.label === "Opt")
-      return opt(label, ruleToExpression(tree.down?.value as any));
+      return opt(label, ruleToExpression(tree.down!));
     throw new Error(`Unkown type ${tree.value.label}`);
   }
   const addRule = (tree: Expression) => {

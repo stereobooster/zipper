@@ -98,7 +98,8 @@ TODO:
 
 - LCRSZipper
   - PwZ
-    - adjust grammar eval to use loop-nodes
+    - bug: algebraic expression doesn't produce ambigious grammar
+    - hide implementation details (`children`, `loop`)
     - "Jump" button - derivate until number of steps change 1 -> N, N -> 1
     - Expression vs Zipper types
     - check rep `up` case
