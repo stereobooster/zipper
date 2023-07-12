@@ -6,7 +6,6 @@ import {
   deleteAfter,
   deleteBefore,
   down,
-  getDown,
   insertAfter,
   left,
   mapToArray,

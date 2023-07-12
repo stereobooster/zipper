@@ -96,27 +96,25 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 TODO:
 
-- LCRSZipper
-  - PwZ
-    - bug: algebraic expression doesn't produce ambigious grammar
-    - hide implementation details (`children`, `loop`)
-    - "Jump" button - derivate until number of steps change 1 -> N, N -> 1
-    - Expression vs Zipper types
-    - check rep `up` case
-    - multiple zippers in one vizualization?
-  - visualization for `Mem`
-  - doesn't show zipper edges and nodes (except focus)
-    - maybe move it to DOM level?
-  - sometimes level is not what expeted
-  - left-edge of focus is wrong color
-  - memoization if there is no loop
-  - doesn't shwo original tree
+- visualization for `Mem`
 - Tree compaction
   - [x] remove empty strings from `seq`
   - [x] if there is only one child in `seq` and `seq` doesn't have label - replace `seq` with child
   - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
   - [ ] if we have `star` without label in `seq` - replace `star` with it's children
   - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
+- LCRSZipper
+  - PwZ
+    - hide implementation details (`children`, `loop`)
+    - Expression vs Zipper types
+    - multiple zippers in one vizualization?
+  - doesn't show zipper edges and nodes (except focus)
+    - maybe move it to DOM level?
+  - sometimes level is not what expeted (or not?)
+  - left-edge of focus is wrong color
+  - do memoization if there is no loop
+  - it doesn't show original tree
+- "Jump" button - derivate until number of steps change 1 -> N, N -> 1
 - Improve parsing error messages
 - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
 - `ign` doesn't work inside `lex`

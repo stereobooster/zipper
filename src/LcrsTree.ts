@@ -333,7 +333,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
 const nodeToDot = memoizeWeakChain(
   "",
   (
-    { id, value, originalId, loop }: LcrsZipper<unknown>,
+    { id, value, originalId }: LcrsZipper<unknown>,
     type: Node["type"]
   ): string => {
     let borderColor = listColor;

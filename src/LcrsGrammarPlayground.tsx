@@ -15,9 +15,9 @@ const examples = [
 ];
 
 export const LcrsGrammarPlayground = () => {
-  const [example, setExample] = useState(examples[0][0]);
-  const [str, setStr] = useState(examples[0][2]);
-  const [grammar, setGrammar] = useState(example);
+  const [example, setExample] = useState(0);
+  const [str, setStr] = useState(examples[example][2]);
+  const [grammar, setGrammar] = useState(examples[example][0]);
   const [expression, setExpression] = useState(() => parseGrammar(grammar));
   const [error, setError] = useState("");
   const changeGrammar = (g: string) => {
@@ -37,14 +37,16 @@ export const LcrsGrammarPlayground = () => {
           <br />
           <select
             onChange={(e) => {
-              setExample(e.target.value);
-              changeGrammar(e.target.value);
+              const exampleNumber = parseInt(e.target.value, 10)
+              setExample(exampleNumber);
+              setStr(examples[exampleNumber][2]);
+              changeGrammar(examples[exampleNumber][0]);
             }}
             value={example}
             style={select}
           >
-            {examples.map(([value, label]) => (
-              <option value={value} key={value}>
+            {examples.map(([value, label], i) => (
+              <option value={i} key={i}>
                 {label || value}
               </option>
             ))}

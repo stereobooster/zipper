@@ -5,7 +5,6 @@ import {
   down,
   lcrsZipperToDot,
   left,
-  replace,
   right,
   treeToZipper,
   up,
