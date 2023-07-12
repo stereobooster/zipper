@@ -143,12 +143,10 @@ type Display<T> = {
 };
 
 const setRank = <T>(display: Display<T>, id: ID, level: Level) => {
-  // if (display.ranks[id]) console.log(id, display.ranks[id], level);
   display.ranks[id] = level;
 };
 
 const addNode = <T>(display: Display<T>, node: Node<T>) => {
-  // if (display.nodes[node.id]) console.log(display.nodes[node.id], node);
   display.nodes[node.id] = node;
   if (node.level <= 0) return;
   setRank(display, node.id, node.level);
@@ -596,7 +594,6 @@ const toDot = <T>(
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  // console.log(r);
   return r;
 };
 

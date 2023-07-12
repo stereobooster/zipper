@@ -1,4 +1,5 @@
-import { Expression, expressionNode } from "./lcrsPwz";
+import { LcrsTreePath, LcrsZipperPath } from "./LcrsTree";
+import { Expression, ExpressionValue, expressionNode } from "./lcrsPwz";
 
 // operations from the original paper -----------------------------------------
 
@@ -11,18 +12,22 @@ export const tok = (label: string) =>
       expressionType: "Tok",
       label,
     },
-  });
+  }) as Expression;
 
 type StrExp = string | Expression;
 const helper = (arr: StrExp[]) => {
-  let node = null;
+  let node: LcrsZipperPath<ExpressionValue> = null;
   for (let i = arr.length - 1; i >= 0; i--) {
     const x = arr[i];
-    const next = typeof x === "string" ? tok(x) : x;
+    const next: LcrsZipperPath<ExpressionValue> =
+      typeof x === "string" ? tok(x) : expressionNode(x);
+    // this is freshly created node, so it's ok to modify it
+    next.originalId = undefined;
+    next.prevId = undefined;
     next.right = node;
     node = next;
   }
-  return node;
+  return node as LcrsTreePath<ExpressionValue>;
 };
 
 /**

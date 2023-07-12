@@ -7,7 +7,7 @@ import { VizualizeLcrsTreeZipper } from "./VizualizeLcrsTreeZipper";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 import { paragraph } from "./common";
-import { alt, rec, seq } from "./lcrsPwzDSL";
+import { grammarExpression } from "./lcrsPwzGrammar";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -45,9 +45,6 @@ e.children = cons(cicledTree, null);
 const lcrsTree = narryToLcrsTree<string>(narryTree2 as any);
 const x = lcrsTree.down?.down as any;
 x.down = lcrsTree;
-
-// const lcrsGrammar = seq("S", [alt(["x", "a"]), "b"]);
-const lcrsGrammar = rec((s) => alt("S", ["", seq(["a", s])]));
 
 const App = () => {
   return (
@@ -240,7 +237,11 @@ const App = () => {
         <div style={paragraph}>
           <h2>LCRS gramar</h2>
         </div>
-        <VizualizeLcrsGrammar tree={lcrsGrammar} str="aaa" height={300} />
+        <VizualizeLcrsGrammar
+          tree={grammarExpression}
+          str={`S -> "a" | S "b";`}
+          height={600}
+        />
       </section>
     </>
   );

@@ -334,7 +334,6 @@ const toDot = (
     ${nodesDot(nodes)}
     ${edgesDot(logical ? logicalEdges : memoryEdges)}
   `.trim();
-  // console.log(x);
   return x;
 };
 

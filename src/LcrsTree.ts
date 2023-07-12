@@ -66,6 +66,12 @@ export type LcrsZipper<T> = {
   left: LcrsZipperPath<T>;
   originalId?: ID;
   prevId?: ID;
+  // classical N-arry tree uses list, but in this case tree-node itslef is a list-node
+  // so if there is a loop, there is no way to put recursive node in the tree without modifying it
+  // so in order to fix we insert one additional special-node to make it possible to do the loop
+  // without modifyin the original node
+  // this node is omitted in vizualization and in zipper movements
+  loop?: boolean;
 };
 
 export type LcrsZipperPath<T> = LcrsZipper<T> | null;
@@ -93,6 +99,13 @@ export const node = <T>({
 
 export const right = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   if (zipper.right === null) throw new Error("Can't move right");
+  if (zipper.right.loop)
+    return node({
+      ...zipper.right.down!,
+      right: zipper.right.right,
+      up: zipper.up,
+      left: node({ ...zipper, right: null, up: null }),
+    });
   return node({
     ...zipper.right,
     up: zipper.up,
@@ -111,6 +124,12 @@ export const left = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
 
 export const down = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   if (zipper.down === null) throw new Error("Can't move down");
+  if (zipper.down.loop)
+    return node({
+      ...zipper.down.down!,
+      right: zipper.down.right,
+      up: node({ ...zipper, down: null }),
+    });
   return node({
     ...zipper.down,
     up: node({ ...zipper, down: null }),
@@ -131,18 +150,23 @@ export const up = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   });
 };
 
-// TODO: refactor replace
-export const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
-  return node({
-    ...zipper,
-    value,
-  });
+export const getDown = <T>(zipper: LcrsZipper<T>): LcrsZipperPath<T> => {
+  if (!zipper.down) return zipper.down;
+  return zipper.down.loop ? zipper.down.down! : zipper.down;
 };
+
+// TODO: refactor replace
+// const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
+//   return node({
+//     ...zipper,
+//     value,
+//   });
+// };
 
 export const insertAfter = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
   node({
     ...zipper,
-    right: node({ ...item, right: zipper.right }),
+    right: node({ ...item, right: zipper.right, left: null, up: null }),
   });
 
 export const deleteBefore = <T>(zipper: LcrsZipper<T>) =>
@@ -157,7 +181,7 @@ export const deleteAfter = <T>(zipper: LcrsZipper<T>) =>
     right: zipper.right?.right || null,
   });
 
-const forEach = <T, P>(
+export const forEach = <T, P>(
   direction: "left" | "right" | "up" | "down",
   zipper: LcrsZipperPath<T>,
   cb: (x: LcrsZipper<T>) => P
@@ -180,14 +204,6 @@ export const mapToArray = <T, P>(
   }
   return res;
 };
-
-// export const replaceType = (
-//   zipper: ExpressionZipper,
-//   expressionType: ExpressionType
-// ): ExpressionZipper => ({
-//   ...zipper,
-//   focus: expressionNode({ ...zipper.value, expressionType }),
-// });
 
 // export const chain = (
 //   zipper: ExpressionZipper,
@@ -317,7 +333,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
 const nodeToDot = memoizeWeakChain(
   "",
   (
-    { id, value, originalId }: LcrsZipper<unknown>,
+    { id, value, originalId, loop }: LcrsZipper<unknown>,
     type: Node["type"]
   ): string => {
     let borderColor = listColor;
@@ -347,18 +363,18 @@ const nodeToDot = memoizeWeakChain(
     // }
 
     // tmp hack
-    let label: string
+    let label: string;
     // @ts-expect-error xxx
     if (value.label !== undefined) {
       // @ts-expect-error xxx
-      label = value.label
-    } else 
+      label = value.label;
+    }
     // @ts-expect-error xxx
-    if (value.value !== undefined) {
+    else if (value.value !== undefined) {
       // @ts-expect-error xxx
-      label = value.value
+      label = value.value;
     } else {
-      label = `${value}`
+      label = `${value}`;
     }
 
     // https://graphviz.org/doc/info/shapes.html
@@ -370,17 +386,19 @@ const nodeToDot = memoizeWeakChain(
   }
 );
 
-const levelsDot = (ranks: Record<ID, Level>) => `{
+const levelsDot = (index: NodesIndex) => `{
   node [style=invis];
   edge [style=invis];
-  ${[...new Set(Object.values(ranks))].sort((a, b) => a - b).join(" -> ")}
+  ${[...new Set(Object.values(index).map((x) => x.level))]
+    .sort((a, b) => a - b)
+    .join(" -> ")}
 }`;
 
-const ranksDot = (ranks: Record<ID, Level>) => {
+const ranksDot = (index: NodesIndex) => {
   const res = {} as Record<Level, ID[]>;
-  Object.entries(ranks).forEach(([k, v]) => {
-    if (!res[v]) res[v] = [];
-    res[v].push(k as any);
+  Object.entries(index).forEach(([k, v]) => {
+    if (!res[v.level]) res[v.level] = [];
+    res[v.level].push(k as any);
   });
   return Object.entries(res)
     .map(([k, v]) => `{ rank = same ; ${k} ; ${v.join(" ; ")} }`)
@@ -432,7 +450,9 @@ const getEdges = (
 
   if (zipper.right) {
     type = zipper.originalId ? givenType || "green" : undefined;
-    const edge = { from: zipper.id, to: zipper.right.id };
+    const edge = zipper.right.loop
+      ? { from: zipper.id, to: zipper.right?.down?.id as ID }
+      : { from: zipper.id, to: zipper.right.id };
     if (logical) {
       result.push({
         ...edge,
@@ -448,14 +468,18 @@ const getEdges = (
 
   if (zipper.down) {
     type = zipper.originalId ? givenType || "green" : undefined;
+    const down = zipper.down.loop
+      ? (zipper.down?.down as LcrsZipper<unknown>)
+      : zipper.down;
     if (logical) {
       forEach("right", zipper.down, (to) => {
-        result.push({ from: zipper.id, to: to.id, type });
+        const toId = to.loop ? (to.down?.id as ID) : to.id;
+        result.push({ from: zipper.id, to: toId, type });
       });
     } else {
       result.push({
         from: zipper.id,
-        to: zipper.down.id,
+        to: down.id,
         type,
       });
     }
@@ -483,10 +507,16 @@ const edgesToDot = memoizeWeakChain(
   }
 );
 
+type DisplayItem<T> = {
+  level: Level;
+  zipper: LcrsZipper<T>;
+};
+export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
+
 // maybe replace `type` with `direction`?
 // Can we memoize zipper segment if it doesn't contain loop?
 const zipperDot = memoizeWeakChain(
-  [[], {}] as [string[], Record<ID, Level>],
+  [[], {}] as [string[], NodesIndex],
   (
     zipper: LcrsZipperPath<unknown>,
     type: Node["type"],
@@ -494,8 +524,8 @@ const zipperDot = memoizeWeakChain(
     zipperTraverse = true,
     // eslint-disable-next-line @typescript-eslint/no-inferrable-types
     level: number = -1,
-    memo: Record<ID, Level> = {}
-  ): [string[], Record<ID, Level>] => {
+    memo: NodesIndex = {}
+  ): [string[], NodesIndex] => {
     if (!zipper) return [[], {}];
     level = level === -1 ? getLevel(zipper) : level;
     if (memo[zipper.id] !== undefined) {
@@ -503,9 +533,15 @@ const zipperDot = memoizeWeakChain(
       // memo[zipper.id] = level;
       return [[], {}];
     }
-    memo[zipper.id] = level;
+    if (!zipper.loop)
+      memo[zipper.id] = {
+        level,
+        zipper,
+      };
 
-    const str = `${nodeToDot(zipper, type)}
+    const str = zipper.loop
+      ? ""
+      : `${nodeToDot(zipper, type)}
       ${edgesToDot(
         zipper,
         // there is a bug in left edge from focus
@@ -513,20 +549,21 @@ const zipperDot = memoizeWeakChain(
         logical,
         zipperTraverse as boolean
       )}`;
-
     const up = zipperDot(
       zipper.up,
       type === "focus" ? "blue" : type,
       logical,
       zipperTraverse,
-      level - 1
+      level - 1,
+      memo
     );
     const left = zipperDot(
       zipper.left,
       type === "focus" ? "blue" : type,
       logical,
       zipperTraverse,
-      level
+      level,
+      memo
     );
     //   type === "blue"
     //     ? zipperDot(zipper.right, type, logical, zipperTraverse, level)
@@ -547,7 +584,7 @@ const zipperDot = memoizeWeakChain(
       type === "focus" ? "green" : type,
       logical,
       false,
-      level + 1,
+      zipper.loop ? level : level + 1,
       memo
     );
     return [
@@ -564,12 +601,15 @@ export const lcrsZipperToDot = <T>({
   zipper: LcrsZipper<T>;
   logical: boolean;
 }) => {
-  const [tmp, ranks] = zipperDot(zipper, "focus", logical, true);
-  return `digraph {
-    ${levelsDot(ranks)}
+  const [graphPieces, index] = zipperDot(zipper, "focus", logical, true);
+  return {
+    dot: `digraph {
+    ${levelsDot(index)}
     node [fontcolor=white fixedsize=true height=0.3]
     edge [color="${listColor}"]
-    ${ranksDot(ranks)}
-    ${tmp.join("\n")}
-  }`;
+    ${ranksDot(index)}
+    ${graphPieces.join("\n")}
+  }`,
+    index,
+  };
 };

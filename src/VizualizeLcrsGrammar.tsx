@@ -3,6 +3,7 @@ import { Graphviz } from "./Graphviz";
 import {
   DeriveDirection,
   Expression,
+  ExpressionValue,
   Step,
   deriveFinalSteps,
   processSteps,
@@ -13,12 +14,17 @@ import {
   buttonRect,
   code,
   controls,
-  // legend,
+  legend,
   row,
   select,
   text,
 } from "./common";
-import { getLevel, lcrsZipperToDot, treeToZipper } from "./LcrsTree";
+import {
+  NodesIndex,
+  getLevel,
+  lcrsZipperToDot,
+  treeToZipper,
+} from "./LcrsTree";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -48,10 +54,10 @@ export const VizualizeLcrsGrammar = ({
   width,
   str,
 }: VizualizeGrammarProps) => {
-  const [fit, setFit] = useState(false);
+  const [fit, setFit] = useState(true);
   const [layout, setLayout] = useState("dag");
 
-  const [displayZipper, setDisplayZipper] = useState(-1);
+  const [displayZipper, setDisplayZipper] = useState(0);
   const [step, setStep] = useState(0);
   const [steps, setSteps] = useState<Step[]>(() => [
     ["down", treeToZipper(tree), undefined],
@@ -75,7 +81,7 @@ export const VizualizeLcrsGrammar = ({
     )
     .join("&nbsp;,&nbsp;");
 
-  const dot = useMemo(
+  const { dot, index } = useMemo(
     () =>
       lcrsZipperToDot({
         zipper: !steps[displayZipper]
@@ -86,7 +92,7 @@ export const VizualizeLcrsGrammar = ({
       }),
     [layout, steps, displayZipper]
   );
-
+  const nodes = index as NodesIndex<ExpressionValue>;
   const [finished, setFinished] = useState(false);
   const go = useCallback(() => {
     if (position > str.length) return setFinished(true);
@@ -96,6 +102,7 @@ export const VizualizeLcrsGrammar = ({
       position,
       steps
     );
+    if (newSteps.length === 0) return setAutoDerivate(false);
     setPosition(newPosition);
     setStep(newStep);
     setSteps(newSteps);
@@ -234,19 +241,21 @@ export const VizualizeLcrsGrammar = ({
       </div>
       <div style={row}>
         <Graphviz dot={dot} onHover={setSelectedNode} options={options} />
-        {/* {nodes[selectedNode] && (
+        {nodes[selectedNode] && (
           <div style={legend}>
-            id: {nodes[selectedNode].id}
+            id: {nodes[selectedNode].zipper.id}
             <br />
-            label: {nodes[selectedNode].label}
+            label: {nodes[selectedNode].zipper.value.label}
             <br />
-            type: {nodes[selectedNode].expressionType}
+            value: {nodes[selectedNode].zipper.value.value}
             <br />
-            start: {nodes[selectedNode].start}
+            type: {nodes[selectedNode].zipper.value.expressionType}
             <br />
-            end: {nodes[selectedNode].end}
+            start: {nodes[selectedNode].zipper.value.start}
+            <br />
+            end: {nodes[selectedNode].zipper.value.end}
           </div>
-        )} */}
+        )}
       </div>
     </>
   );

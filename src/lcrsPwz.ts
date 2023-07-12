@@ -6,6 +6,7 @@ import {
   deleteAfter,
   deleteBefore,
   down,
+  getDown,
   insertAfter,
   left,
   mapToArray,
@@ -52,24 +53,34 @@ export type Mem = {
 export type ExpressionZipper = LcrsZipper<ExpressionValue>;
 type PartialExpressionZipper = PartialLcrsZipper<ExpressionValue>;
 
-export const expressionNode = ({
-  value: { expressionType, label, value, ...props2 },
-  down,
-  ...props
-}: PartialExpressionZipper): ExpressionZipper => {
-  down = down || null;
+export const expressionNode = (
+  nodeProps: PartialExpressionZipper
+): ExpressionZipper => {
+  const { value } = nodeProps;
+  // special handling of a loop
+  if (value === undefined) {
+    return node({
+      loop: true,
+      down: nodeProps as ExpressionZipper,
+      value: {} as any,
+    });
+  }
+  const { label } = value;
+  let { expressionType, value: valueValue } = value;
+  const down = nodeProps.down || null;
   if (expressionType === "Tok" && down !== null)
     throw Error("Token can't have children");
   if (expressionType === "Tok" && label === "") expressionType = "Seq";
-  if (expressionType === "Seq" && down === null && label === "") value = "";
+  if (expressionType === "Seq" && down === null && label === "")
+    valueValue = "";
   return node({
-    ...props,
+    ...nodeProps,
     down,
     value: {
+      ...value,
       expressionType,
       label,
-      value,
-      ...props2,
+      value: valueValue,
     },
   });
 };
@@ -116,13 +127,13 @@ export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
 const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
-let treeCompaction = false;
+let treeCompaction = true;
 
 export function parse(str: string, tree: Expression) {
   treeCompaction = true;
   const [steps] = deriveFinalSteps(str, tree);
   treeCompaction = false;
-  return steps.map(([, z]) => z.value);
+  return steps.map(([, z]) => z);
 }
 
 export function deriveFinalSteps(str: string, tree: Expression) {
@@ -271,7 +282,7 @@ function deriveDownPrime(
       });
       return mapToArray("right", zipper.down, (e) => [
         "down",
-        expressionNode({ ...e, up: x, right: null }),
+        expressionNode({ ...(e.loop ? e.down! : e), up: x, right: null }),
         undefined,
       ]);
     }
@@ -288,7 +299,7 @@ function deriveDownPrime(
           },
         })
       );
-      x = insertAfter(x, expressionNode(x));
+      x = insertAfter(x, x);
       return [
         ["down", x, undefined],
         [
@@ -427,7 +438,12 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       const x = up(zipper);
       const children = x.down;
       // vertical compaction
-      if (treeCompaction && children?.right === null && x.value.label === "") {
+      if (
+        treeCompaction &&
+        children?.right === null &&
+        children?.left === null &&
+        x.value.label === ""
+      ) {
         return [
           [
             "up",
@@ -462,7 +478,7 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       // because we already accounted for empty string in `deriveDownPrime` see `case "Rep":`
       if (zipper.value.start === zipper.value.end) return [];
       let y = right(zipper);
-      y = insertAfter(y, expressionNode(y));
+      y = insertAfter(y, y);
       const x = up(deleteAfter(zipper));
       return [
         [

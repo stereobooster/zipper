@@ -8,7 +8,6 @@ export class Memo<T = any> {
   }
 
   get(expression: ID, position: number) {
-    // console.log(expression, position, this.map);
     return (this.map[expression] || {})[position];
   }
 
