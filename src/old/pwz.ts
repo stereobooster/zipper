@@ -1,11 +1,11 @@
-import { List, cons, forEach, unwind } from "./List";
+import { List, cons, forEach, unwind } from "../List";
 import {
   grayColor,
   leftColor,
   listColor,
   rightColor,
   zipperColor,
-} from "./common";
+} from "../common";
 import { Memo } from "./pwzMemo";
 
 export type ID = number;

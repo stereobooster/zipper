@@ -1,5 +1,5 @@
 // Chomsky-BNF-like grammar, for example `S -> a | "b"`
-import { forEach } from "./List";
+import { forEach } from "../List";
 import { Expression, mapToArray, parse } from "./pwz";
 import { alt, exc, ign, lex, opt, plus, recs, seq, star, tok } from "./pwzDSL";
 

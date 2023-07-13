@@ -1,4 +1,4 @@
-import { List, cons, unwind } from "./List";
+import { List, cons, unwind } from "../List";
 
 // type tree =
 //     Item of item

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Nobr, controls, select } from "./common";
+import { Nobr, controls, select } from "../common";
 import { parseGrammar } from "./pwzGrammar";
 import { VizualizeGrammar } from "./VizualizeGrammar";
 

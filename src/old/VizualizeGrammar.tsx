@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Graphviz } from "./Graphviz";
+import { Graphviz } from "../Graphviz";
 import {
   DeriveDirection,
   Expression,
@@ -19,7 +19,7 @@ import {
   row,
   select,
   text,
-} from "./common";
+} from "../common";
 
 type VizualizeGrammarProps = {
   tree: Expression;

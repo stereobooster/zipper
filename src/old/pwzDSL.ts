@@ -1,4 +1,4 @@
-import { arrayToList } from "./List";
+import { arrayToList } from "../List";
 import { Expression, expressionNode } from "./pwz";
 
 // operations from the original paper -----------------------------------------
