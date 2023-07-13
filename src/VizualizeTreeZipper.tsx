@@ -21,13 +21,6 @@ type VizualizeTreeZipperProps = {
   width?: number;
 };
 
-// still trying to figure best render engine
-// so far chosed Graphviz, but there are other alternatives, like
-// - https://js.cytoscape.org/
-// - https://d3-graph-gallery.com/network.html
-// - https://visjs.github.io/vis-network/examples/
-// - https://github.com/vasturiano/react-force-graph
-// - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
 export const VizualizeTreeZipper = ({
   tree,
   showZipper,
