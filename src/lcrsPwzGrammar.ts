@@ -25,24 +25,25 @@ const terminal = seq([
 const arrow = ign("→", seq(["-", ">"]));
 const spaceOptional = ign("Space?", star(" \t"));
 const space = ign("Space", plus(" \t"));
-const ruleBody = recs((al, se) => {
+const ruleBody = recs((_, v) => {
   const variable = alt([
     terminal,
     nonTerminal,
-    seq([ign("("), spaceOptional, al, spaceOptional, ign(")")]),
+    seq([ign("("), spaceOptional, v, spaceOptional, ign(")")]),
+    seq("Star", [v, ign("*")]),
+    seq("Plus", [v, ign("+")]),
+    seq("Opt", [v, ign("?")]),
   ]);
-  const starRule = seq("Star", [variable, ign("*")]);
-  const plusRule = seq("Plus", [variable, ign("+")]);
-  const optRule = seq("Opt", [variable, ign("?")]);
-  const altRule = alt([
-    se,
-    starRule,
-    plusRule,
-    optRule,
-    seq("Alt", [se, spaceOptional, ign("|"), spaceOptional, al]),
+
+  const seqRule = seq("Seq", [variable, plus(seq([space, variable]))]);
+  const alVariable = alt([variable, seqRule]);
+  const altRule = seq("Alt", [
+    alVariable,
+    plus(seq([spaceOptional, ign("|"), spaceOptional, alVariable])),
   ]);
-  const seqRule = alt([variable, seq("Seq", [variable, space, se])]);
-  return [altRule, seqRule];
+
+  const ruleBody = alt([variable, seqRule, altRule]);
+  return [ruleBody, variable];
 })[0];
 const rule = seq("Rule", [
   nonTerminal,
@@ -117,6 +118,6 @@ export const parseGrammar = (str: string) => {
   if (str.length === 0) throw new Error("Empty input");
   const exps = parse(str, grammarExpression);
   if (exps.length === 0) throw new Error("Failed to parse grammar");
-  if (exps.length > 1) throw new Error("Result is ambigious");
+  // if (exps.length > 1) throw new Error("Result is ambigious");
   return evaluate(exps[0] as Expression);
 };

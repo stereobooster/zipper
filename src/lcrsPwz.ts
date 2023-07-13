@@ -1,12 +1,12 @@
 import {
   LcrsTree,
   LcrsZipper,
-  LcrsZipperPath,
   PartialLcrsZipper,
   deleteAfter,
   deleteBefore,
   down,
   insertAfter,
+  insertBefore,
   left,
   mapToArray,
   node,
@@ -129,9 +129,10 @@ const memoInput: string[] = [];
 let treeCompaction = false;
 
 export function parse(str: string, tree: Expression) {
+  const treeCompactionPrev = treeCompaction;
   treeCompaction = true;
   const [steps] = deriveFinalSteps(str, tree);
-  treeCompaction = false;
+  treeCompaction = treeCompactionPrev;
   return steps.map(([, z]) => z);
 }
 
@@ -370,91 +371,47 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
         (zipper.value.expressionType === "Seq" &&
           zipper.down === null &&
           zipper.value.value === "");
-      let x = up(zipper);
       // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
       if (zipper.right === null) {
-        let children: LcrsZipperPath<ExpressionValue>;
-        // horizontal compaction
+        let res = zipper;
         if (treeCompaction && focusEmpty) {
-          if (zipper.left === null) {
-            children = null;
-          } else {
-            x = up(deleteAfter(left(zipper)));
-            children = x.down;
+          // horizontal compaction
+          if (zipper.left !== null) {
+            res = deleteAfter(left(zipper));
+          // } else {
+          //   throw new Error("can this even happen");
           }
-        } else {
-          children = x.down;
         }
-        // vertical compaction
-        if (
-          treeCompaction &&
-          children?.right === null &&
-          x.value.label === ""
-        ) {
-          return [
-            [
-              "up",
-              expressionNode({
-                ...x,
-                value: children.value,
-                down: children.down,
-              }),
-              x.value.m,
-            ],
-          ];
-        }
+        res = up(res);
         return [
           [
             "up",
             expressionNode({
-              ...x,
-              down: children,
+              ...res,
               value: {
-                ...x.value,
+                ...res.value,
                 expressionType: "Seq",
                 m: undefined,
                 end: zipper.value.end,
               },
             }),
-            x.value.m,
+            res.value.m,
           ],
         ];
       }
+
+      let res = right(zipper);
+      if (treeCompaction && focusEmpty) {
+        // horizontal compaction
+        res = deleteBefore(res);
+      }
+
       // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
-      return [
-        [
-          "down",
-          // horizontal compaction
-          treeCompaction && focusEmpty
-            ? deleteBefore(right(zipper))
-            : right(zipper),
-          undefined,
-        ],
-      ];
+      return [["down", res, undefined]];
     }
     case "AltC": {
       // | AltC (m) -> d↑ (Alt [e]) m
       const x = up(zipper);
-      const children = x.down;
-      // vertical compaction
-      if (
-        treeCompaction &&
-        children?.right === null &&
-        children?.left === null &&
-        x.value.label === ""
-      ) {
-        return [
-          [
-            "up",
-            expressionNode({
-              ...x,
-              value: children.value,
-              down: children.down,
-            }),
-            x.value.m,
-          ],
-        ];
-      }
       return [
         [
           "up",
@@ -478,21 +435,20 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
       if (zipper.value.start === zipper.value.end) return [];
       let y = right(zipper);
       y = insertAfter(y, y);
-      const x = up(deleteAfter(zipper));
+      let x = up(deleteAfter(zipper));
+      const m = x.value.m;
+      x = expressionNode({
+        ...x,
+        value: {
+          ...x.value,
+          expressionType: "Rep",
+          m: undefined,
+          end: zipper.value.end,
+        },
+      });
+
       return [
-        [
-          "up",
-          expressionNode({
-            ...x,
-            value: {
-              ...x.value,
-              expressionType: "Rep",
-              m: undefined,
-              end: zipper.value.end,
-            },
-          }),
-          x.value.m,
-        ],
+        ["up", x, m],
         ["down", y, undefined],
       ];
     }
@@ -541,6 +497,13 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
   }
 }
 
+const verticalCompaction = (zipper: ExpressionZipper) => {
+  if (treeCompaction && zipper.value.label === "" && zipper.down) {
+    return deleteAfter(left(insertBefore(zipper, zipper.down)));
+  }
+  return zipper;
+};
+
 function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
   const id = zipper.prevId || zipper.id;
   let m = mems.get(id, position);
@@ -553,7 +516,9 @@ function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
     // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
     return (m.result[position] || []).map((focus) => [
       "upPrime",
-      expressionNode({ ...zipper, value: focus.value, down: focus.down }),
+      verticalCompaction(
+        expressionNode({ ...zipper, value: focus.value, down: focus.down })
+      ),
       undefined,
     ]);
   }
@@ -578,7 +543,9 @@ function deriveUp(position: number, zipper: ExpressionZipper, m: Mem): Step[] {
   // List.concat (List.map (d′↑ e) m.parents)
   return m.parents.map((c) => [
     "upPrime",
-    expressionNode({ ...c, value: zipper.value, down: zipper.down }),
+    verticalCompaction(
+      expressionNode({ ...c, value: zipper.value, down: zipper.down })
+    ),
     undefined,
   ]);
 }

@@ -113,15 +113,6 @@ export const right = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   });
 };
 
-export const left = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
-  if (zipper.left === null) throw new Error("Can't move left");
-  return node({
-    ...zipper.left,
-    up: zipper.up,
-    right: node({ ...zipper, left: null, up: null }),
-  });
-};
-
 export const down = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   if (zipper.down === null) throw new Error("Can't move down");
   if (zipper.down.loop)
@@ -133,6 +124,15 @@ export const down = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   return node({
     ...zipper.down,
     up: node({ ...zipper, down: null }),
+  });
+};
+
+export const left = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
+  if (zipper.left === null) throw new Error("Can't move left");
+  return node({
+    ...zipper.left,
+    up: zipper.up,
+    right: node({ ...zipper, left: null, up: null }),
   });
 };
 
@@ -150,11 +150,6 @@ export const up = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   });
 };
 
-export const getDown = <T>(zipper: LcrsZipper<T>): LcrsZipperPath<T> => {
-  if (!zipper.down) return zipper.down;
-  return zipper.down.loop ? zipper.down.down! : zipper.down;
-};
-
 // TODO: refactor replace
 // const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
 //   return node({
@@ -163,10 +158,30 @@ export const getDown = <T>(zipper: LcrsZipper<T>): LcrsZipperPath<T> => {
 //   });
 // };
 
+// this treats item as a node
 export const insertAfter = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
   node({
     ...zipper,
     right: node({ ...item, right: zipper.right, left: null, up: null }),
+  });
+
+const concatLeft = <T>(left:LcrsZipperPath<T>, right: LcrsZipper<T>) => {
+  forEach('right', right, (x) => {
+    left = node({
+      ...x,
+      right: null,
+      up: null,
+      left
+    })
+  })
+  return left
+}
+
+// this treats item as a list
+export const insertBefore = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
+  node({
+    ...zipper,
+    left: concatLeft(zipper.left, item),
   });
 
 export const deleteBefore = <T>(zipper: LcrsZipper<T>) =>

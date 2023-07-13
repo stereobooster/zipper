@@ -97,17 +97,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - visualization for `Mem`
-- Tree compaction
-  - [x] remove empty strings from `seq`
-  - [x] if there is only one child in `seq` and `seq` doesn't have label - replace `seq` with child
-  - [x] if there is only one child in `alt` and `alt` doesn't have label - replace `alt` with child
-  - [ ] if we have `star` without label in `seq` - replace `star` with it's children
-  - [ ] if we have `seq` without label in `seq` - replace `seq` with it's children
+- LCRS grammar show node's label
 - LCRSZipper
-  - PwZ
-    - hide implementation details (`children`, `loop`)
-    - Expression vs Zipper types
-    - multiple zippers in one vizualization?
+  - hide implementation details (`children`, `loop`)
+  - Expression vs Zipper types
+  - multiple zippers in one vizualization?
   - doesn't show zipper edges and nodes (except focus)
     - maybe move it to DOM level?
   - sometimes level is not what expeted (or not?)
@@ -117,6 +111,8 @@ TODO:
 - "Jump" button - derivate until number of steps change 1 -> N, N -> 1
 - Improve parsing error messages
 - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
+- Tree compaction
+  - document and test
 - `ign` doesn't work inside `lex`
 - `alt(["\n", "\r\n"])` ambigious, because second treated as set, not as consequence
 - `Warning: no value for width of non-ASCII character 207. Falling back to width of space character`

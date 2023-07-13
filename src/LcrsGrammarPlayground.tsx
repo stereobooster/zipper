@@ -3,15 +3,16 @@ import { Nobr, controls, select } from "./common";
 import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
-// TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
-
 const examples = [
   [`S -> "" | "a" S;`, 'Kleene star as right recursion', 'aaa'],
   [`S -> "" | S "a";`, 'Kleene star as left recursion', 'aaa'],
   [`S -> "a"*;`, 'Kleene star', 'aaa'],
   [`S -> S "+" S | "0-9";`, 'Algebraic expression', '1+2+3'],
   [`S -> ("(" S ")")*;`, 'Matching parenthesis', '(()())'],
-  [`S -> ("a"*) ("a"*);`, 'Highly ambigiuous', 'aaa'],
+  [`S -> "a"* "a"*;`, 'Highly ambigiuous', 'aaa'],
+  // TODO: I think this is a bug in the original paper
+  // but this one works: S -> "a" | S S;
+  [`S -> "a" | "" | S S;`, 'Bug (infinite loop)', 'aaa'],
 ];
 
 export const LcrsGrammarPlayground = () => {
@@ -76,7 +77,7 @@ export const LcrsGrammarPlayground = () => {
           <div style={{ height: 36 }}>{error}</div>
         </label>
       </div>
-      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar} />
+      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar} width={400}/>
     </>
   );
 };

@@ -1,4 +1,3 @@
-import { GrammarPlayground } from "./GrammarPlayground";
 import { LcrsGrammarPlayground } from "./LcrsGrammarPlayground";
 import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";
@@ -184,6 +183,12 @@ const App = () => {
       </section>
       <section>
         <div style={paragraph}>
+          <h2>LCRS tree</h2>
+        </div>
+        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper height={300} />
+      </section>
+      <section>
+        <div style={paragraph}>
           <h2>Parsing with zippers</h2>
           <ul>
             <li>
@@ -219,18 +224,6 @@ const App = () => {
               to remove vizual noise
             </li>
           </ul>
-        </div>
-        <GrammarPlayground />
-      </section>
-      <section>
-        <div style={paragraph}>
-          <h2>LCRS tree</h2>
-        </div>
-        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper height={300} />
-      </section>
-      <section>
-        <div style={paragraph}>
-          <h2>LCRS gramar</h2>
         </div>
         <LcrsGrammarPlayground />
       </section>
