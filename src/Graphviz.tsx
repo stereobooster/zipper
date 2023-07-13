@@ -1,9 +1,11 @@
 // initially copied from https://github.com/DomParfitt/graphviz-react/blob/master/src/Graphviz.tsx
 
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 // https://github.com/magjac/d3-graphviz
 import { graphviz, GraphvizOptions } from "d3-graphviz";
 import * as d3 from "d3-selection";
+import { ID } from "./LcrsTree";
+import "./Graphviz.css";
 
 export type GraphvizProps = {
   /**
@@ -19,7 +21,9 @@ export type GraphvizProps = {
    * The classname to attach to this component for styling purposes.
    */
   className?: string;
-  onHover?: (key: number) => void;
+  onHover?: (key: ID | undefined) => void;
+  onClick?: (key: ID | undefined) => void;
+  selected?: ID;
 };
 
 const defaultOptions: GraphvizOptions = {
@@ -29,55 +33,74 @@ const defaultOptions: GraphvizOptions = {
   zoom: false,
 };
 
-/**
- * This is stupid - I could as well attach one listener at top level and catch all events
- * and based on target find parent with `.node` selector or add `pointer-events: none`
- */
-function clickHandler(onHover: (key: number) => void) {
-  return function () {
-    // @ts-expect-error old school
-    const node = d3.select(this);
-    // @ts-expect-error I'm lazy
-    onHover(node.data()[0]["key"]);
-  };
-}
-
 export const Graphviz = ({
   dot,
   className,
   options,
   onHover,
+  onClick,
+  selected,
 }: GraphvizProps) => {
   const id = useId();
+  const divRef = useRef<HTMLDivElement>(null);
+  const [counter, setCounter] = useState(0);
+
+  useEffect(() => {
+    if (!selected) return;
+    try {
+      // wtf is wrong with this select. I could as well use https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
+      const nodes = d3.selectAll(`#${selected} path`);
+      if (!nodes) return;
+      const stroke = nodes.attr("stroke");
+      const fill = nodes.attr("fill");
+      nodes.attr("stroke", "#27ae60");
+      nodes.attr("fill", "#27ae60");
+      return () => {
+        nodes.attr("stroke", stroke);
+        nodes.attr("fill", fill);
+      };
+    } catch (e) {
+      // do nothing
+    }
+  }, [selected, counter]);
+
+  useEffect(() => {
+    const current = divRef.current;
+    if (current && onClick) {
+      const callback = (e: MouseEvent) => {
+        const target = e.target as Element | null;
+        if (!target?.closest) return;
+        const node = target.closest(".node");
+        onClick((node && node.getAttribute("id")) || undefined);
+      };
+      current.addEventListener("click", callback);
+      return () => current.removeEventListener("click", callback);
+    }
+  }, [divRef, onClick]);
+
+  useEffect(() => {
+    const current = divRef.current;
+    if (current && onHover) {
+      const mouseover = (e: MouseEvent) => {
+        const target = e.target as Element | null;
+        if (!target?.closest) return;
+        const node = target.closest(".node");
+        onHover((node && node.getAttribute("id")) || undefined);
+      };
+      current.addEventListener("mouseover", mouseover);
+      return () => current.removeEventListener("mouseover", mouseover);
+    }
+  }, [divRef, onHover]);
 
   useEffect(() => {
     const idSelector = `#${id.replaceAll(":", "\\:")}`;
-    graphviz(
-      idSelector,
-      !options
-        ? defaultOptions
-        : {
-            ...defaultOptions,
-            ...options,
-          }
-    )
-      .on("end", () => {
-        const nodes = d3.selectAll(`${idSelector} .node`);
-        nodes.selectAll("title").remove();
-        if (onHover)
-          nodes
-            .on("mouseenter", clickHandler(onHover))
-            .on("mouseleave", () => onHover(-1));
-      })
-      .renderDot(dot);
+    graphviz(idSelector, {
+      ...defaultOptions,
+      ...(options || {}),
+    })
+      .renderDot(dot)
+      .on("end", () => setCounter((x) => x + 1));
+  }, [dot, options, id]);
 
-    return () => {
-      if (onHover)
-        d3.selectAll(`${idSelector} .node`)
-          .on("mouseenter", null)
-          .on("mouseleave", null);
-    };
-  }, [dot, options, onHover, id]);
-
-  return <div className={className} id={id} />;
+  return <div className={className} id={id} ref={divRef} />;
 };

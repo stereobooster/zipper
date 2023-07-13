@@ -6,8 +6,9 @@ import {
   zipperColor,
 } from "./common";
 
-export type ID = number;
-const getId = (): ID => Math.random();
+export type ID = string;
+// this suppose to be valid CSS id selector
+const getId = (): ID => `${Math.random()}`.replaceAll("0.", "n");
 
 // Tree ----------------------------------------------------------------------------
 
@@ -165,17 +166,17 @@ export const insertAfter = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
     right: node({ ...item, right: zipper.right, left: null, up: null }),
   });
 
-const concatLeft = <T>(left:LcrsZipperPath<T>, right: LcrsZipper<T>) => {
-  forEach('right', right, (x) => {
+const concatLeft = <T>(left: LcrsZipperPath<T>, right: LcrsZipper<T>) => {
+  forEach("right", right, (x) => {
     left = node({
       ...x,
       right: null,
       up: null,
-      left
-    })
-  })
-  return left
-}
+      left,
+    });
+  });
+  return left;
+};
 
 // this treats item as a list
 export const insertBefore = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
@@ -340,7 +341,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   } else if (type === "invisible") {
     return `${from} -> ${to} [style=invis]`;
   }
-  return `${from} -> ${to} [penwidth=${borderWidth} ${arrow} ${dir} color="${color}" ${
+  return `${from} -> ${to} [id="${from}-${to}" penwidth=${borderWidth} ${arrow} ${dir} color="${color}" ${
     constraint === false ? "constraint=false" : ""
   }];`;
 };
@@ -397,7 +398,7 @@ const nodeToDot = memoizeWeakChain(
 
     label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
-    return `${id} [penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
+    return `${id} [id=${id} penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
   }
 );
 

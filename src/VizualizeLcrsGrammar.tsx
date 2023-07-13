@@ -20,6 +20,7 @@ import {
   text,
 } from "./common";
 import {
+  ID,
   NodesIndex,
   getLevel,
   lcrsZipperToDot,
@@ -154,7 +155,7 @@ export const VizualizeLcrsGrammar = ({
       } as const),
     [height, width, fit]
   );
-  const [selectedNode, setSelectedNode] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<ID | undefined>();
   return (
     <>
       <div style={controls}>
@@ -240,20 +241,54 @@ export const VizualizeLcrsGrammar = ({
         </div>
       </div>
       <div style={row}>
-        <Graphviz dot={dot} onHover={setSelectedNode} options={options} />
-        {nodes[selectedNode] && (
+        <Graphviz
+          dot={dot}
+          onClick={setSelectedNode}
+          options={options}
+          selected={selectedNode}
+        />
+        {selectedNode && nodes[selectedNode] && (
           <div style={legend}>
-            id: {nodes[selectedNode].zipper.id}
-            <br />
-            label: {nodes[selectedNode].zipper.value.label}
-            <br />
-            value: {nodes[selectedNode].zipper.value.value}
-            <br />
-            type: {nodes[selectedNode].zipper.value.expressionType}
-            <br />
-            start: {nodes[selectedNode].zipper.value.start}
-            <br />
-            end: {nodes[selectedNode].zipper.value.end}
+            label: {nodes[selectedNode].zipper.value.label} <br />
+            value: {nodes[selectedNode].zipper.value.value} <br />
+            type: {nodes[selectedNode].zipper.value.expressionType} <br />
+            start: {nodes[selectedNode].zipper.value.start} <br />
+            end: {nodes[selectedNode].zipper.value.end} <br />
+            {nodes[selectedNode].zipper.originalId && (
+              <>
+                <button
+                  onClick={() =>
+                    setSelectedNode(nodes[selectedNode].zipper.originalId)
+                  }
+                >
+                  originalId
+                </button>
+                <br />
+              </>
+            )}
+            {/* {nodes[selectedNode].zipper.prevId && (
+              <>
+                <button
+                  onClick={() =>
+                    setSelectedNode(nodes[selectedNode].zipper.prevId)
+                  }
+                >
+                  prevId
+                </button>
+                <br />
+              </>
+            )} */}
+            {nodes[selectedNode].zipper.value.m && (
+              <>
+                m-parents: {nodes[selectedNode].zipper.value.m?.parents.length}{" "}
+                <br />
+                m-result:{" "}
+                {Object.keys(
+                  nodes[selectedNode].zipper.value.m?.result || {}
+                ).join(", ")}{" "}
+                <br />
+              </>
+            )}
           </div>
         )}
       </div>
