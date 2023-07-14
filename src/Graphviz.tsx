@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 // https://github.com/magjac/d3-graphviz
 import { graphviz, GraphvizOptions } from "d3-graphviz";
-import * as d3 from "d3-selection";
+// import * as d3 from "d3-selection";
 import { ID } from "./LcrsTree";
 import "./Graphviz.css";
 
@@ -23,7 +23,8 @@ export type GraphvizProps = {
   className?: string;
   onHover?: (key: ID | undefined) => void;
   onClick?: (key: ID | undefined) => void;
-  selected?: ID;
+  // TODO: none property as array: [{ id, stroke, fill }]
+  highlighted?: ID[];
 };
 
 const defaultOptions: GraphvizOptions = {
@@ -39,30 +40,30 @@ export const Graphviz = ({
   options,
   onHover,
   onClick,
-  selected,
+  highlighted,
 }: GraphvizProps) => {
   const id = useId();
   const divRef = useRef<HTMLDivElement>(null);
   const [counter, setCounter] = useState(0);
 
   useEffect(() => {
-    if (!selected) return;
-    try {
-      // wtf is wrong with this select. I could as well use https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
-      const nodes = d3.selectAll(`#${selected} path`);
-      if (!nodes) return;
-      const stroke = nodes.attr("stroke");
-      const fill = nodes.attr("fill");
-      nodes.attr("stroke", "#27ae60");
-      nodes.attr("fill", "#27ae60");
-      return () => {
-        nodes.attr("stroke", stroke);
-        nodes.attr("fill", fill);
-      };
-    } catch (e) {
-      // do nothing
-    }
-  }, [selected, counter]);
+    if (!highlighted || highlighted.length === 0) return;
+    const nodes = highlighted.flatMap((x) => {
+      const node = document.querySelector(`#${x} path`);
+      if (!node) return [];
+      const stroke = node.getAttribute("stroke");
+      const fill =  node.getAttribute("fill");
+      node.setAttribute("stroke", "#27ae60");
+      node.setAttribute("fill", "#27ae60");
+      return [{ node, stroke, fill }];
+    });
+    return () => {
+      nodes.forEach(({ node, stroke, fill }) => {
+        node.setAttribute("stroke", stroke!);
+        node.setAttribute("fill", fill!);
+      });
+    };
+  }, [highlighted, counter]);
 
   useEffect(() => {
     const current = divRef.current;

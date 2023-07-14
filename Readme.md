@@ -97,13 +97,12 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - vizualization
-  - allow select nodes and highlight it
-  - allow to highlight nodes and/or edges
-    - for example to show all nodes with the same originalId
-    - for example to show all nodes with `mem`
-    - for example to show parents/results from selected `mem`
-    - for example to show focus/zipper instead of using dot-medium for that
   - show more than one zipper (take care of the same edges)
+    - because parrents can be on more than one zipper
+  - allow to highlight nodes and/or edges
+    - for example to show all nodes with `mem`
+    - for example to show focus/zipper instead of using dot-medium for that
+  - use button instead of span for controls
   - alternative vizualization library
     - https://js.cytoscape.org/
       - https://github.com/plotly/react-cytoscapejs

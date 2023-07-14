@@ -156,6 +156,12 @@ export const VizualizeLcrsGrammar = ({
     [height, width, fit]
   );
   const [selectedNode, setSelectedNode] = useState<ID | undefined>();
+  const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
+  const highlighted = useMemo(() => {
+    if (selectedNode) return [...new Set([selectedNode, ...highlightedNodes])];
+    return highlightedNodes;
+  }, [selectedNode, highlightedNodes]);
+
   return (
     <>
       <div style={controls}>
@@ -245,7 +251,7 @@ export const VizualizeLcrsGrammar = ({
           dot={dot}
           onClick={setSelectedNode}
           options={options}
-          selected={selectedNode}
+          highlighted={highlighted}
         />
         {selectedNode && nodes[selectedNode] && (
           <div style={legend}>
@@ -254,38 +260,101 @@ export const VizualizeLcrsGrammar = ({
             type: {nodes[selectedNode].zipper.value.expressionType} <br />
             start: {nodes[selectedNode].zipper.value.start} <br />
             end: {nodes[selectedNode].zipper.value.end} <br />
-            {nodes[selectedNode].zipper.originalId && (
+            {nodes[selectedNode].zipper.originalId ? (
               <>
-                <button
-                  onClick={() =>
-                    setSelectedNode(nodes[selectedNode].zipper.originalId)
+                originalId:{" "}
+                <span
+                  style={{ textDecoration: "underline", cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedNode(nodes[selectedNode].zipper.originalId);
+                    setHighlightedNodes([]);
+                  }}
+                  onMouseEnter={() =>
+                    setHighlightedNodes([
+                      ...Object.values(nodes)
+                        .filter(
+                          (x) =>
+                            x.zipper.originalId ===
+                            nodes[selectedNode].zipper.originalId
+                        )
+                        .map((x) => x.zipper.id),
+                      nodes[selectedNode].zipper.originalId!,
+                    ])
                   }
+                  onMouseLeave={() => setHighlightedNodes([])}
                 >
-                  originalId
-                </button>
+                  {nodes[selectedNode].zipper.originalId}
+                </span>
+                <br />
+              </>
+            ) : (
+              <>
+                id:{" "}
+                <span
+                  style={{ textDecoration: "underline" }}
+                  onMouseEnter={() =>
+                    setHighlightedNodes([
+                      ...Object.values(nodes)
+                        .filter(
+                          (x) =>
+                            x.zipper.originalId ===
+                            nodes[selectedNode].zipper.id
+                        )
+                        .map((x) => x.zipper.id),
+                    ])
+                  }
+                  onMouseLeave={() => setHighlightedNodes([])}
+                >
+                  {nodes[selectedNode].zipper.id}
+                </span>
                 <br />
               </>
             )}
-            {/* {nodes[selectedNode].zipper.prevId && (
-              <>
-                <button
-                  onClick={() =>
-                    setSelectedNode(nodes[selectedNode].zipper.prevId)
-                  }
-                >
-                  prevId
-                </button>
-                <br />
-              </>
-            )} */}
             {nodes[selectedNode].zipper.value.m && (
               <>
-                m-parents: {nodes[selectedNode].zipper.value.m?.parents.length}{" "}
+                m-parents:{" "}
+                {nodes[selectedNode].zipper.value.m!.parents.map((x) =>
+                  x.up ? (
+                    <span
+                      key={x.up.id}
+                      style={{
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        setSelectedNode(x.up!.id);
+                        setHighlightedNodes([]);
+                      }}
+                      onMouseEnter={() => setHighlightedNodes([x.up!.id])}
+                      onMouseLeave={() => setHighlightedNodes([])}
+                    >
+                      {x.up.id}
+                    </span>
+                  ) : (
+                    ""
+                  )
+                )}
                 <br />
                 m-result:{" "}
-                {Object.keys(
-                  nodes[selectedNode].zipper.value.m?.result || {}
-                ).join(", ")}{" "}
+                {(
+                  nodes[selectedNode].zipper.value.m!.result[position] || []
+                ).map((x) => (
+                  <span
+                    key={x.id}
+                    style={{
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setSelectedNode(x.id);
+                      setHighlightedNodes([]);
+                    }}
+                    onMouseEnter={() => setHighlightedNodes([x.id])}
+                    onMouseLeave={() => setHighlightedNodes([])}
+                  >
+                    {x.id}
+                  </span>
+                ))}
                 <br />
               </>
             )}
