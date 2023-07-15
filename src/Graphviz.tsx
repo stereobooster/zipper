@@ -49,7 +49,7 @@ export const Graphviz = ({
   useEffect(() => {
     if (!highlighted || highlighted.length === 0) return;
     const nodes = highlighted.flatMap((x) => {
-      const node = document.querySelector(`#${x} path`);
+      const node = document.querySelector(`#${x} path`) || document.querySelector(`#${x} polygon`);
       if (!node) return [];
       const stroke = node.getAttribute("stroke");
       const fill =  node.getAttribute("fill");

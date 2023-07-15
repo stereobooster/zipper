@@ -27,7 +27,7 @@ export function VizualizeLcrsTreeZipper<T>({
   const [layout, setLayout] = useState("dag");
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const { dot } = lcrsZipperToDot({ zipper, logical: layout === "dag" });
+  const { dot } = lcrsZipperToDot({ zippers: [zipper], logical: layout === "dag" });
 
   const callback = (direction: "u" | "l" | "r" | "d") => () => {
     setZipper((zipper) => {

@@ -97,8 +97,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - vizualization
-  - show more than one zipper (take care of the same edges)
-    - because parrents can be on more than one zipper
   - allow to highlight nodes and/or edges
     - for example to show all nodes with `mem`
     - for example to show focus/zipper instead of using dot-medium for that

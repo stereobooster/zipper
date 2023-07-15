@@ -5,6 +5,7 @@ import {
   rightColor,
   zipperColor,
 } from "./common";
+import { ExpressionValue } from "./lcrsPwz";
 
 export type ID = string;
 // this suppose to be valid CSS id selector
@@ -316,12 +317,7 @@ type Edge = {
   // https://graphviz.org/docs/attrs/constraint/
   constraint?: boolean;
 };
-type Node = {
-  level: Level;
-  id: ID;
-  type?: "green" | "blue" | "empty" | "focus" | "gray";
-  zipper?: boolean;
-};
+type NodeType = "green" | "blue" | "empty" | "focus" | "gray";
 
 const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   const dir = direction === "backward" ? "dir=back" : "";
@@ -348,10 +344,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
 
 const nodeToDot = memoizeWeakChain(
   "",
-  (
-    { id, value, originalId }: LcrsZipper<unknown>,
-    type: Node["type"]
-  ): string => {
+  ({ id, value, originalId }: LcrsZipper<unknown>, type: NodeType): string => {
     let borderColor = listColor;
     let fillColor = listColor;
     let fontcolor = "white";
@@ -438,11 +431,11 @@ const getEdges = (
   // TODO: add support for zipper nodes/edges
   const isFocus = false;
 
-  const result: Edge[] = [];
-  if (zipper === null) return result;
+  const edges: Edge[] = [];
+  if (zipper === null) return edges;
 
   if (zipper.up) {
-    result.push({ from: zipper.id, to: zipper.up.id, type: "blue" });
+    edges.push({ from: zipper.id, to: zipper.up.id, type: "blue" });
   }
 
   let type: Edge["type"];
@@ -455,12 +448,12 @@ const getEdges = (
       direction: "backward",
     } as const;
     if (logical) {
-      result.push({
+      edges.push({
         ...edge,
         type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
       });
     } else {
-      result.push({ ...edge, type: isFocus ? "zipper" : type });
+      edges.push({ ...edge, type: isFocus ? "zipper" : type });
     }
   }
 
@@ -470,12 +463,12 @@ const getEdges = (
       ? { from: zipper.id, to: zipper.right?.down?.id as ID }
       : { from: zipper.id, to: zipper.right.id };
     if (logical) {
-      result.push({
+      edges.push({
         ...edge,
         type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
       });
     } else {
-      result.push({
+      edges.push({
         ...edge,
         type: isFocus ? "zipper" : type,
       });
@@ -490,10 +483,10 @@ const getEdges = (
     if (logical) {
       forEach("right", zipper.down, (to) => {
         const toId = to.loop ? (to.down?.id as ID) : to.id;
-        result.push({ from: zipper.id, to: toId, type });
+        edges.push({ from: zipper.id, to: toId, type });
       });
     } else {
-      result.push({
+      edges.push({
         from: zipper.id,
         to: down.id,
         type,
@@ -501,70 +494,54 @@ const getEdges = (
     }
   }
 
-  return result;
+  return edges;
 };
 
-const edgesToDot = memoizeWeakChain(
-  "",
-  (
-    zipper: LcrsZipperPath<unknown>,
-    givenType: Edge["type"],
-    logical = false,
-    zipperTraverse = false
-  ) => {
-    return getEdges(
-      zipper,
-      givenType,
-      logical as boolean,
-      zipperTraverse as boolean
-    )
-      .map(edgeToDot)
-      .join("\n");
-  }
+const edgesToDot = memoizeWeakChain("", (edges: Edge[]) =>
+  edges.map(edgeToDot).join("\n")
 );
 
 type DisplayItem<T> = {
   level: Level;
   zipper: LcrsZipper<T>;
+  type: NodeType;
+  edges: Edge[];
 };
 export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
 
 // maybe replace `type` with `direction`?
 // Can we memoize zipper segment if it doesn't contain loop?
 const zipperDot = memoizeWeakChain(
-  [[], {}] as [string[], NodesIndex],
+  {} as NodesIndex,
   (
     zipper: LcrsZipperPath<unknown>,
-    type: Node["type"],
+    type: NodeType,
     logical: boolean,
     zipperTraverse = true,
     // eslint-disable-next-line @typescript-eslint/no-inferrable-types
     level: number = -1,
     memo: NodesIndex = {}
-  ): [string[], NodesIndex] => {
-    if (!zipper) return [[], {}];
+  ): NodesIndex => {
+    if (!zipper) return {};
     level = level === -1 ? getLevel(zipper) : level;
     if (memo[zipper.id] !== undefined) {
       // how to set different level here?
       // memo[zipper.id] = level;
-      return [[], {}];
+      return {};
     }
     if (!zipper.loop)
       memo[zipper.id] = {
         level,
         zipper,
+        type,
+        edges: getEdges(
+          zipper,
+          type === "focus" ? "green" : (type as any),
+          logical as boolean,
+          zipperTraverse as boolean
+        ),
       };
 
-    const str = zipper.loop
-      ? ""
-      : `${nodeToDot(zipper, type)}
-      ${edgesToDot(
-        zipper,
-        // there is a bug in left edge from focus
-        type === "focus" ? "green" : (type as any),
-        logical,
-        zipperTraverse as boolean
-      )}`;
     const up = zipperDot(
       zipper.up,
       type === "focus" ? "blue" : type,
@@ -603,29 +580,108 @@ const zipperDot = memoizeWeakChain(
       zipper.loop ? level : level + 1,
       memo
     );
-    return [
-      [...up[0], ...left[0], str, ...right[0], ...down[0]],
-      { ...up[1], ...left[1], ...memo, ...right[1], ...down[1] },
-    ];
+
+    return { ...up[1], ...left[1], ...memo, ...right[1], ...down[1] };
   }
 );
 
-export const lcrsZipperToDot = <T>({
-  zipper,
-  logical,
-}: {
-  zipper: LcrsZipper<T>;
-  logical: boolean;
-}) => {
-  const [graphPieces, index] = zipperDot(zipper, "focus", logical, true);
-  return {
-    dot: `digraph {
+const lcrsZipperToDotBase =
+  <T>(ntd: typeof nodeToDot) =>
+  ({ zippers, logical }: { zippers: LcrsZipper<T>[]; logical: boolean }) => {
+    let index: NodesIndex<T> = {};
+    zippers.forEach((zipper) => {
+      index = {
+        ...(zipperDot(zipper, "focus", logical, true) as NodesIndex<T>),
+        ...index,
+      };
+    });
+    const graphPieces = Object.values(index).flatMap((x) => [
+      ntd(x.zipper, x.type),
+      edgesToDot(x.edges),
+    ]);
+    return {
+      dot: `digraph {
     ${levelsDot(index)}
     node [fontcolor=white fixedsize=true height=0.3]
     edge [color="${listColor}"]
     ${ranksDot(index)}
     ${graphPieces.join("\n")}
   }`,
-    index,
+      index,
+    };
   };
-};
+
+export const lcrsZipperToDot = lcrsZipperToDotBase(nodeToDot);
+
+const expressionToDot = memoizeWeakChain(
+  "",
+  ({ id, value: {label, expressionType, value}, originalId }: LcrsZipper<ExpressionValue>, type: NodeType): string => {
+  let borderColor = listColor;
+  let fillColor = listColor;
+  let fontcolor = "white";
+
+  if (type === "empty") {
+    fillColor = "white";
+    borderColor = "white";
+  } else if (type === "focus") {
+    fillColor = "white";
+    fontcolor = "black";
+    borderColor = zipperColor;
+  } else if (type === "green" && originalId !== undefined) {
+    fillColor = rightColor;
+    borderColor = rightColor;
+  } else if (type === "blue" && originalId !== undefined) {
+    fillColor = leftColor;
+    borderColor = leftColor;
+  } else if (type === "gray") {
+    fillColor = grayColor;
+    borderColor = grayColor;
+  }
+
+  // if (zipper) {
+  //   borderColor = zipperColor;
+  // }
+
+  const short = true;
+  let rounded = true; // maybe: terminals rounded, non-terminals squared?
+
+  if (value !== undefined) {
+    if (value === "") {
+      label = "ϵ";
+      rounded = false;
+    } else {
+      label = value;
+    }
+  } else {
+    if (
+      (expressionType === "Seq" || expressionType === "SeqC") &&
+      label === ""
+    ) {
+      label = short ? "∙" : "Seq";
+      rounded = false;
+    }
+    if (
+      (expressionType === "Alt" || expressionType === "AltC") &&
+      label === ""
+    ) {
+      label = short ? "∪" : "Alt";
+      rounded = false;
+    }
+    // Extension
+    if (expressionType === "Rep" || expressionType === "RepC") {
+      label = short ? "∗" : "Rep";
+      rounded = false;
+    }
+  }
+
+  // https://graphviz.org/doc/info/shapes.html
+  const shape = label.length <= 1 ? "square" : "rect";
+
+  label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+  return `${id} [id=${id} penwidth=4 style="filled,solid${
+    rounded ? ",rounded" : ""
+  }" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
+});
+
+export const lcrsXepressionZipperToDot = lcrsZipperToDotBase(expressionToDot as any);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Graphviz } from "./Graphviz";
 import {
   DeriveDirection,
@@ -23,7 +23,7 @@ import {
   ID,
   NodesIndex,
   getLevel,
-  lcrsZipperToDot,
+  lcrsXepressionZipperToDot,
   treeToZipper,
 } from "./LcrsTree";
 
@@ -84,10 +84,10 @@ export const VizualizeLcrsGrammar = ({
 
   const { dot, index } = useMemo(
     () =>
-      lcrsZipperToDot({
-        zipper: !steps[displayZipper]
-          ? steps[0][1] //steps.map(([, zipper]) => zipper)
-          : steps[displayZipper][1],
+      lcrsXepressionZipperToDot({
+        zippers: steps[displayZipper]
+          ? [steps[displayZipper][1]]
+          : steps.map(([, zipper]) => zipper),
         logical: layout === "dag",
         // tree,
       }),
@@ -315,21 +315,24 @@ export const VizualizeLcrsGrammar = ({
                 m-parents:{" "}
                 {nodes[selectedNode].zipper.value.m!.parents.map((x) =>
                   x.up ? (
-                    <span
-                      key={x.up.id}
-                      style={{
-                        textDecoration: "underline",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => {
-                        setSelectedNode(x.up!.id);
-                        setHighlightedNodes([]);
-                      }}
-                      onMouseEnter={() => setHighlightedNodes([x.up!.id])}
-                      onMouseLeave={() => setHighlightedNodes([])}
-                    >
-                      {x.up.id}
-                    </span>
+                    <Fragment key={x.up.id}>
+                      <span
+                        style={{
+                          textDecoration: "underline",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          setSelectedNode(x.up!.id);
+                          setHighlightedNodes([]);
+                        }}
+                        onMouseEnter={() => setHighlightedNodes([x.up!.id])}
+                        onMouseLeave={() => setHighlightedNodes([])}
+                      >
+                        {nodes[x.up.id]
+                          ? nodes[x.up.id].zipper.value.label || x.up.id
+                          : x.up.id}
+                      </span>{" "}
+                    </Fragment>
                   ) : (
                     ""
                   )
