@@ -58,7 +58,7 @@ export const VizualizeLcrsGrammar = ({
   const [fit, setFit] = useState(true);
   const [layout, setLayout] = useState("dag");
 
-  const [displayZipper, setDisplayZipper] = useState(0);
+  const [displayZipper, setDisplayZipper] = useState(-1);
   const [step, setStep] = useState(0);
   const [steps, setSteps] = useState<Step[]>(() => [
     ["down", treeToZipper(tree), undefined],
@@ -255,8 +255,8 @@ export const VizualizeLcrsGrammar = ({
         />
         {selectedNode && nodes[selectedNode] && (
           <div style={legend}>
-            label: {nodes[selectedNode].zipper.value.label} <br />
-            value: {nodes[selectedNode].zipper.value.value} <br />
+            label: {`${nodes[selectedNode].zipper.value.label}`} <br />
+            value: {`${nodes[selectedNode].zipper.value.value}`} <br />
             type: {nodes[selectedNode].zipper.value.expressionType} <br />
             start: {nodes[selectedNode].zipper.value.start} <br />
             end: {nodes[selectedNode].zipper.value.end} <br />

@@ -111,7 +111,6 @@ TODO:
     - https://github.com/antvis/Graphin
     - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
     - https://d3-graph-gallery.com/network.html
-- LCRS grammar show node's label
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types

@@ -77,7 +77,7 @@ export const LcrsGrammarPlayground = () => {
           <div style={{ height: 36 }}>{error}</div>
         </label>
       </div>
-      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar} width={400}/>
+      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar}/>
     </>
   );
 };

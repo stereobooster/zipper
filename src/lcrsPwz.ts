@@ -65,13 +65,11 @@ export const expressionNode = (
     });
   }
   const { label } = value;
-  let { expressionType, value: valueValue } = value;
+  let { expressionType } = value;
   const down = nodeProps.down || null;
   if (expressionType === "Tok" && down !== null)
     throw Error("Token can't have children");
   if (expressionType === "Tok" && label === "") expressionType = "Seq";
-  if (expressionType === "Seq" && down === null && label === "")
-    valueValue = "";
   return node({
     ...nodeProps,
     down,
@@ -79,7 +77,6 @@ export const expressionNode = (
       ...value,
       expressionType,
       label,
-      value: valueValue,
     },
   });
 };
@@ -378,8 +375,8 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
           // horizontal compaction
           if (zipper.left !== null) {
             res = deleteAfter(left(zipper));
-          // } else {
-          //   throw new Error("can this even happen");
+            // } else {
+            //   throw new Error("can this even happen");
           }
         }
         res = up(res);

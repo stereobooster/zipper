@@ -615,73 +615,74 @@ export const lcrsZipperToDot = lcrsZipperToDotBase(nodeToDot);
 
 const expressionToDot = memoizeWeakChain(
   "",
-  ({ id, value: {label, expressionType, value}, originalId }: LcrsZipper<ExpressionValue>, type: NodeType): string => {
-  let borderColor = listColor;
-  let fillColor = listColor;
-  let fontcolor = "white";
+  (
+    {
+      id,
+      originalId,
+      down,
+      value: { label, expressionType, value },
+    }: LcrsZipper<ExpressionValue>,
+    type: NodeType
+  ): string => {
+    let borderColor = listColor;
+    let fillColor = listColor;
+    let fontcolor = "white";
 
-  if (type === "empty") {
-    fillColor = "white";
-    borderColor = "white";
-  } else if (type === "focus") {
-    fillColor = "white";
-    fontcolor = "black";
-    borderColor = zipperColor;
-  } else if (type === "green" && originalId !== undefined) {
-    fillColor = rightColor;
-    borderColor = rightColor;
-  } else if (type === "blue" && originalId !== undefined) {
-    fillColor = leftColor;
-    borderColor = leftColor;
-  } else if (type === "gray") {
-    fillColor = grayColor;
-    borderColor = grayColor;
-  }
+    if (type === "empty") {
+      fillColor = "white";
+      borderColor = "white";
+    } else if (type === "focus") {
+      fillColor = "white";
+      fontcolor = "black";
+      borderColor = zipperColor;
+    } else if (type === "green" && originalId !== undefined) {
+      fillColor = rightColor;
+      borderColor = rightColor;
+    } else if (type === "blue" && originalId !== undefined) {
+      fillColor = leftColor;
+      borderColor = leftColor;
+    } else if (type === "gray") {
+      fillColor = grayColor;
+      borderColor = grayColor;
+    }
 
-  // if (zipper) {
-  //   borderColor = zipperColor;
-  // }
+    // if (zipper) {
+    //   borderColor = zipperColor;
+    // }
 
-  const short = true;
-  let rounded = true; // maybe: terminals rounded, non-terminals squared?
-
-  if (value !== undefined) {
-    if (value === "") {
-      label = "ϵ";
-      rounded = false;
-    } else {
+    const short = true;
+    // when displaying something instead of original label
+    let rounded = false;
+    if (value) {
       label = value;
+      rounded = true;
+    } else if (expressionType === "Seq" && down === null) {
+      label = "ϵ";
+      rounded = true;
+    } else if (label === "") {
+      if (expressionType === "SeqC" || expressionType === "Seq") {
+        label = short ? "∙" : "Seq";
+        rounded = true;
+      } else if (expressionType === "Alt" || expressionType === "AltC") {
+        label = short ? "∪" : "Alt";
+        rounded = true;
+      } else if (expressionType === "Rep" || expressionType === "RepC") {
+        label = short ? "∗" : "Rep";
+        rounded = true;
+      }
     }
-  } else {
-    if (
-      (expressionType === "Seq" || expressionType === "SeqC") &&
-      label === ""
-    ) {
-      label = short ? "∙" : "Seq";
-      rounded = false;
-    }
-    if (
-      (expressionType === "Alt" || expressionType === "AltC") &&
-      label === ""
-    ) {
-      label = short ? "∪" : "Alt";
-      rounded = false;
-    }
-    // Extension
-    if (expressionType === "Rep" || expressionType === "RepC") {
-      label = short ? "∗" : "Rep";
-      rounded = false;
-    }
+
+    // https://graphviz.org/doc/info/shapes.html
+    const shape = label.length <= 1 ? "square" : "rect";
+
+    label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+    return `${id} [id=${id} penwidth=4 style="filled,solid${
+      rounded ? ",rounded" : ""
+    }" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
   }
+);
 
-  // https://graphviz.org/doc/info/shapes.html
-  const shape = label.length <= 1 ? "square" : "rect";
-
-  label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-
-  return `${id} [id=${id} penwidth=4 style="filled,solid${
-    rounded ? ",rounded" : ""
-  }" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
-});
-
-export const lcrsXepressionZipperToDot = lcrsZipperToDotBase(expressionToDot as any);
+export const lcrsXepressionZipperToDot = lcrsZipperToDotBase(
+  expressionToDot as any
+);
