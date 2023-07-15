@@ -79,6 +79,17 @@ const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
 
 I had trouble understanding Zippers. So I decided to do vizualization for the Zipper, to grasp the concept - https://zipper-huet.netlify.app/.
 
+## TODO other derivatives
+
+- [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md)
+  - `&` should behave the same as `Alt` except it matches only when there are matches for each children
+- [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md)
+  - `!` should behave the same as `ALt`, but the problem is that it can spill over the current tree
+    - so I can either store it somehow in mem
+    - or move node higher in the tree
+- [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md)
+  - https://arxiv.org/pdf/1808.08893.pdf
+
 ## TODO
 
 - Tried to implement PwZ without memoization table, but failed miserably
@@ -96,6 +107,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 TODO:
 
+- PwZ without memoization table?
 - vizualization
   - maybe add Id to mem and show all nodes with the same mem?
   - show mem edges
