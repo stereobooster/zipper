@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Graphviz } from "./Graphviz";
 import {
   DeriveDirection,
@@ -20,12 +20,15 @@ import {
   text,
 } from "./common";
 import {
+  DisplayItem,
   ID,
+  LcrsZipper,
   NodesIndex,
   getLevel,
-  lcrsXepressionZipperToDot,
+  lcrsExpressionZipperToDot,
   treeToZipper,
 } from "./LcrsTree";
+import { BaseButton, ButtonProps } from "./BaseButton";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -47,6 +50,108 @@ const dir = (direction: DeriveDirection): string => {
     case "none":
       return "■";
   }
+};
+
+const byOriginalId = (nodes: NodesIndex, id: ID) =>
+  Object.values(nodes)
+    .filter((x) => x.zipper.originalId === id)
+    .map((x) => x.zipper.id);
+
+type NodeButtonProps = ButtonProps & { node: LcrsZipper<ExpressionValue> };
+const NodeButton = ({ node, ...rest }: NodeButtonProps) => (
+  <BaseButton
+    style={{
+      textDecoration: "underline",
+      cursor: rest.onClick ? "pointer" : "default",
+    }}
+    {...rest}
+  >
+    {node.value.label || node.value.expressionType}
+  </BaseButton>
+);
+
+type LegendProps = {
+  nodes: NodesIndex<ExpressionValue>;
+  node: DisplayItem<ExpressionValue>;
+  setSelectedNode: (id: ID) => void;
+  setHighlightedNodes: (id: ID[]) => void;
+  position: number;
+};
+
+const Legend = ({
+  nodes,
+  node,
+  setSelectedNode,
+  setHighlightedNodes,
+  position,
+}: LegendProps) => {
+  const { originalId } = node.zipper;
+  const { m } = node.zipper.value;
+  const handlers = (id: ID) => ({
+    onClick: () => {
+      setSelectedNode(id);
+      setHighlightedNodes([]);
+    },
+    onMouseEnter: () => setHighlightedNodes([id]),
+    onMouseLeave: () => setHighlightedNodes([]),
+  });
+
+  return (
+    <div style={legend}>
+      label: {`${node.zipper.value.label}`} <br />
+      value: {`${node.zipper.value.value}`} <br />
+      type: {node.zipper.value.expressionType} <br />
+      start: {node.zipper.value.start} <br />
+      end: {node.zipper.value.end} <br />
+      {originalId && nodes[originalId].zipper ? (
+        <>
+          originalId:{" "}
+          <NodeButton
+            node={nodes[originalId].zipper}
+            {...handlers(originalId)}
+            onMouseEnter={() =>
+              setHighlightedNodes([
+                ...byOriginalId(nodes, originalId),
+                originalId,
+              ])
+            }
+          />
+          <br />
+        </>
+      ) : (
+        <>
+          id:{" "}
+          <NodeButton
+            node={node.zipper}
+            onMouseEnter={() =>
+              setHighlightedNodes(byOriginalId(nodes, node.zipper.id))
+            }
+            onMouseLeave={() => setHighlightedNodes([])}
+          />
+          <br />
+        </>
+      )}
+      {m && (
+        <>
+          m-parents:{" "}
+          {m.parents.flatMap((x) => {
+            if (!x.up) return [];
+            return [
+              <NodeButton key={x.up.id} node={x.up} {...handlers(x.up.id)} />,
+              " ",
+            ];
+          })}
+          <br />
+          m-result:{" "}
+          {(m.result[position] || []).flatMap((x) => [
+            <NodeButton key={x.id} node={x} {...handlers(x.id)} />,
+            " ",
+          ])}
+          <br />
+        </>
+      )}
+    </div>
+  );
 };
 
 export const VizualizeLcrsGrammar = ({
@@ -84,7 +189,7 @@ export const VizualizeLcrsGrammar = ({
 
   const { dot, index } = useMemo(
     () =>
-      lcrsXepressionZipperToDot({
+      lcrsExpressionZipperToDot({
         zippers: steps[displayZipper]
           ? [steps[displayZipper][1]]
           : steps.map(([, zipper]) => zipper),
@@ -254,114 +359,13 @@ export const VizualizeLcrsGrammar = ({
           highlighted={highlighted}
         />
         {selectedNode && nodes[selectedNode] && (
-          <div style={legend}>
-            label: {`${nodes[selectedNode].zipper.value.label}`} <br />
-            value: {`${nodes[selectedNode].zipper.value.value}`} <br />
-            type: {nodes[selectedNode].zipper.value.expressionType} <br />
-            start: {nodes[selectedNode].zipper.value.start} <br />
-            end: {nodes[selectedNode].zipper.value.end} <br />
-            {nodes[selectedNode].zipper.originalId ? (
-              <>
-                originalId:{" "}
-                <span
-                  style={{ textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedNode(nodes[selectedNode].zipper.originalId);
-                    setHighlightedNodes([]);
-                  }}
-                  onMouseEnter={() =>
-                    setHighlightedNodes([
-                      ...Object.values(nodes)
-                        .filter(
-                          (x) =>
-                            x.zipper.originalId ===
-                            nodes[selectedNode].zipper.originalId
-                        )
-                        .map((x) => x.zipper.id),
-                      nodes[selectedNode].zipper.originalId!,
-                    ])
-                  }
-                  onMouseLeave={() => setHighlightedNodes([])}
-                >
-                  {nodes[selectedNode].zipper.originalId}
-                </span>
-                <br />
-              </>
-            ) : (
-              <>
-                id:{" "}
-                <span
-                  style={{ textDecoration: "underline" }}
-                  onMouseEnter={() =>
-                    setHighlightedNodes([
-                      ...Object.values(nodes)
-                        .filter(
-                          (x) =>
-                            x.zipper.originalId ===
-                            nodes[selectedNode].zipper.id
-                        )
-                        .map((x) => x.zipper.id),
-                    ])
-                  }
-                  onMouseLeave={() => setHighlightedNodes([])}
-                >
-                  {nodes[selectedNode].zipper.id}
-                </span>
-                <br />
-              </>
-            )}
-            {nodes[selectedNode].zipper.value.m && (
-              <>
-                m-parents:{" "}
-                {nodes[selectedNode].zipper.value.m!.parents.map((x) =>
-                  x.up ? (
-                    <Fragment key={x.up.id}>
-                      <span
-                        style={{
-                          textDecoration: "underline",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => {
-                          setSelectedNode(x.up!.id);
-                          setHighlightedNodes([]);
-                        }}
-                        onMouseEnter={() => setHighlightedNodes([x.up!.id])}
-                        onMouseLeave={() => setHighlightedNodes([])}
-                      >
-                        {nodes[x.up.id]
-                          ? nodes[x.up.id].zipper.value.label || x.up.id
-                          : x.up.id}
-                      </span>{" "}
-                    </Fragment>
-                  ) : (
-                    ""
-                  )
-                )}
-                <br />
-                m-result:{" "}
-                {(
-                  nodes[selectedNode].zipper.value.m!.result[position] || []
-                ).map((x) => (
-                  <span
-                    key={x.id}
-                    style={{
-                      textDecoration: "underline",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      setSelectedNode(x.id);
-                      setHighlightedNodes([]);
-                    }}
-                    onMouseEnter={() => setHighlightedNodes([x.id])}
-                    onMouseLeave={() => setHighlightedNodes([])}
-                  >
-                    {x.id}
-                  </span>
-                ))}
-                <br />
-              </>
-            )}
-          </div>
+          <Legend
+            node={nodes[selectedNode]}
+            nodes={nodes}
+            position={position}
+            setSelectedNode={setSelectedNode}
+            setHighlightedNodes={setHighlightedNodes}
+          />
         )}
       </div>
     </>

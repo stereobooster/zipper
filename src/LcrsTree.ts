@@ -501,7 +501,7 @@ const edgesToDot = memoizeWeakChain("", (edges: Edge[]) =>
   edges.map(edgeToDot).join("\n")
 );
 
-type DisplayItem<T> = {
+export type DisplayItem<T> = {
   level: Level;
   zipper: LcrsZipper<T>;
   type: NodeType;
@@ -620,7 +620,7 @@ const expressionToDot = memoizeWeakChain(
       id,
       originalId,
       down,
-      value: { label, expressionType, value },
+      value: { label, expressionType, value, m },
     }: LcrsZipper<ExpressionValue>,
     type: NodeType
   ): string => {
@@ -651,31 +651,23 @@ const expressionToDot = memoizeWeakChain(
     // }
 
     const short = true;
-    // when displaying something instead of original label
-    let rounded = false;
     if (value) {
       label = value;
-      rounded = true;
     } else if (expressionType === "Seq" && down === null) {
       label = "ϵ";
-      rounded = true;
     } else if (label === "") {
       if (expressionType === "SeqC" || expressionType === "Seq") {
         label = short ? "∙" : "Seq";
-        rounded = true;
       } else if (expressionType === "Alt" || expressionType === "AltC") {
         label = short ? "∪" : "Alt";
-        rounded = true;
       } else if (expressionType === "Rep" || expressionType === "RepC") {
         label = short ? "∗" : "Rep";
-        rounded = true;
       }
     }
-
     // https://graphviz.org/doc/info/shapes.html
     const shape = label.length <= 1 ? "square" : "rect";
-
     label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+    const rounded = !m;
 
     return `${id} [id=${id} penwidth=4 style="filled,solid${
       rounded ? ",rounded" : ""
@@ -683,6 +675,6 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
-export const lcrsXepressionZipperToDot = lcrsZipperToDotBase(
+export const lcrsExpressionZipperToDot = lcrsZipperToDotBase(
   expressionToDot as any
 );

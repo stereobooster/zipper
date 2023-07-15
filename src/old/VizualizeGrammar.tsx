@@ -234,7 +234,7 @@ export const VizualizeGrammar = ({
         </div>
       </div>
       <div style={row}>
-        <Graphviz dot={dot} onHover={setSelectedNode} options={options} />
+        <Graphviz dot={dot} onHover={setSelectedNode as any} options={options} />
         {nodes[selectedNode] && (
           <div style={legend}>
             id: {nodes[selectedNode].id}

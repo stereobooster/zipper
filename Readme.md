@@ -97,10 +97,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - vizualization
+  - use same colors, shapes, labels for `NodeButton` as for node
   - allow to highlight nodes and/or edges
     - for example to show all nodes with `mem`
     - for example to show focus/zipper instead of using dot-medium for that
-  - use button instead of span for controls
   - alternative vizualization library
     - https://js.cytoscape.org/
       - https://github.com/plotly/react-cytoscapejs
@@ -114,9 +114,6 @@ TODO:
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types
-  - multiple zippers in one vizualization?
-  - doesn't show zipper edges and nodes (except focus)
-    - maybe move it to DOM level?
   - sometimes level is not what expeted (or not?)
   - left-edge of focus is wrong color
   - do memoization if there is no loop
