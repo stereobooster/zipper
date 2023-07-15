@@ -588,12 +588,21 @@ const zipperDot = memoizeWeakChain(
 const lcrsZipperToDotBase =
   <T>(ntd: typeof nodeToDot) =>
   ({ zippers, logical }: { zippers: LcrsZipper<T>[]; logical: boolean }) => {
-    let index: NodesIndex<T> = {};
+    const index: NodesIndex<T> = {};
     zippers.forEach((zipper) => {
-      index = {
-        ...(zipperDot(zipper, "focus", logical, true) as NodesIndex<T>),
-        ...index,
-      };
+      const newIndex = zipperDot(
+        zipper,
+        "focus",
+        logical,
+        true
+      ) as NodesIndex<T>;
+      Object.entries(newIndex).forEach(([id, item]) => {
+        if (!index[id]) index[id] = item
+        else index[id] = {
+          ...index[id],
+          level: Math.max(index[id].level, item.level)
+        }
+      })
     });
     const graphPieces = Object.values(index).flatMap((x) => [
       ntd(x.zipper, x.type),

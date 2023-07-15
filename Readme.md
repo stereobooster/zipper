@@ -97,6 +97,12 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 TODO:
 
 - vizualization
+  - maybe add Id to mem and show all nodes with the same mem?
+  - show mem edges
+  - show mem items
+  - maybe show loop nodes (ghost)?
+  - enable animation of nodes and edges on zipper change?
+  - use CSS modules insted of style
   - use same colors, shapes, labels for `NodeButton` as for node
   - allow to highlight nodes and/or edges
     - for example to show all nodes with `mem`
@@ -114,7 +120,6 @@ TODO:
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types
-  - sometimes level is not what expeted (or not?)
   - left-edge of focus is wrong color
   - do memoization if there is no loop
   - it doesn't show original tree

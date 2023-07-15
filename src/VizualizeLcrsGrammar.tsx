@@ -103,9 +103,46 @@ const Legend = ({
       type: {node.zipper.value.expressionType} <br />
       start: {node.zipper.value.start} <br />
       end: {node.zipper.value.end} <br />
-      {originalId && nodes[originalId].zipper ? (
+      {node.zipper.left && (
         <>
-          originalId:{" "}
+          left:{" "}
+          <NodeButton
+            node={node.zipper.left}
+            {...handlers(node.zipper.left.id)}
+          />
+          <br />
+        </>
+      )}
+      {node.zipper.right && (
+        <>
+          right:{" "}
+          <NodeButton
+            node={node.zipper.right}
+            {...handlers(node.zipper.right.id)}
+          />
+          <br />
+        </>
+      )}
+      {node.zipper.up && (
+        <>
+          up:{" "}
+          <NodeButton node={node.zipper.up} {...handlers(node.zipper.up.id)} />
+          <br />
+        </>
+      )}
+      {node.zipper.down && (
+        <>
+          down:{" "}
+          <NodeButton
+            node={node.zipper.down}
+            {...handlers(node.zipper.down.id)}
+          />
+          <br />
+        </>
+      )}
+      {originalId && nodes[originalId] ? (
+        <>
+          original:{" "}
           <NodeButton
             node={nodes[originalId].zipper}
             {...handlers(originalId)}
@@ -120,7 +157,7 @@ const Legend = ({
         </>
       ) : (
         <>
-          id:{" "}
+          item:{" "}
           <NodeButton
             node={node.zipper}
             onMouseEnter={() =>
