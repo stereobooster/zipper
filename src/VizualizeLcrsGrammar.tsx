@@ -86,7 +86,9 @@ const Legend = ({
   setSelectedNode,
   setHighlightedNodes,
   position,
+  nodes,
 }: LegendProps) => {
+  const { originalId } = node.zipper;
   const { m } = node.zipper.value;
   const handlers = (id: ID) => ({
     onClick: () => {
@@ -169,7 +171,7 @@ const Legend = ({
           <br />
         </>
       )}
-      {/* {originalId && nodes[originalId] ? (
+      {originalId && nodes[originalId] ? (
         <>
           original:{" "}
           <NodeButton
@@ -196,7 +198,7 @@ const Legend = ({
           />
           <br />
         </>
-      )} */}
+      )}
     </div>
   );
 };

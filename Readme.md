@@ -109,8 +109,6 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
-  - show mem edges (purple, constraint false)
-    - but don't traverse mem, only show first node (mem-parent)
   - add ability to collapse graph by click on node
     - show mem-parents graph collapsed by default
   - enable animation of nodes and edges on zipper change?

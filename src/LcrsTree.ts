@@ -2,6 +2,7 @@ import {
   grayColor,
   leftColor,
   listColor,
+  purpleColor,
   rightColor,
   zipperColor,
 } from "./common";
@@ -311,7 +312,7 @@ type Level = number;
 type Edge = {
   from: ID;
   to: ID;
-  type?: "zipper" | "green" | "blue" | "gray" | "invisible";
+  type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple";
   // https://graphviz.org/docs/attrs/dir/
   direction?: "forward" | "backward";
   // https://graphviz.org/docs/attrs/constraint/
@@ -319,7 +320,7 @@ type Edge = {
   // https://graphviz.org/docs/attr-types/style/
   style?: "dotted";
 };
-type NodeType = "green" | "blue" | "empty" | "focus" | "gray";
+type NodeType = "green" | "blue" | "empty" | "focus" | "gray" | "purple";
 
 const edgeToDot = ({ from, to, type, direction, constraint, style }: Edge) => {
   const dir = direction === "backward" ? "dir=back" : "";
@@ -336,6 +337,9 @@ const edgeToDot = ({ from, to, type, direction, constraint, style }: Edge) => {
     color = rightColor;
   } else if (type === "gray") {
     color = grayColor;
+    constraint = false;
+  } else if (type === "purple") {
+    color = purpleColor;
     constraint = false;
   } else if (type === "invisible") {
     return `${from} -> ${to} [style=invis]`;
@@ -379,6 +383,9 @@ const nodeToDot = memoizeWeakChain(
     } else if (type === "gray") {
       fillColor = grayColor;
       borderColor = grayColor;
+    } else if (type === "purple") {
+      fillColor = purpleColor;
+      borderColor = purpleColor;
     }
 
     // if (zipper) {
@@ -451,7 +458,7 @@ const getEdges = (
   let type: Edge["type"];
 
   if (zipper.up) {
-    type = givenType === "gray" ? givenType : "blue";
+    type = givenType === "purple" ? givenType : "blue";
     edges.push({ from: zipper.id, to: zipper.up.id, type });
   }
 
@@ -596,7 +603,7 @@ const zipperDot = (
   logical: boolean,
   zipperTraverse = true,
   level = -1,
-  memo: NodesIndex = {},
+  memo: NodesIndex = {}
 ): NodesIndex => {
   if (!zipper) return {};
   level = level === -1 ? getLevel(zipper) : level;
@@ -618,8 +625,24 @@ const zipperDot = (
     ),
   };
 
-  if (type === "gray") {
+  if (type === "purple") {
     memo[zipper.id].edges = [];
+    const v = zipper.value as ExpressionValue;
+    if (v.m) {
+      v.m.parents.forEach((p) => {
+        if (p.up) {
+          memo[zipper.id].edges = [
+            ...memo[zipper.id].edges,
+            {
+              from: zipper.id,
+              to: p.up.id,
+              type: "purple",
+              constraint: false,
+            },
+          ];
+        }
+      });
+    }
     return memo;
   }
 
@@ -629,7 +652,7 @@ const zipperDot = (
     logical,
     zipperTraverse,
     level - 1,
-    memo,
+    memo
   );
   const left = zipperDot(
     zipper.left,
@@ -637,7 +660,7 @@ const zipperDot = (
     logical,
     zipperTraverse,
     level,
-    memo,
+    memo
   );
   const right = zipperDot(
     zipper.right,
@@ -645,7 +668,7 @@ const zipperDot = (
     logical,
     zipperTraverse,
     level,
-    memo,
+    memo
   );
   const down = zipperDot(
     zipper.down,
@@ -655,25 +678,25 @@ const zipperDot = (
     level + 1,
     // zipper.loop ? level - getLevel(zipper.down) - 1 : level + 1,
     // zipper.loop ? level : level + 1,
-    memo,
+    memo
   );
 
   const v = zipper.value as ExpressionValue;
   if (v.m) {
     v.m.parents.forEach((p) => {
       // same for left and right?
-      if (p.up && p.up !== zipper.up) {
+      if (p.up) { //&& p.up !== zipper.up
         memo[zipper.id].edges = [
           ...memo[zipper.id].edges,
           {
             from: zipper.id,
             to: p.up.id,
-            type: "gray",
+            type: "purple",
             constraint: false,
           },
         ];
         if (p.up.originalId !== undefined)
-          zipperDot(p.up, "gray", logical, zipperTraverse, -1, memo);
+          zipperDot(p.up, "purple", logical, zipperTraverse, level - 1, memo);
       }
     });
   }
@@ -696,7 +719,7 @@ const lcrsZipperToDotBase =
         if (!index[id]) index[id] = item;
         else
           index[id] = {
-            ...(index[id].type === "gray" ? item : index[id]),
+            ...(index[id].type === "purple" ? item : index[id]),
             level: Math.max(index[id].level, item.level),
           };
       });
@@ -757,6 +780,9 @@ const expressionToDot = memoizeWeakChain(
     } else if (type === "gray" && originalId !== undefined) {
       fillColor = grayColor;
       borderColor = grayColor;
+    } else if (type === "purple" && originalId !== undefined) {
+      fillColor = purpleColor;
+      borderColor = purpleColor;
     }
     if (loop) {
       fillColor = "white";
