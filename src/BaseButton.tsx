@@ -14,5 +14,5 @@ export const BaseButton = (props: ButtonProps) => (
 BaseButton.defaultProps = {
   type: "button",
   // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-autocomplete
-  autocomplete: "off",
+  autoComplete: "off",
 };

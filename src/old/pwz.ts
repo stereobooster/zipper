@@ -1210,7 +1210,7 @@ const treeToHash = (
   result: Record<ID, { label: string; expressionType: ExpressionType }> = {}
 ) => {
   if (!tree) return result;
-  // break loop
+  // loop detection
   if (result[tree.id]) return result;
   result[tree.id] = {
     label: tree.label,

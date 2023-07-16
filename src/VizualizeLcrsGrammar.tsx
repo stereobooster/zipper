@@ -64,9 +64,12 @@ const NodeButton = ({ node, ...rest }: NodeButtonProps) => (
       textDecoration: "underline",
       cursor: rest.onClick ? "pointer" : "default",
     }}
+    title={node.id}
     {...rest}
   >
-    {node.value.label || node.value.expressionType}
+    {node.loop
+      ? node.down?.value.label || node.down?.value.expressionType
+      : node.value.label || node.value.expressionType}
   </BaseButton>
 );
 
@@ -79,13 +82,11 @@ type LegendProps = {
 };
 
 const Legend = ({
-  nodes,
   node,
   setSelectedNode,
   setHighlightedNodes,
   position,
 }: LegendProps) => {
-  const { originalId } = node.zipper;
   const { m } = node.zipper.value;
   const handlers = (id: ID) => ({
     onClick: () => {
@@ -146,7 +147,16 @@ const Legend = ({
           {m.parents.flatMap((x) => {
             if (!x.up) return [];
             return [
-              <NodeButton key={x.up.id} node={x.up} {...handlers(x.up.id)} />,
+              <NodeButton
+                key={x.up.id}
+                node={x.up}
+                {...handlers(x.up.id)}
+                // onMouseEnter={() =>
+                //   setHighlightedNodes(
+                //     [x.up?.id, x.left?.id, x.right?.id].filter(Boolean) as any
+                //   )
+                // }
+              />,
               " ",
             ];
           })}
@@ -159,7 +169,7 @@ const Legend = ({
           <br />
         </>
       )}
-      {originalId && nodes[originalId] ? (
+      {/* {originalId && nodes[originalId] ? (
         <>
           original:{" "}
           <NodeButton
@@ -186,7 +196,7 @@ const Legend = ({
           />
           <br />
         </>
-      )}
+      )} */}
     </div>
   );
 };

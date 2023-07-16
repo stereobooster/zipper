@@ -113,7 +113,6 @@ TODO:
     - but don't traverse mem, only show first node (mem-parent)
   - add ability to collapse graph by click on node
     - show mem-parents graph collapsed by default
-  - maybe show loop nodes (ghost)?
   - enable animation of nodes and edges on zipper change?
   - use CSS modules insted of style
   - use same colors, shapes, labels for `NodeButton` as for node
