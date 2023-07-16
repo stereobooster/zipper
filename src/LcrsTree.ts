@@ -334,6 +334,7 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
     color = rightColor;
   } else if (type === "gray") {
     color = grayColor;
+    constraint = false;
   } else if (type === "invisible") {
     return `${from} -> ${to} [style=invis]`;
   }
@@ -434,11 +435,12 @@ const getEdges = (
   const edges: Edge[] = [];
   if (zipper === null) return edges;
 
-  if (zipper.up) {
-    edges.push({ from: zipper.id, to: zipper.up.id, type: "blue" });
-  }
-
   let type: Edge["type"];
+
+  if (zipper.up) {
+    type = givenType === "gray" ? givenType : "blue"
+    edges.push({ from: zipper.id, to: zipper.up.id, type });
+  }
 
   if (zipper.left) {
     type = zipper.originalId ? givenType || "blue" : undefined;
@@ -511,7 +513,7 @@ export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
 
 // maybe replace `type` with `direction`?
 // Can we memoize zipper segment if it doesn't contain loop?
-const zipperDot = memoizeWeakChain(
+const zipperDotMemo = memoizeWeakChain(
   {} as NodesIndex,
   (
     zipper: LcrsZipperPath<unknown>,
@@ -524,11 +526,7 @@ const zipperDot = memoizeWeakChain(
   ): NodesIndex => {
     if (!zipper) return {};
     level = level === -1 ? getLevel(zipper) : level;
-    if (memo[zipper.id] !== undefined) {
-      // how to set different level here?
-      // memo[zipper.id] = level;
-      return {};
-    }
+    if (memo[zipper.id] !== undefined) return {};
     if (!zipper.loop)
       memo[zipper.id] = {
         level,
@@ -542,26 +540,22 @@ const zipperDot = memoizeWeakChain(
         ),
       };
 
-    const up = zipperDot(
+    const up = zipperDotMemo(
       zipper.up,
       type === "focus" ? "blue" : type,
       logical,
       zipperTraverse,
-      level - 1,
-      memo
+      level - 1
     );
-    const left = zipperDot(
+    const left = zipperDotMemo(
       zipper.left,
       type === "focus" ? "blue" : type,
       logical,
       zipperTraverse,
-      level,
-      memo
+      level
     );
-    //   type === "blue"
-    //     ? zipperDot(zipper.right, type, logical, zipperTraverse, level)
     // @ts-expect-error need to add type
-    const right = zipperDot.original(
+    const right = zipperDotMemo.original(
       zipper.right,
       type === "focus" ? "green" : type,
       logical,
@@ -569,10 +563,8 @@ const zipperDot = memoizeWeakChain(
       level,
       memo
     );
-    // type === "blue"
-    //   ? zipperDot(zipper.down, type, logical, false, level + 1)
     // @ts-expect-error need to add type
-    const down = zipperDot.original(
+    const down = zipperDotMemo.original(
       zipper.down,
       type === "focus" ? "green" : type,
       logical,
@@ -581,28 +573,104 @@ const zipperDot = memoizeWeakChain(
       memo
     );
 
-    return { ...up[1], ...left[1], ...memo, ...right[1], ...down[1] };
+    return { ...up, ...left, ...memo, ...right, ...down };
   }
 );
+
+// const zipperDot = (
+//   zipper: LcrsZipperPath<unknown>,
+//   type: NodeType,
+//   logical: boolean,
+//   zipperTraverse = true,
+//   level = -1,
+//   memo: NodesIndex = {}
+// ): NodesIndex => {
+//   if (!zipper) return {};
+//   level = level === -1 ? getLevel(zipper) : level;
+//   if (memo[zipper.id] !== undefined) {
+//     // how to set different level here?
+//     // memo[zipper.id] = level;
+//     return {};
+//   }
+//   if (!zipper.loop)
+//     memo[zipper.id] = {
+//       level,
+//       zipper,
+//       type,
+//       edges: getEdges(
+//         zipper,
+//         type === "focus" ? "green" : (type as any),
+//         logical as boolean,
+//         zipperTraverse as boolean
+//       ),
+//     };
+
+//   const up = zipperDot(
+//     zipper.up,
+//     type === "focus" ? "blue" : type,
+//     logical,
+//     zipperTraverse,
+//     level - 1,
+//     memo
+//   );
+//   const left = zipperDot(
+//     zipper.left,
+//     type === "focus" ? "blue" : type,
+//     logical,
+//     zipperTraverse,
+//     level,
+//     memo
+//   );
+//   //   type === "blue"
+//   //     ? zipperDot(zipper.right, type, logical, zipperTraverse, level)
+//   const right = zipperDot(
+//     zipper.right,
+//     type === "focus" ? "green" : type,
+//     logical,
+//     zipperTraverse,
+//     level,
+//     memo
+//   );
+//   // type === "blue"
+//   //   ? zipperDot(zipper.down, type, logical, false, level + 1)
+//   const down = zipperDot(
+//     zipper.down,
+//     type === "focus" ? "green" : type,
+//     logical,
+//     false,
+//     zipper.loop ? level : level + 1,
+//     memo
+//   );
+
+//   const v = zipper.value as ExpressionValue;
+//   if (v.m) {
+//     v.m.parents.forEach((p) => {
+//       zipperDot(p, "gray", logical, zipperTraverse, -1, memo);
+//     });
+//   }
+
+//   return { ...up, ...left, ...memo, ...right, ...down };
+// };
 
 const lcrsZipperToDotBase =
   <T>(ntd: typeof nodeToDot) =>
   ({ zippers, logical }: { zippers: LcrsZipper<T>[]; logical: boolean }) => {
     const index: NodesIndex<T> = {};
     zippers.forEach((zipper) => {
-      const newIndex = zipperDot(
+      const newIndex = zipperDotMemo(
         zipper,
         "focus",
         logical,
         true
       ) as NodesIndex<T>;
       Object.entries(newIndex).forEach(([id, item]) => {
-        if (!index[id]) index[id] = item
-        else index[id] = {
-          ...index[id],
-          level: Math.max(index[id].level, item.level)
-        }
-      })
+        if (!index[id]) index[id] = item;
+        else
+          index[id] = {
+            ...index[id],
+            level: Math.max(index[id].level, item.level),
+          };
+      });
     });
     const graphPieces = Object.values(index).flatMap((x) => [
       ntd(x.zipper, x.type),
@@ -650,7 +718,7 @@ const expressionToDot = memoizeWeakChain(
     } else if (type === "blue" && originalId !== undefined) {
       fillColor = leftColor;
       borderColor = leftColor;
-    } else if (type === "gray") {
+    } else if (type === "gray" && originalId !== undefined) {
       fillColor = grayColor;
       borderColor = grayColor;
     }

@@ -140,6 +140,25 @@ const Legend = ({
           <br />
         </>
       )}
+      {m && (
+        <>
+          m-parents:{" "}
+          {m.parents.flatMap((x) => {
+            if (!x.up) return [];
+            return [
+              <NodeButton key={x.up.id} node={x.up} {...handlers(x.up.id)} />,
+              " ",
+            ];
+          })}
+          <br />
+          m-result:{" "}
+          {(m.result[position] || []).flatMap((x) => [
+            <NodeButton key={x.id} node={x} {...handlers(x.id)} />,
+            " ",
+          ])}
+          <br />
+        </>
+      )}
       {originalId && nodes[originalId] ? (
         <>
           original:{" "}
@@ -165,25 +184,6 @@ const Legend = ({
             }
             onMouseLeave={() => setHighlightedNodes([])}
           />
-          <br />
-        </>
-      )}
-      {m && (
-        <>
-          m-parents:{" "}
-          {m.parents.flatMap((x) => {
-            if (!x.up) return [];
-            return [
-              <NodeButton key={x.up.id} node={x.up} {...handlers(x.up.id)} />,
-              " ",
-            ];
-          })}
-          <br />
-          m-result:{" "}
-          {(m.result[position] || []).flatMap((x) => [
-            <NodeButton key={x.id} node={x} {...handlers(x.id)} />,
-            " ",
-          ])}
           <br />
         </>
       )}

@@ -109,9 +109,10 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
-  - maybe add Id to mem and show all nodes with the same mem?
-  - show mem edges
-  - show mem items
+  - show mem edges (purple, constraint false)
+    - but don't traverse mem, only show first node (mem-parent)
+  - add ability to collapse graph by click on node
+    - show mem-parents graph collapsed by default
   - maybe show loop nodes (ghost)?
   - enable animation of nodes and edges on zipper change?
   - use CSS modules insted of style
@@ -122,6 +123,8 @@ TODO:
   - alternative vizualization library
     - https://js.cytoscape.org/
       - https://github.com/plotly/react-cytoscapejs
+      - https://blog.js.cytoscape.org/2020/05/11/layouts/#layout-definition
+      - https://www.npmjs.com/package/cytoscape-dagre
     - https://visjs.github.io/vis-network/examples/
       - https://crubier.github.io/react-graph-vis/
     - https://github.com/vasturiano/react-force-graph
