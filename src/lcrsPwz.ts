@@ -133,12 +133,13 @@ export function parse(str: string, tree: Expression) {
   return steps.map(([, z]) => z);
 }
 
-export function deriveFinalSteps(str: string, tree: Expression) {
+export function deriveFinalSteps(str: string, tree: Expression, targetCycle = -1) {
   mems.reset();
   memoInput.length = 0;
   let steps: Step[] = [["down", treeToZipper(tree), undefined]];
   let position = 0;
   let step = 0;
+  let cycle = 0;
   do {
     const token = str[position] || "";
     const [newSteps, newPosition, newStep] = processSteps(
@@ -150,12 +151,14 @@ export function deriveFinalSteps(str: string, tree: Expression) {
     position = newPosition;
     steps = newSteps;
     step = newStep;
+    cycle += 1
+    if (targetCycle === cycle) break;
     if (steps.length === 0) break;
   } while (position <= str.length);
 
   mems.reset();
   memoInput.length = 0;
-  return [steps, position, step] as const;
+  return [steps, position, step, cycle] as const;
 }
 
 export function processSteps(

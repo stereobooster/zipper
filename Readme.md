@@ -109,6 +109,10 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
+  - add option to hide mem edges/nodes
+  - add "URL state" so that any state of derivative could be shared
+  - remember number of steps required to get interesting state and add control to jump to that state
+  - click on mem-nodes to draw whole zipper behind it?
   - add ability to collapse graph by click on node
     - show mem-parents graph collapsed by default
   - enable animation of nodes and edges on zipper change?

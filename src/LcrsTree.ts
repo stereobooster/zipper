@@ -6,7 +6,7 @@ import {
   rightColor,
   zipperColor,
 } from "./common";
-import { ExpressionType, ExpressionValue } from "./lcrsPwz";
+import { ExpressionType, ExpressionValue, Step } from "./lcrsPwz";
 
 export type ID = string;
 // this suppose to be valid CSS id selector
@@ -630,16 +630,13 @@ const zipperDot = (
     const v = zipper.value as ExpressionValue;
     if (v.m) {
       v.m.parents.forEach((p) => {
-        if (p.up) {
-          memo[zipper.id].edges = [
-            ...memo[zipper.id].edges,
-            {
-              from: zipper.id,
-              to: p.up.id,
-              type: "purple",
-              constraint: false,
-            },
-          ];
+        if (p.up && memo[p.up.id]) {
+          memo[zipper.id].edges.push({
+            from: zipper.id,
+            to: p.up.id,
+            type: "purple",
+            constraint: false,
+          });
         }
       });
     }
@@ -685,7 +682,7 @@ const zipperDot = (
   if (v.m) {
     v.m.parents.forEach((p) => {
       // same for left and right?
-      if (p.up) { //&& p.up !== zipper.up
+      if (p.up) {
         memo[zipper.id].edges = [
           ...memo[zipper.id].edges,
           {
@@ -704,43 +701,40 @@ const zipperDot = (
   return { ...up, ...left, ...memo, ...right, ...down };
 };
 
-const lcrsZipperToDotBase =
-  <T>(ntd: typeof nodeToDot) =>
-  ({ zippers, logical }: { zippers: LcrsZipper<T>[]; logical: boolean }) => {
-    const index: NodesIndex<T> = {};
-    zippers.forEach((zipper) => {
-      const newIndex = zipperDot(
-        zipper,
-        "focus",
-        logical,
-        true
-      ) as NodesIndex<T>;
-      Object.entries(newIndex).forEach(([id, item]) => {
-        if (!index[id]) index[id] = item;
-        else
-          index[id] = {
-            ...(index[id].type === "purple" ? item : index[id]),
-            level: Math.max(index[id].level, item.level),
-          };
-      });
+export const lcrsZipperToDot = <T>({
+  zippers,
+  logical,
+}: {
+  zippers: LcrsZipper<T>[];
+  logical: boolean;
+}) => {
+  const index: NodesIndex<T> = {};
+  zippers.forEach((zipper) => {
+    const newIndex = zipperDot(zipper, "focus", logical, true) as NodesIndex<T>;
+    Object.entries(newIndex).forEach(([id, item]) => {
+      if (!index[id]) index[id] = item;
+      else
+        index[id] = {
+          ...(index[id].type === "purple" ? item : index[id]),
+          level: Math.max(index[id].level, item.level),
+        };
     });
-    const graphPieces = Object.values(index).flatMap((x) => [
-      ntd(x.zipper, x.type),
-      edgesToDot(x.edges),
-    ]);
-    return {
-      dot: `digraph {
+  });
+  const graphPieces = Object.values(index).flatMap((x) => [
+    nodeToDot(x.zipper, x.type),
+    edgesToDot(x.edges),
+  ]);
+  return {
+    dot: `digraph {
     ${levelsDot(index)}
     node [fontcolor=white fixedsize=true height=0.3]
     edge [color="${listColor}"]
     ${ranksDot(index)}
     ${graphPieces.join("\n")}
   }`,
-      index,
-    };
+    index,
   };
-
-export const lcrsZipperToDot = lcrsZipperToDotBase(nodeToDot);
+};
 
 const expressionToDot = memoizeWeakChain(
   "",
@@ -817,6 +811,70 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
-export const lcrsExpressionZipperToDot = lcrsZipperToDotBase(
-  expressionToDot as any
-);
+export const stepsToDot = ({
+  steps,
+  logical,
+}: {
+  steps: Step[];
+  logical: boolean;
+}) => {
+  const index: NodesIndex<ExpressionValue> = {};
+  steps.forEach(([, zipper, m]) => {
+    
+    const newIndex = zipperDot(
+      zipper,
+      "focus",
+      logical,
+      true
+    ) as NodesIndex<ExpressionValue>;
+    Object.entries(newIndex).forEach(([id, item]) => {
+      if (!index[id]) index[id] = item;
+      else
+        index[id] = {
+          ...(index[id].type === "purple" ? item : index[id]),
+          level: Math.max(index[id].level, item.level),
+        };
+    });
+
+    if (m) {
+      m.parents.forEach((p) => {
+        if (!p.up) return;
+        const newIndex = zipperDot(
+          p.up,
+          "purple",
+          logical,
+          true,
+          getLevel(zipper) - 1
+        ) as NodesIndex<ExpressionValue>;
+        Object.entries(newIndex).forEach(([id, item]) => {
+          if (!index[id]) index[id] = item;
+          else
+            index[id] = {
+              ...index[id],
+              level: Math.max(index[id].level, item.level),
+            };
+        });
+        index[p.up.id].edges.push({
+          from: zipper.id,
+          to: p.up.id,
+          type: "purple",
+          constraint: false,
+        });
+      });
+    }
+  });
+  const graphPieces = Object.values(index).flatMap((x) => [
+    expressionToDot(x.zipper, x.type),
+    edgesToDot(x.edges),
+  ]);
+  return {
+    dot: `digraph {
+    ${levelsDot(index)}
+    node [fontcolor=white fixedsize=true height=0.3]
+    edge [color="${listColor}"]
+    ${ranksDot(index)}
+    ${graphPieces.join("\n")}
+  }`,
+    index,
+  };
+};

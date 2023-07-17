@@ -25,7 +25,7 @@ import {
   LcrsZipper,
   NodesIndex,
   getLevel,
-  lcrsExpressionZipperToDot,
+  stepsToDot,
   treeToZipper,
 } from "./LcrsTree";
 import { BaseButton, ButtonProps } from "./BaseButton";
@@ -238,19 +238,18 @@ export const VizualizeLcrsGrammar = ({
 
   const { dot, index } = useMemo(
     () =>
-      lcrsExpressionZipperToDot({
-        zippers: steps[displayZipper]
-          ? [steps[displayZipper][1]]
-          : steps.map(([, zipper]) => zipper),
+      stepsToDot({
+        steps: steps[displayZipper] ? [steps[displayZipper]] : steps,
         logical: layout === "dag",
-        // tree,
       }),
     [layout, steps, displayZipper]
   );
   const nodes = index as NodesIndex<ExpressionValue>;
+  const [cycle, setCycle] = useState(0);
   const [finished, setFinished] = useState(false);
   const go = useCallback(() => {
     if (position > str.length) return setFinished(true);
+    setCycle((x) => x + 1);
     const [newSteps, newPosition, newStep] = processSteps(
       token,
       position === str.length,
@@ -272,16 +271,44 @@ export const VizualizeLcrsGrammar = ({
     setDisplayZipper,
     setStep,
     setSteps,
+    setCycle,
   ]);
 
   const goFinish = useCallback(() => {
-    const [newSteps, newPosition, newStep] = deriveFinalSteps(str, tree);
+    const [newSteps, newPosition, newStep, newCycle] = deriveFinalSteps(
+      str,
+      tree
+    );
     setFinished(true);
     setPosition(newPosition);
     setStep(newStep);
     setSteps(newSteps);
     if (displayZipper != -1) setDisplayZipper(newStep);
+    setCycle(newCycle);
   }, [
+    str,
+    tree,
+    displayZipper,
+    setFinished,
+    setDisplayZipper,
+    setStep,
+    setSteps,
+  ]);
+
+  const jumpToCycle = useCallback(() => {
+    const [newSteps, newPosition, newStep, newCycle] = deriveFinalSteps(
+      str,
+      tree,
+      cycle
+    );
+    setFinished(false);
+    setPosition(newPosition);
+    setStep(newStep);
+    setSteps(newSteps);
+    if (displayZipper != -1) setDisplayZipper(newStep);
+    setCycle(newCycle);
+  }, [
+    cycle,
     str,
     tree,
     displayZipper,
@@ -397,6 +424,21 @@ export const VizualizeLcrsGrammar = ({
           <br />
           <button style={button} onClick={goFinish} disabled={finished}>
             Derivate
+          </button>
+        </div>
+        <label>
+          Cycle
+          <br />
+          <input
+            style={buttonRect}
+            value={cycle}
+            onChange={(e) => setCycle(parseInt(e.target.value, 10))}
+          />
+        </label>
+        <div>
+          <br />
+          <button style={button} onClick={jumpToCycle}>
+            Jump
           </button>
         </div>
       </div>

@@ -4,15 +4,17 @@ import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
 const examples = [
-  [`S -> S "+" S | S "-" S | "0-9";`, 'Algebraic expression', '1+2-3+4'],
-  [`S -> "" | "a" S;`, 'Kleene star as right recursion', 'aaa'],
-  [`S -> "" | S "a";`, 'Kleene star as left recursion', 'aaa'],
-  [`S -> "a"*;`, 'Kleene star', 'aaa'],
-  [`S -> ("(" S ")")*;`, 'Matching parenthesis', '(()())'],
-  [`S -> "a"* "a"*;`, 'Highly ambigiuous', 'aaa'],
+  // interesting case: cycle 44
+  // case before mem splits: cycle 65
+  [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
+  [`S -> "" | "a" S;`, "Kleene star as right recursion", "aaa"],
+  [`S -> "" | S "a";`, "Kleene star as left recursion", "aaa"],
+  [`S -> "a"*;`, "Kleene star", "aaa"],
+  [`S -> ("(" S ")")*;`, "Matching parenthesis", "(()())"],
+  [`S -> "a"* "a"*;`, "Highly ambigiuous", "aaa"],
   // TODO: I think this is a bug in the original paper
   // but this one works: S -> "a" | S S;
-  [`S -> "a" | "" | S S;`, 'Bug (infinite loop)', 'aaa'],
+  [`S -> "a" | "" | S S;`, "Bug (infinite loop)", "aaa"],
 ];
 
 export const LcrsGrammarPlayground = () => {
@@ -38,7 +40,7 @@ export const LcrsGrammarPlayground = () => {
           <br />
           <select
             onChange={(e) => {
-              const exampleNumber = parseInt(e.target.value, 10)
+              const exampleNumber = parseInt(e.target.value, 10);
               setExample(exampleNumber);
               setStr(examples[exampleNumber][2]);
               changeGrammar(examples[exampleNumber][0]);
@@ -77,7 +79,7 @@ export const LcrsGrammarPlayground = () => {
           <div style={{ height: 36 }}>{error}</div>
         </label>
       </div>
-      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar}/>
+      <VizualizeLcrsGrammar tree={expression} str={str} key={str + grammar} />
     </>
   );
 };
