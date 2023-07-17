@@ -210,6 +210,7 @@ export const VizualizeLcrsGrammar = ({
   str,
 }: VizualizeGrammarProps) => {
   const [fit, setFit] = useState(true);
+  const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
 
   const [displayZipper, setDisplayZipper] = useState(-1);
@@ -241,8 +242,9 @@ export const VizualizeLcrsGrammar = ({
       stepsToDot({
         steps: steps[displayZipper] ? [steps[displayZipper]] : steps,
         logical: layout === "dag",
+        mem: showMem,
       }),
-    [layout, steps, displayZipper]
+    [layout, steps, displayZipper, showMem]
   );
   const nodes = index as NodesIndex<ExpressionValue>;
   const [cycle, setCycle] = useState(0);
@@ -272,27 +274,6 @@ export const VizualizeLcrsGrammar = ({
     setStep,
     setSteps,
     setCycle,
-  ]);
-
-  const goFinish = useCallback(() => {
-    const [newSteps, newPosition, newStep, newCycle] = deriveFinalSteps(
-      str,
-      tree
-    );
-    setFinished(true);
-    setPosition(newPosition);
-    setStep(newStep);
-    setSteps(newSteps);
-    if (displayZipper != -1) setDisplayZipper(newStep);
-    setCycle(newCycle);
-  }, [
-    str,
-    tree,
-    displayZipper,
-    setFinished,
-    setDisplayZipper,
-    setStep,
-    setSteps,
   ]);
 
   const jumpToCycle = useCallback(() => {
@@ -358,13 +339,6 @@ export const VizualizeLcrsGrammar = ({
             <option value="lcrs">LCRS tree</option>
           </select>
         </label>
-        <div>
-          <Nobr>Next step</Nobr>
-          <br />
-          <button style={buttonRect} onClick={go} disabled={finished}>
-            {steps[step] ? dir(steps[step][0]) : "×"}
-          </button>
-        </div>
         <label>
           <Nobr>Which zipper</Nobr>
           <br />
@@ -381,6 +355,48 @@ export const VizualizeLcrsGrammar = ({
             ))}
           </select>
         </label>
+        <div>
+          <br />
+          <button style={buttonRect} onClick={go} disabled={finished}>
+            {steps[step] ? dir(steps[step][0]) : "×"}
+          </button>
+        </div>
+        <div>
+          <br />
+          <button
+            style={buttonRect}
+            onClick={() => setAutoDerivate((x) => !x)}
+            disabled={finished}
+          >
+            ▶
+          </button>
+        </div>
+        <label>
+          Cycle
+          <br />
+          <input
+            style={buttonRect}
+            value={cycle}
+            onChange={(e) => setCycle(parseInt(e.target.value, 10))}
+          />
+        </label>
+        <div>
+          <br />
+          <button style={button} onClick={jumpToCycle}>
+            Jump
+          </button>
+        </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={showMem}
+              onChange={() => setShowMem((x) => !x)}
+            />{" "}
+            Mem
+          </label>
+        </div>
         <div>
           <Nobr>String to parse</Nobr>
           <br />
@@ -409,37 +425,6 @@ export const VizualizeLcrsGrammar = ({
             />{" "}
             Fit
           </label>
-        </div>
-        <div>
-          <br />
-          <button
-            style={buttonRect}
-            onClick={() => setAutoDerivate((x) => !x)}
-            disabled={finished}
-          >
-            ▶
-          </button>
-        </div>
-        <div>
-          <br />
-          <button style={button} onClick={goFinish} disabled={finished}>
-            Derivate
-          </button>
-        </div>
-        <label>
-          Cycle
-          <br />
-          <input
-            style={buttonRect}
-            value={cycle}
-            onChange={(e) => setCycle(parseInt(e.target.value, 10))}
-          />
-        </label>
-        <div>
-          <br />
-          <button style={button} onClick={jumpToCycle}>
-            Jump
-          </button>
         </div>
       </div>
       <div style={row}>

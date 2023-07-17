@@ -446,20 +446,26 @@ export const getLevel = memoizeWeak(
 const getEdges = (
   zipper: LcrsZipperPath<unknown>,
   givenType: Edge["type"],
-  logical = false,
   zipperTraverse = false
 ) => {
   // TODO: add support for zipper nodes/edges
   const isFocus = false;
 
-  const edges: Edge[] = [];
-  if (zipper === null) return edges;
+  const dagEdges: Edge[] = [];
+  const lcrsEdges: Edge[] = [];
+  const memEdges: Edge[] = [];
+  if (zipper === null) return { dagEdges, lcrsEdges, memEdges };
 
   let type: Edge["type"];
 
   if (zipper.up) {
-    type = givenType === "purple" ? givenType : "blue";
-    edges.push({ from: zipper.id, to: zipper.up.id, type });
+    if (givenType === "purple") {
+      memEdges.push({ from: zipper.id, to: zipper.up.id, type: "purple" });
+    } else {
+      const edge = { from: zipper.id, to: zipper.up.id, type: "blue" } as const;
+      dagEdges.push(edge);
+      lcrsEdges.push(edge);
+    }
   }
 
   if (zipper.left) {
@@ -469,54 +475,47 @@ const getEdges = (
       to: zipper.id,
       direction: "backward",
     } as const;
-    if (logical) {
-      edges.push({
-        ...edge,
-        type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
-      });
-    } else {
-      edges.push({ ...edge, type: isFocus ? "zipper" : type });
-    }
+    dagEdges.push({
+      ...edge,
+      type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
+    });
+    lcrsEdges.push({ ...edge, type: isFocus ? "zipper" : type });
   }
 
   if (zipper.right) {
     type = zipper.originalId ? givenType || "green" : undefined;
     const edge = { from: zipper.id, to: zipper.right.id };
-    if (logical) {
-      edges.push({
-        ...edge,
-        type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
-      });
-    } else {
-      edges.push({
-        ...edge,
-        type: isFocus ? "zipper" : type,
-      });
-    }
+    dagEdges.push({
+      ...edge,
+      type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
+    });
+    lcrsEdges.push({
+      ...edge,
+      type: isFocus ? "zipper" : type,
+    });
   }
 
   if (zipper.down) {
     type = zipper.originalId ? givenType || "green" : undefined;
     const down = zipper.down;
     if (zipper.loop) {
-      edges.push({
+      const edge = {
         from: down.id,
         to: zipper.id,
         type,
         style: "dotted",
-      });
+      } as const;
+      dagEdges.push(edge);
+      lcrsEdges.push(edge);
     } else {
-      if (logical) {
-        forEach("right", zipper.down, (to) => {
-          edges.push({ from: zipper.id, to: to.id, type });
-        });
-      } else {
-        edges.push({ from: zipper.id, to: down.id, type });
-      }
+      forEach("right", zipper.down, (to) => {
+        dagEdges.push({ from: zipper.id, to: to.id, type });
+      });
+      lcrsEdges.push({ from: zipper.id, to: down.id, type });
     }
   }
 
-  return edges;
+  return { dagEdges, lcrsEdges, memEdges };
 };
 
 const edgesToDot = memoizeWeakChain("", (edges: Edge[]) =>
@@ -527,7 +526,9 @@ export type DisplayItem<T> = {
   level: Level;
   zipper: LcrsZipper<T>;
   type: NodeType;
-  edges: Edge[];
+  dagEdges: Edge[];
+  lcrsEdges: Edge[];
+  memEdges: Edge[];
   afterLoop?: boolean;
 };
 export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
@@ -539,7 +540,6 @@ const zipperDotMemo = memoizeWeakChain(
   (
     zipper: LcrsZipperPath<unknown>,
     type: NodeType,
-    logical: boolean,
     zipperTraverse = true,
     // eslint-disable-next-line @typescript-eslint/no-inferrable-types
     level: number = -1,
@@ -552,10 +552,9 @@ const zipperDotMemo = memoizeWeakChain(
       level,
       zipper,
       type,
-      edges: getEdges(
+      ...getEdges(
         zipper,
         type === "focus" ? "green" : (type as any),
-        logical as boolean,
         zipperTraverse as boolean
       ),
     };
@@ -563,14 +562,12 @@ const zipperDotMemo = memoizeWeakChain(
     const up = zipperDotMemo(
       zipper.up,
       type === "focus" ? "blue" : type,
-      logical,
       zipperTraverse,
       level - 1
     );
     const left = zipperDotMemo(
       zipper.left,
       type === "focus" ? "blue" : type,
-      logical,
       zipperTraverse,
       level
     );
@@ -578,7 +575,6 @@ const zipperDotMemo = memoizeWeakChain(
     const right = zipperDotMemo.original(
       zipper.right,
       type === "focus" ? "green" : type,
-      logical,
       zipperTraverse,
       level,
       memo
@@ -587,7 +583,6 @@ const zipperDotMemo = memoizeWeakChain(
     const down = zipperDotMemo.original(
       zipper.down,
       type === "focus" ? "green" : type,
-      logical,
       false,
       zipper.loop ? level - getLevel(zipper.down) - 1 : level + 1,
       memo
@@ -600,7 +595,7 @@ const zipperDotMemo = memoizeWeakChain(
 const zipperDot = (
   zipper: LcrsZipperPath<unknown>,
   type: NodeType,
-  logical: boolean,
+  mem = false,
   zipperTraverse = true,
   level = -1,
   memo: NodesIndex = {}
@@ -617,21 +612,22 @@ const zipperDot = (
     level,
     zipper,
     type,
-    edges: getEdges(
+    ...getEdges(
       zipper,
       type === "focus" ? "green" : (type as any),
-      logical as boolean,
       zipperTraverse as boolean
     ),
   };
 
   if (type === "purple") {
-    memo[zipper.id].edges = [];
+    memo[zipper.id].lcrsEdges = [];
+    memo[zipper.id].dagEdges = [];
+    memo[zipper.id].memEdges = [];
     const v = zipper.value as ExpressionValue;
     if (v.m) {
       v.m.parents.forEach((p) => {
         if (p.up && memo[p.up.id]) {
-          memo[zipper.id].edges.push({
+          memo[zipper.id].memEdges.push({
             from: zipper.id,
             to: p.up.id,
             type: "purple",
@@ -646,7 +642,7 @@ const zipperDot = (
   const up = zipperDot(
     zipper.up,
     type === "focus" ? "blue" : type,
-    logical,
+    mem,
     zipperTraverse,
     level - 1,
     memo
@@ -654,7 +650,7 @@ const zipperDot = (
   const left = zipperDot(
     zipper.left,
     type === "focus" ? "blue" : type,
-    logical,
+    mem,
     zipperTraverse,
     level,
     memo
@@ -662,7 +658,7 @@ const zipperDot = (
   const right = zipperDot(
     zipper.right,
     type === "focus" ? "green" : type,
-    logical,
+    mem,
     zipperTraverse,
     level,
     memo
@@ -670,7 +666,7 @@ const zipperDot = (
   const down = zipperDot(
     zipper.down,
     type === "focus" ? "green" : type,
-    logical,
+    mem,
     false,
     level + 1,
     // zipper.loop ? level - getLevel(zipper.down) - 1 : level + 1,
@@ -679,21 +675,18 @@ const zipperDot = (
   );
 
   const v = zipper.value as ExpressionValue;
-  if (v.m) {
+  if (v.m && mem) {
     v.m.parents.forEach((p) => {
       // same for left and right?
       if (p.up) {
-        memo[zipper.id].edges = [
-          ...memo[zipper.id].edges,
-          {
-            from: zipper.id,
-            to: p.up.id,
-            type: "purple",
-            constraint: false,
-          },
-        ];
+        memo[zipper.id].memEdges.push({
+          from: zipper.id,
+          to: p.up.id,
+          type: "purple",
+          constraint: false,
+        });
         if (p.up.originalId !== undefined)
-          zipperDot(p.up, "purple", logical, zipperTraverse, level - 1, memo);
+          zipperDot(p.up, "purple", zipperTraverse, mem, level - 1, memo);
       }
     });
   }
@@ -710,7 +703,7 @@ export const lcrsZipperToDot = <T>({
 }) => {
   const index: NodesIndex<T> = {};
   zippers.forEach((zipper) => {
-    const newIndex = zipperDot(zipper, "focus", logical, true) as NodesIndex<T>;
+    const newIndex = zipperDot(zipper, "focus") as NodesIndex<T>;
     Object.entries(newIndex).forEach(([id, item]) => {
       if (!index[id]) index[id] = item;
       else
@@ -722,7 +715,8 @@ export const lcrsZipperToDot = <T>({
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     nodeToDot(x.zipper, x.type),
-    edgesToDot(x.edges),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges ),
+    edgesToDot(x.memEdges),
   ]);
   return {
     dot: `digraph {
@@ -814,18 +808,18 @@ const expressionToDot = memoizeWeakChain(
 export const stepsToDot = ({
   steps,
   logical,
+  mem
 }: {
   steps: Step[];
   logical: boolean;
+  mem: boolean
 }) => {
   const index: NodesIndex<ExpressionValue> = {};
   steps.forEach(([, zipper, m]) => {
-    
     const newIndex = zipperDot(
       zipper,
       "focus",
-      logical,
-      true
+      mem
     ) as NodesIndex<ExpressionValue>;
     Object.entries(newIndex).forEach(([id, item]) => {
       if (!index[id]) index[id] = item;
@@ -836,14 +830,15 @@ export const stepsToDot = ({
         };
     });
 
-    if (m) {
+    if (m && mem) {
       m.parents.forEach((p) => {
+        // show empty node if there are no nodes above?
         if (!p.up) return;
         const newIndex = zipperDot(
           p.up,
           "purple",
-          logical,
           true,
+          mem,
           getLevel(zipper) - 1
         ) as NodesIndex<ExpressionValue>;
         Object.entries(newIndex).forEach(([id, item]) => {
@@ -854,7 +849,7 @@ export const stepsToDot = ({
               level: Math.max(index[id].level, item.level),
             };
         });
-        index[p.up.id].edges.push({
+        index[p.up.id].memEdges.push({
           from: zipper.id,
           to: p.up.id,
           type: "purple",
@@ -865,7 +860,8 @@ export const stepsToDot = ({
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     expressionToDot(x.zipper, x.type),
-    edgesToDot(x.edges),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges ),
+    mem ? edgesToDot(x.memEdges) : [],
   ]);
   return {
     dot: `digraph {
