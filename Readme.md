@@ -109,8 +109,14 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
+  - draw direction where zipper will move (pink arrow). Tricky cases:
+    - Alt - multiple arrows
+    - For SeqC down - arrow goes right
+    - Mem parents - multiple arrows up
+    - Mem result - multiple arrows down
+    - etc.
+  - replace Select with multiple select buttons
   - add "URL state" so that any state of derivative could be shared
-  - remember number of steps required to get interesting state and add control to jump to that state
   - click on mem-nodes to draw whole zipper behind it?
   - add ability to collapse graph by click on node
     - show mem-parents graph collapsed by default

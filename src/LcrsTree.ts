@@ -153,14 +153,6 @@ export const up = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   });
 };
 
-// TODO: refactor replace
-// const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> => {
-//   return node({
-//     ...zipper,
-//     value,
-//   });
-// };
-
 // this treats item as a node
 export const insertAfter = <T>(zipper: LcrsZipper<T>, item: LcrsZipper<T>) =>
   node({
@@ -222,15 +214,6 @@ export const mapToArray = <T, P>(
   }
   return res;
 };
-
-// export const chain = (
-//   zipper: ExpressionZipper,
-//   ...rest: Array<(x: ExpressionZipper) => ExpressionZipper>
-// ) => {
-//   let result = zipper;
-//   for (const cb of rest) result = cb(result);
-//   return result;
-// };
 
 // memoization ---
 // options:
@@ -312,7 +295,7 @@ type Level = number;
 type Edge = {
   from: ID;
   to: ID;
-  type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple";
+  type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple" | "pink";
   // https://graphviz.org/docs/attrs/dir/
   direction?: "forward" | "backward";
   // https://graphviz.org/docs/attrs/constraint/
@@ -341,6 +324,9 @@ const edgeToDot = ({ from, to, type, direction, constraint, style }: Edge) => {
   } else if (type === "purple") {
     color = purpleColor;
     constraint = false;
+  } else if (type === "pink") {
+    borderWidth = 2;
+    color = zipperColor;
   } else if (type === "invisible") {
     return `${from} -> ${to} [style=invis]`;
   }
@@ -715,7 +701,7 @@ export const lcrsZipperToDot = <T>({
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     nodeToDot(x.zipper, x.type),
-    edgesToDot(logical ? x.dagEdges : x.lcrsEdges ),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
     edgesToDot(x.memEdges),
   ]);
   return {
@@ -808,14 +794,14 @@ const expressionToDot = memoizeWeakChain(
 export const stepsToDot = ({
   steps,
   logical,
-  mem
+  mem,
 }: {
   steps: Step[];
   logical: boolean;
-  mem: boolean
+  mem: boolean;
 }) => {
   const index: NodesIndex<ExpressionValue> = {};
-  steps.forEach(([, zipper, m]) => {
+  steps.forEach(([direction, zipper, m]) => {
     const newIndex = zipperDot(
       zipper,
       "focus",
@@ -849,18 +835,84 @@ export const stepsToDot = ({
               level: Math.max(index[id].level, item.level),
             };
         });
-        index[p.up.id].memEdges.push({
-          from: zipper.id,
-          to: p.up.id,
+
+        // if (direction === "up" || direction === "upPrime") {
+        //   if (zipper.up?.id !== p.up.id) {
+        //     index[zipper.id].memEdges.push({
+        //       from: p.up.id,
+        //       to: zipper.id,
+        //       type: "pink",
+        //       constraint: false,
+        //       direction: "backward",
+        //     });
+        //   }
+        // }
+        index[zipper.id].memEdges.push({
+          from: p.up.id,
+          to: zipper.id,
           type: "purple",
           constraint: false,
+          direction: "backward",
         });
       });
     }
+
+    // if ((direction === "up" || direction === "upPrime") && zipper.up && !zipper.right) {
+    //   index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => {
+    //     if (e.from === zipper.up?.id || e.to === zipper.up?.id) e.type = "pink";
+    //     return e;
+    //   });
+    //   index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => {
+    //     if (e.from === zipper.up?.id || e.to === zipper.up?.id) e.type = "pink";
+    //     return e;
+    //   });
+    // }
+    // if ((direction === "up" || direction === "upPrime") && zipper.right) {
+    //   index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => {
+    //     if (e.to === zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    //   index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => {
+    //     if (e.to === zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    // }
+    // if ((direction === "down" || direction === "downPrime") && zipper.down && zipper.value.expressionType === "Alt") {
+    //   index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => {
+    //     if (e.to !== zipper.up?.id && e.to !== zipper.left?.id && e.to !== zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    //   // for LCRS this is wrong
+    //   index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => {
+    //     if (e.to !== zipper.up?.id && e.to !== zipper.left?.id && e.to !== zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    // }
+    // if ((direction === "down" || direction === "downPrime") && zipper.down && zipper.value.expressionType !== "Alt") {
+    //   index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => {
+    //     if (e.to === zipper.down?.id) e.type = "pink";
+    //     return e;
+    //   });
+    //   index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => {
+    //     if (e.to === zipper.down?.id) e.type = "pink";
+    //     return e;
+    //   });
+    // }
+    // // this needs fix
+    // if ((direction === "down" || direction === "downPrime") && zipper.right) {
+    //   index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => {
+    //     if (e.to === zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    //   index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => {
+    //     if (e.to === zipper.right?.id) e.type = "pink";
+    //     return e;
+    //   });
+    // }
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     expressionToDot(x.zipper, x.type),
-    edgesToDot(logical ? x.dagEdges : x.lcrsEdges ),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
     mem ? edgesToDot(x.memEdges) : [],
   ]);
   return {
