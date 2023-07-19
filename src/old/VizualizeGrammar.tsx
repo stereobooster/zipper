@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Graphviz } from "../Graphviz";
 import {
@@ -9,17 +10,7 @@ import {
   expressionZipperToDot,
   processSteps,
 } from "./pwz";
-import {
-  Nobr,
-  button,
-  buttonRect,
-  code,
-  controls,
-  legend,
-  row,
-  select,
-  text,
-} from "../common";
+import { Nobr } from "../Nobr";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -151,14 +142,14 @@ export const VizualizeGrammar = ({
   const [selectedNode, setSelectedNode] = useState(0);
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           <Nobr>Show tree as</Nobr>
           <br />
           <select
             onChange={(e) => setLayout(e.target.value)}
             value={layout}
-            style={select}
+            className={c.select}
           >
             <option value="dag">DAG</option>
             <option value="lcrs">LCRS tree</option>
@@ -167,7 +158,7 @@ export const VizualizeGrammar = ({
         <div>
           <Nobr>Next step</Nobr>
           <br />
-          <button style={buttonRect} onClick={go} disabled={finished}>
+          <button className={c.buttonRect} onClick={go} disabled={finished}>
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>
@@ -177,7 +168,7 @@ export const VizualizeGrammar = ({
           <select
             onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
             value={displayZipper}
-            style={select}
+            className={c.select}
           >
             <option value="-1">All</option>
             {steps.map((_, i) => (
@@ -190,9 +181,9 @@ export const VizualizeGrammar = ({
         <div>
           <Nobr>String to parse</Nobr>
           <br />
-          <div style={text}>
+          <div className={c.text}>
             <code
-              style={code}
+              className={c.code}
               dangerouslySetInnerHTML={{ __html: strWithPos }}
             />
           </div>
@@ -201,7 +192,7 @@ export const VizualizeGrammar = ({
           <Nobr>Direction and depth</Nobr>
           <br />
           <div
-            style={text}
+            className={c.text}
             dangerouslySetInnerHTML={{ __html: depthAndDirection }}
           />
         </div>
@@ -219,7 +210,7 @@ export const VizualizeGrammar = ({
         <div>
           <br />
           <button
-            style={buttonRect}
+            className={c.buttonRect}
             onClick={() => setAutoDerivate((x) => !x)}
             disabled={finished}
           >
@@ -228,15 +219,19 @@ export const VizualizeGrammar = ({
         </div>
         <div>
           <br />
-          <button style={button} onClick={goFinish} disabled={finished}>
+          <button className={c.button} onClick={goFinish} disabled={finished}>
             Derivate
           </button>
         </div>
       </div>
-      <div style={row}>
-        <Graphviz dot={dot} onHover={setSelectedNode as any} options={options} />
+      <div className={c.row}>
+        <Graphviz
+          dot={dot}
+          onHover={setSelectedNode as any}
+          options={options}
+        />
         {nodes[selectedNode] && (
-          <div style={legend}>
+          <div className={c.legend}>
             id: {nodes[selectedNode].id}
             <br />
             label: {nodes[selectedNode].label}

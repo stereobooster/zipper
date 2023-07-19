@@ -5,7 +5,7 @@ import {
   purpleColor,
   rightColor,
   zipperColor,
-} from "./common";
+} from "./colors";
 import { ExpressionType, ExpressionValue, Step } from "./lcrsPwz";
 
 export type ID = string;
@@ -779,7 +779,7 @@ export const stepsToDot = ({
   mem: boolean;
 }) => {
   const index: NodesIndex<ExpressionValue> = {};
-  steps.forEach(([direction, zipper, m]) => {
+  steps.forEach(([_, zipper, m]) => {
     const newIndex = zipperDot(
       zipper,
       "focus",

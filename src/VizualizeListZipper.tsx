@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { ArcherContainer, ArcherElement } from "react-archer";
 import {
   List,
@@ -9,15 +10,12 @@ import {
 } from "./List";
 import { useState, Fragment } from "react";
 import {
-  buttonRect,
-  controls,
   grayColor,
   leftColor,
   listColor,
   rightColor,
-  subControls,
   zipperColor,
-} from "./common";
+} from "./colors";
 
 const radius = 30;
 
@@ -116,15 +114,15 @@ export const VizualizeListZipper = ({
       }}
     >
       {showZipper && (
-        <div style={controls}>
+        <div className={c.controls}>
           <div>
             Use arrows to navigate
             <br />
-            <div style={subControls}>
-              <button onClick={callback(-1)} style={buttonRect}>
+            <div className={c.subControls}>
+              <button onClick={callback(-1)} className={c.buttonRect}>
                 ←
               </button>
-              <button onClick={callback(1)} style={buttonRect}>
+              <button onClick={callback(1)} className={c.buttonRect}>
                 →
               </button>
             </div>
@@ -137,7 +135,7 @@ export const VizualizeListZipper = ({
               onChange={(e) =>
                 setZipper((x) => replace(x, e.target.value as any))
               }
-              style={buttonRect}
+              className={c.buttonRect}
             />
           </label>
         </div>

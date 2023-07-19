@@ -1,6 +1,6 @@
 import { List, cons, forEach, unwind } from "./List";
 import { ID, Level, Tree, treeNode } from "./Tree";
-import { grayColor, leftColor, listColor, rightColor, zipperColor } from "./common";
+import { grayColor, leftColor, listColor, rightColor, zipperColor } from "./colors";
 
 export type TreeZipperPath<T, P = Tree<T>> = List<{
   left: List<P>;

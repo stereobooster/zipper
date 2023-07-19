@@ -115,12 +115,12 @@ TODO:
     - Mem parents - multiple arrows up
     - Mem result - multiple arrows down
     - etc.
+  - preserve selected node across cycles (previousId)
   - add "URL state" so that any state of derivative could be shared
   - click on mem-nodes to draw whole zipper behind it?
   - add ability to collapse graph by click on node
     - show mem-parents graph collapsed by default
   - enable animation of nodes and edges on zipper change?
-  - use CSS modules insted of style
   - use same colors, shapes, labels for `NodeButton` as for node
   - allow to highlight nodes and/or edges
     - for example to show all nodes with `mem`

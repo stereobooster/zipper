@@ -5,7 +5,7 @@ import {
   listColor,
   rightColor,
   zipperColor,
-} from "../common";
+} from "../colors";
 import { Memo } from "./pwzMemo";
 
 export type ID = number;

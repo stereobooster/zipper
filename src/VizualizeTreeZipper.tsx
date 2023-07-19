@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { useState } from "react";
 import { Tree } from "./Tree";
 import { Graphviz } from "./Graphviz";
@@ -11,7 +12,6 @@ import {
   treeZipperToDot,
   up,
 } from "./TreeZipper";
-import { buttonRect, controls, select, subControls } from "./common";
 
 type VizualizeTreeZipperProps = {
   tree: Tree<string>;
@@ -55,14 +55,14 @@ export const VizualizeTreeZipper = ({
 
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           Show tree as
           <br />
           <select
             onChange={(e) => setLayout(e.target.value)}
             value={layout}
-            style={select}
+            className={c.select}
           >
             <option value="dag">DAG</option>
             <option value="lcrs">LCRS tree</option>
@@ -73,17 +73,17 @@ export const VizualizeTreeZipper = ({
             <div>
               Use arrows to navigate
               <br />
-              <div style={subControls}>
-                <button onClick={callback("l")} style={buttonRect}>
+              <div className={c.subControls}>
+                <button onClick={callback("l")} className={c.buttonRect}>
                   ←
                 </button>
-                <button onClick={callback("r")} style={buttonRect}>
+                <button onClick={callback("r")} className={c.buttonRect}>
                   →
                 </button>
-                <button onClick={callback("d")} style={buttonRect}>
+                <button onClick={callback("d")} className={c.buttonRect}>
                   ↓
                 </button>
-                <button onClick={callback("u")} style={buttonRect}>
+                <button onClick={callback("u")} className={c.buttonRect}>
                   ↑
                 </button>
               </div>
@@ -96,7 +96,7 @@ export const VizualizeTreeZipper = ({
                 onChange={(e) =>
                   setZipper((x) => replace(x, e.target.value as any))
                 }
-                style={buttonRect}
+                className={c.buttonRect}
               />
             </label>
             {showTree && (
@@ -106,7 +106,7 @@ export const VizualizeTreeZipper = ({
                 <select
                   onChange={(e) => setMode(e.target.value)}
                   value={mode}
-                  style={select}
+                  className={c.select}
                 >
                   <option value="zipper">Zipper</option>
                   <option value="zipper-tree">Zipper + tree</option>

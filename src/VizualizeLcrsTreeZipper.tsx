@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { useState } from "react";
 import { Graphviz } from "./Graphviz";
 import {
@@ -9,7 +10,6 @@ import {
   treeToZipper,
   up,
 } from "./LcrsTree";
-import { buttonRect, controls, select, subControls } from "./common";
 
 type VizualizeLcrsTreeZipperProps<T> = {
   tree: LcrsTree<T>;
@@ -50,14 +50,14 @@ export function VizualizeLcrsTreeZipper<T>({
 
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           Show tree as
           <br />
           <select
             onChange={(e) => setLayout(e.target.value)}
             value={layout}
-            style={select}
+            className={c.select}
           >
             <option value="dag">DAG</option>
             <option value="lcrs">LCRS tree</option>
@@ -68,31 +68,31 @@ export function VizualizeLcrsTreeZipper<T>({
             <div>
               Use arrows to navigate
               <br />
-              <div style={subControls}>
+              <div className={c.subControls}>
                 <button
                   onClick={callback("l")}
-                  style={buttonRect}
+                  className={c.buttonRect}
                   disabled={zipper.left === null}
                 >
                   ←
                 </button>
                 <button
                   onClick={callback("r")}
-                  style={buttonRect}
+                  className={c.buttonRect}
                   disabled={zipper.right === null}
                 >
                   →
                 </button>
                 <button
                   onClick={callback("d")}
-                  style={buttonRect}
+                  className={c.buttonRect}
                   disabled={zipper.down === null}
                 >
                   ↓
                 </button>
                 <button
                   onClick={callback("u")}
-                  style={buttonRect}
+                  className={c.buttonRect}
                   disabled={zipper.up === null}
                 >
                   ↑
@@ -105,7 +105,7 @@ export function VizualizeLcrsTreeZipper<T>({
               <input
                 value={zipper.value}
                 onChange={(e) => setZipper((x) => replace(x, e.target.value))}
-                style={buttonRect}
+                className={c.buttonRect}
               />
             </label> */}
             <div>

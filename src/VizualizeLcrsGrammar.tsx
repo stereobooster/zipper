@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Graphviz } from "./Graphviz";
 import {
@@ -8,17 +9,7 @@ import {
   deriveFinalSteps,
   processSteps,
 } from "./lcrsPwz";
-import {
-  Nobr,
-  button,
-  buttonRect,
-  code,
-  controls,
-  legend,
-  row,
-  select,
-  text,
-} from "./common";
+import { Nobr } from "./Nobr";
 import {
   DisplayItem,
   ID,
@@ -29,7 +20,6 @@ import {
   treeToZipper,
 } from "./LcrsTree";
 import { BaseButton, ButtonProps } from "./BaseButton";
-import c from "./ToggleButton.module.css";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -101,7 +91,7 @@ const Legend = ({
   });
 
   return (
-    <div style={legend}>
+    <div className={c.legend}>
       label: {`${node.zipper.value.label}`} <br />
       value: {`${node.zipper.value.value}`} <br />
       type: {node.zipper.value.expressionType} <br />
@@ -312,14 +302,14 @@ export const VizualizeLcrsGrammar = ({
 
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           <Nobr>Show tree as</Nobr>
           <br />
           <select
             onChange={(e) => setLayout(e.target.value)}
             value={layout}
-            style={select}
+            className={c.select}
           >
             <option value="dag">DAG</option>
             <option value="lcrs">LCRS tree</option>
@@ -327,14 +317,14 @@ export const VizualizeLcrsGrammar = ({
         </label>
         <div>
           <br />
-          <button style={buttonRect} onClick={go} disabled={finished}>
+          <button className={c.buttonRect} onClick={go} disabled={finished}>
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>
         <div>
           <br />
           <button
-            style={buttonRect}
+            className={c.buttonRect}
             onClick={() => setAutoDerivate((x) => !x)}
             disabled={finished}
           >
@@ -345,14 +335,14 @@ export const VizualizeLcrsGrammar = ({
           Cycle
           <br />
           <input
-            style={buttonRect}
+            className={c.buttonRect}
             value={cycle}
             onChange={(e) => setCycle(parseInt(e.target.value, 10) || 0)}
           />
         </label>
         <div>
           <br />
-          <button style={button} onClick={jumpToCycle}>
+          <button className={c.button} onClick={jumpToCycle}>
             Jump
           </button>
         </div>
@@ -370,9 +360,9 @@ export const VizualizeLcrsGrammar = ({
         <div>
           <Nobr>String to parse</Nobr>
           <br />
-          <div style={text}>
+          <div className={c.text}>
             <code
-              style={code}
+              className={c.code}
               dangerouslySetInnerHTML={{ __html: strWithPos }}
             />
           </div>
@@ -423,7 +413,7 @@ export const VizualizeLcrsGrammar = ({
           </label>
         </div>
       </div>
-      <div style={row}>
+      <div className={c.row}>
         <Graphviz
           dot={dot}
           onClick={setSelectedNode}

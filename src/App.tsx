@@ -1,3 +1,4 @@
+import c from "./common.module.css";
 import { LcrsGrammarPlayground } from "./LcrsGrammarPlayground";
 import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";
@@ -5,7 +6,6 @@ import { narryTreeToTree } from "./Tree";
 import { VizualizeLcrsTreeZipper } from "./VizualizeLcrsTreeZipper";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
-import { paragraph } from "./common";
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -44,7 +44,7 @@ const App = () => {
   return (
     <>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>Linked list</h2>
           <ul>
             <li>
@@ -66,12 +66,12 @@ const App = () => {
         <VizualizeListZipper list={list} prefix="1" />
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>Zipper</h2>
           <h3>Zipper for a linked list</h3>
         </div>
         <VizualizeListZipper list={list} prefix="2" showZipper />
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <ul>
             <li>Red and gray nodes represent items from original list</li>
             <li>
@@ -104,11 +104,11 @@ const App = () => {
         </div>
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>Tree</h2>
         </div>
         <VizualizeTreeZipper tree={tree} />
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <ul>
             <li>
               "DAG" vizualization - is how we typically imagine tree data
@@ -129,7 +129,7 @@ const App = () => {
         </div>
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h3>Zipper for a tree</h3>
         </div>
         <VizualizeTreeZipper
@@ -139,7 +139,7 @@ const App = () => {
           height={300}
           width={600}
         />
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <ul>
             <li>
               Pink "zone" represnts Zipper itself - left context, focus, right
@@ -150,11 +150,11 @@ const App = () => {
         </div>
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>"Cycled tree"</h2>
         </div>
         <VizualizeTreeZipper tree={cicledTree} />
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <ul>
             <li>
               I call it "cycled tree", because it is the same data structure as
@@ -165,7 +165,7 @@ const App = () => {
         </div>
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h3>Zipper for a "cycled tree"</h3>
           <ul>
             <li>
@@ -182,13 +182,13 @@ const App = () => {
         />
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>LCRS tree</h2>
         </div>
         <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper height={300} />
       </section>
       <section>
-        <div style={paragraph}>
+        <div className={c.paragraph}>
           <h2>Parsing with zippers</h2>
           <ul>
             <li>

@@ -1,5 +1,6 @@
+import c from "./common.module.css";
 import { useState } from "react";
-import { Nobr, controls, select } from "./common";
+import { Nobr } from "./Nobr";
 import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
@@ -34,7 +35,7 @@ export const LcrsGrammarPlayground = () => {
   };
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           <Nobr>Examples</Nobr>
           <br />
@@ -46,7 +47,7 @@ export const LcrsGrammarPlayground = () => {
               changeGrammar(examples[exampleNumber][0]);
             }}
             value={example}
-            style={select}
+            className={c.select}
           >
             {examples.map(([value, label], i) => (
               <option value={i} key={i}>
@@ -59,7 +60,7 @@ export const LcrsGrammarPlayground = () => {
           Grammar
           <br />
           <textarea
-            style={select}
+            className={c.select}
             value={grammar}
             onChange={(e) => changeGrammar(e.target.value)}
           />
@@ -68,7 +69,7 @@ export const LcrsGrammarPlayground = () => {
           String
           <br />
           <input
-            style={select}
+            className={c.select}
             value={str}
             onChange={(e) => setStr(e.target.value)}
           />

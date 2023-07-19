@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Nobr, controls, select } from "../common";
+import { Nobr } from "../Nobr";
 import { parseGrammar } from "./pwzGrammar";
 import { VizualizeGrammar } from "./VizualizeGrammar";
+import c from "./common.module.css";
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 
@@ -31,7 +32,7 @@ export const GrammarPlayground = () => {
   };
   return (
     <>
-      <div style={controls}>
+      <div className={c.controls}>
         <label>
           <Nobr>Examples</Nobr>
           <br />
@@ -41,7 +42,7 @@ export const GrammarPlayground = () => {
               changeGrammar(e.target.value);
             }}
             value={example}
-            style={select}
+            className={c.select}
           >
             {examples.map(([value, label]) => (
               <option value={value} key={value}>
@@ -54,7 +55,7 @@ export const GrammarPlayground = () => {
           Grammar
           <br />
           <textarea
-            style={select}
+            className={c.select}
             value={grammar}
             onChange={(e) => changeGrammar(e.target.value)}
           />
@@ -63,7 +64,7 @@ export const GrammarPlayground = () => {
           String
           <br />
           <input
-            style={select}
+            className={c.select}
             value={str}
             onChange={(e) => setStr(e.target.value)}
           />
