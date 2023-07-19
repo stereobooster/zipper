@@ -133,7 +133,11 @@ export function parse(str: string, tree: Expression) {
   return steps.map(([, z]) => z);
 }
 
-export function deriveFinalSteps(str: string, tree: Expression, targetCycle = -1) {
+export function deriveFinalSteps(
+  str: string,
+  tree: Expression,
+  targetCycle = -1
+) {
   mems.reset();
   memoInput.length = 0;
   let steps: Step[] = [["down", treeToZipper(tree), undefined]];
@@ -151,7 +155,7 @@ export function deriveFinalSteps(str: string, tree: Expression, targetCycle = -1
     position = newPosition;
     steps = newSteps;
     step = newStep;
-    cycle += 1
+    cycle += 1;
     if (targetCycle === cycle) break;
     if (steps.length === 0) break;
   } while (position <= str.length);
@@ -169,23 +173,25 @@ export function processSteps(
 ) {
   memoInput[position] = token;
 
-  let stepNo = steps.findIndex(([d]) => d !== "none");
-  if (stepNo === -1) {
-    stepNo = 0;
+  let currentStep = steps.findIndex(([d]) => d !== "none");
+  if (currentStep === -1) {
+    currentStep = 0;
     position = position + 1;
     if (!end) steps = steps.map(([, z, m]) => ["up", z, m]);
   }
 
-  steps = steps.flatMap((step, i) =>
-    i === stepNo ? deriveStep(position, token, step) : [step]
-  );
+  const newSteps = deriveStep(position, token, steps[currentStep]);
+  steps = steps.flatMap((step, i) => (i === currentStep ? newSteps : [step]));
 
   if (end)
     steps = steps.map(([d, z, m]) =>
       d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
     );
 
-  return [steps, position, stepNo] as const;
+  let nextStep = steps.findIndex(([d]) => d !== "none");
+  if (nextStep === -1) nextStep = 0;
+
+  return [steps, position, currentStep, newSteps.length, nextStep] as const;
 }
 
 function deriveStep(position: number, token: string, step: Step): Step[] {

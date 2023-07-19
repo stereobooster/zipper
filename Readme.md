@@ -115,7 +115,6 @@ TODO:
     - Mem parents - multiple arrows up
     - Mem result - multiple arrows down
     - etc.
-  - replace Select with multiple select buttons
   - add "URL state" so that any state of derivative could be shared
   - click on mem-nodes to draw whole zipper behind it?
   - add ability to collapse graph by click on node

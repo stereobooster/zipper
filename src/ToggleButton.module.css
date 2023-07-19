@@ -1,0 +1,19 @@
+.ToggleButtonContainer {
+  display: flex;
+  gap: 10px;
+}
+
+.ToggleButton {
+  white-space: nowrap;
+  border: 1px dashed black;
+  padding: 0 5px;
+  border-radius: 5px;
+}
+
+.selected {
+  border: 2px solid darkgrey;
+}
+
+.next {
+  color: red;
+}

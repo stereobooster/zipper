@@ -374,28 +374,9 @@ const nodeToDot = memoizeWeakChain(
       borderColor = purpleColor;
     }
 
-    // if (zipper) {
-    //   borderColor = zipperColor;
-    // }
-
-    // tmp hack
-    let label: string;
-    // @ts-expect-error xxx
-    if (value.label !== undefined) {
-      // @ts-expect-error xxx
-      label = value.label;
-    }
-    // @ts-expect-error xxx
-    else if (value.value !== undefined) {
-      // @ts-expect-error xxx
-      label = value.value;
-    } else {
-      label = `${value}`;
-    }
-
+    let label = `${value}`;
     // https://graphviz.org/doc/info/shapes.html
     const shape = label.length <= 1 ? "square" : "rect";
-
     label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
     return `${id} [id=${id} penwidth=4 style="filled,solid,rounded" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}];`;
@@ -762,9 +743,6 @@ const expressionToDot = memoizeWeakChain(
       fillColor = "white";
       fontcolor = "black";
     }
-    // if (zipper) {
-    //   borderColor = zipperColor;
-    // }
 
     const short = true;
     if (value) {

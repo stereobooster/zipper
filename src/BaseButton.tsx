@@ -8,7 +8,7 @@ if (typeof document !== "undefined") {
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 export const BaseButton = (props: ButtonProps) => (
-  <button {...props} className={c.BaseButton} />
+  <button {...props} className={`${c.BaseButton} ${props.className ? props.className : ""}`} />
 );
 
 BaseButton.defaultProps = {

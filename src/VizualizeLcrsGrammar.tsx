@@ -29,6 +29,7 @@ import {
   treeToZipper,
 } from "./LcrsTree";
 import { BaseButton, ButtonProps } from "./BaseButton";
+import c from "./ToggleButton.module.css";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -213,7 +214,7 @@ export const VizualizeLcrsGrammar = ({
   const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
 
-  const [displayZipper, setDisplayZipper] = useState(-1);
+  const [displayZippers, setDisplayZippers] = useState([] as number[]);
   const [step, setStep] = useState(0);
   const [steps, setSteps] = useState<Step[]>(() => [
     ["down", treeToZipper(tree), undefined],
@@ -226,54 +227,47 @@ export const VizualizeLcrsGrammar = ({
     str.substring(0, position) +
     `<span style="text-decoration: underline;">${token}</span>` +
     str.substring(position + 1, str.length);
-  const depthAndDirection = steps
-    .map(
-      ([d, z], i) =>
-        `<span style="white-space:nowrap;${
-          i === step ? "text-decoration: underline;" : ""
-        }${i === displayZipper ? "color: red;" : ""}">${dir(d)} ${getLevel(
-          z
-        )} </span>`
-    )
-    .join("&nbsp;,&nbsp;");
 
-  const { dot, index } = useMemo(
-    () =>
-      stepsToDot({
-        steps: steps[displayZipper] ? [steps[displayZipper]] : steps,
-        logical: layout === "dag",
-        mem: showMem,
-      }),
-    [layout, steps, displayZipper, showMem]
-  );
+  const { dot, index } = useMemo(() => {
+    const displaySteps = displayZippers.map((x) => steps[x]).filter(Boolean);
+    return stepsToDot({
+      steps: displaySteps.length !== 0 ? displaySteps : steps,
+      logical: layout === "dag",
+      mem: showMem,
+    });
+  }, [layout, steps, displayZippers, showMem]);
   const nodes = index as NodesIndex<ExpressionValue>;
   const [cycle, setCycle] = useState(0);
   const [finished, setFinished] = useState(false);
   const go = useCallback(() => {
     if (position > str.length) return setFinished(true);
     setCycle((x) => x + 1);
-    const [newSteps, newPosition, newStep] = processSteps(
-      token,
-      position === str.length,
-      position,
-      steps
-    );
+    const [newSteps, newPosition, currentStep, currentStepLength, nextStep] =
+      processSteps(token, position === str.length, position, steps);
     if (newSteps.length === 0) return setAutoDerivate(false);
     setPosition(newPosition);
-    setStep(newStep);
+    setStep(nextStep);
     setSteps(newSteps);
-    if (displayZipper != -1) setDisplayZipper(newStep);
+    if (displayZippers.length !== 0) {
+      setDisplayZippers(
+        displayZippers.flatMap((x) => {
+          if (x < currentStep) return [x];
+          if (x > currentStep) return [x + currentStepLength - 1];
+          return Array.from({ length: currentStepLength }, (_, i) => i + x);
+        })
+      );
+    }
   }, [
     position,
     token,
     steps,
-    displayZipper,
     str,
+    displayZippers,
     setFinished,
-    setDisplayZipper,
     setStep,
     setSteps,
     setCycle,
+    setDisplayZippers,
   ]);
 
   const jumpToCycle = useCallback(() => {
@@ -286,18 +280,10 @@ export const VizualizeLcrsGrammar = ({
     setPosition(newPosition);
     setStep(newStep);
     setSteps(newSteps);
-    if (displayZipper != -1) setDisplayZipper(newStep);
     setCycle(newCycle);
-  }, [
-    cycle,
-    str,
-    tree,
-    displayZipper,
-    setFinished,
-    setDisplayZipper,
-    setStep,
-    setSteps,
-  ]);
+    setAutoDerivate(false);
+    setDisplayZippers([]);
+  }, [cycle, str, tree, setFinished, setStep, setSteps, setDisplayZippers]);
 
   const [autoDerivate, setAutoDerivate] = useState(false);
   useEffect(() => {
@@ -339,22 +325,6 @@ export const VizualizeLcrsGrammar = ({
             <option value="lcrs">LCRS tree</option>
           </select>
         </label>
-        <label>
-          <Nobr>Which zipper</Nobr>
-          <br />
-          <select
-            onChange={(e) => setDisplayZipper(parseInt(e.target.value, 10))}
-            value={displayZipper}
-            style={select}
-          >
-            <option value="-1">All</option>
-            {steps.map((_, i) => (
-              <option value={i} key={i}>
-                {i + 1}
-              </option>
-            ))}
-          </select>
-        </label>
         <div>
           <br />
           <button style={buttonRect} onClick={go} disabled={finished}>
@@ -377,7 +347,7 @@ export const VizualizeLcrsGrammar = ({
           <input
             style={buttonRect}
             value={cycle}
-            onChange={(e) => setCycle(parseInt(e.target.value, 10))}
+            onChange={(e) => setCycle(parseInt(e.target.value, 10) || 0)}
           />
         </label>
         <div>
@@ -410,10 +380,36 @@ export const VizualizeLcrsGrammar = ({
         <div>
           <Nobr>Direction and depth</Nobr>
           <br />
-          <div
-            style={text}
-            dangerouslySetInnerHTML={{ __html: depthAndDirection }}
-          />
+          <div className={c.ToggleButtonContainer}>
+            <BaseButton
+              className={[
+                c.ToggleButton,
+                displayZippers.length === 0 ? c.selected : "",
+              ].join(" ")}
+              onClick={() => setDisplayZippers([])}
+            >
+              All
+            </BaseButton>
+            {steps.map(([d, z], i) => (
+              <BaseButton
+                className={[
+                  c.ToggleButton,
+                  displayZippers.includes(i) ? c.selected : "",
+                  i === step ? c.next : "",
+                ].join(" ")}
+                key={i}
+                onClick={() =>
+                  setDisplayZippers(
+                    displayZippers.includes(i)
+                      ? displayZippers.filter((x) => x !== i)
+                      : [...displayZippers, i].sort((a, b) => a - b)
+                  )
+                }
+              >
+                {dir(d)} {getLevel(z)}
+              </BaseButton>
+            ))}
+          </div>
         </div>
         <div>
           <br />
