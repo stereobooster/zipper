@@ -218,6 +218,7 @@ export const VizualizeLcrsGrammar = ({
     `<span style="text-decoration: underline;">${token}</span>` +
     str.substring(position + 1, str.length);
 
+  const [selectedNode, setSelectedNode] = useState<ID | undefined>();
   const { dot, index } = useMemo(() => {
     const displaySteps = displayZippers.map((x) => steps[x]).filter(Boolean);
     return stepsToDot({
@@ -247,7 +248,19 @@ export const VizualizeLcrsGrammar = ({
         })
       );
     }
+    setSelectedNode((selectedNode) => {
+      if (currentStepLength > 0 && selectedNode) {
+        const z = newSteps[step][1];
+        if (z.prevId === selectedNode) return z.id;
+        if (z.up?.prevId === selectedNode) return z.up?.id;
+        if (z.left?.prevId === selectedNode) return z.left?.id;
+        if (z.right?.prevId === selectedNode) return z.right?.id;
+        if (z.down?.prevId === selectedNode) return z.down?.id;
+      }
+      return selectedNode;
+    });
   }, [
+    step,
     position,
     token,
     steps,
@@ -258,6 +271,7 @@ export const VizualizeLcrsGrammar = ({
     setSteps,
     setCycle,
     setDisplayZippers,
+    setSelectedNode,
   ]);
 
   const jumpToCycle = useCallback(() => {
@@ -293,7 +307,7 @@ export const VizualizeLcrsGrammar = ({
       } as const),
     [height, width, fit]
   );
-  const [selectedNode, setSelectedNode] = useState<ID | undefined>();
+
   const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
   const highlighted = useMemo(() => {
     if (selectedNode) return [...new Set([selectedNode, ...highlightedNodes])];
@@ -317,7 +331,7 @@ export const VizualizeLcrsGrammar = ({
         </label>
         <div>
           <br />
-          <button className={c.buttonRect} onClick={go} disabled={finished}>
+          <button className={c.buttonRect} onClick={go} disabled={finished || autoDerivate}>
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>

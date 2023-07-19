@@ -85,9 +85,27 @@ export type PartialLcrsZipper<T> = Partial<LcrsZipper<T>> & {
   value: T;
 };
 
+let prevIdMemo: Set<ID> | undefined;
+const getPrevId = (id: ID | undefined, prevId: ID | undefined) => {
+  if (!prevId || !id || !prevIdMemo) return id;
+  if (prevIdMemo.has(prevId)) return prevId;
+  prevIdMemo.add(id);
+  return id;
+};
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+export const prevIdTransaction = <T extends Function>(cb: T): T =>
+  ((...x: any) => {
+    prevIdMemo = new Set();
+    const res = cb(...x);
+    prevIdMemo = undefined;
+    return res;
+  }) as any;
+
 export const node = <T>({
   originalId,
   id,
+  prevId,
   ...props
 }: PartialLcrsZipper<T>): LcrsZipper<T> => ({
   up: null,
@@ -96,7 +114,7 @@ export const node = <T>({
   down: null,
   ...props,
   id: getId(),
-  prevId: id,
+  prevId: getPrevId(id, prevId),
   originalId: originalId || id,
 });
 

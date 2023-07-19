@@ -10,6 +10,7 @@ import {
   left,
   mapToArray,
   node,
+  prevIdTransaction,
   right,
   treeToZipper,
   up,
@@ -145,6 +146,7 @@ export function deriveFinalSteps(
   let step = 0;
   let cycle = 0;
   do {
+    if (targetCycle === cycle) break;
     const token = str[position] || "";
     const [newSteps, newPosition, newStep] = processSteps(
       token,
@@ -156,7 +158,6 @@ export function deriveFinalSteps(
     steps = newSteps;
     step = newStep;
     cycle += 1;
-    if (targetCycle === cycle) break;
     if (steps.length === 0) break;
   } while (position <= str.length);
 
@@ -194,61 +195,119 @@ export function processSteps(
   return [steps, position, currentStep, newSteps.length, nextStep] as const;
 }
 
-function deriveStep(position: number, token: string, step: Step): Step[] {
-  const [direction, zipper, m] = step;
-  switch (direction) {
-    case "down":
-      return deriveDown(position, zipper);
-    case "up":
-      if (!m) console.log("undefined m");
-      return deriveUp(position, zipper, m!);
-    case "downPrime":
-      if (!m) console.log("undefined m");
-      return deriveDownPrime(position, token, zipper, m!);
-    case "upPrime":
-      return deriveUpPrime(zipper);
-    case "none":
-      return [step];
+const verticalCompaction = (zipper: ExpressionZipper) => {
+  if (treeCompaction && zipper.value.label === "" && zipper.down) {
+    return deleteAfter(left(insertBefore(zipper, zipper.down)));
   }
-}
+  return zipper;
+};
 
-function deriveDownPrime(
-  position: number,
-  token: string,
-  zipper: ExpressionZipper,
-  m: Mem
-): Step[] {
-  switch (zipper.value.expressionType) {
-    case "Tok":
-      // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
-      if (!match(zipper.value.label, token)) return [];
-      return [
-        [
-          "none",
+const deriveDownPrime = prevIdTransaction(
+  (
+    position: number,
+    token: string,
+    zipper: ExpressionZipper,
+    m: Mem
+  ): Step[] => {
+    switch (zipper.value.expressionType) {
+      case "Tok": {
+        // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
+        if (!match(zipper.value.label, token)) return [];
+        return [
+          [
+            "none",
+            expressionNode({
+              ...zipper,
+              down: null,
+              value: {
+                ...zipper.value,
+                expressionType: "Seq",
+                value: token,
+                start: position,
+                end: position + 1,
+              },
+            }),
+            m,
+          ],
+        ];
+      }
+      case "Seq":
+        // | Seq (s, []) -> d↑ (Seq (s, [])) m
+        if (zipper.down === null)
+          return [
+            [
+              "up",
+              expressionNode({
+                ...zipper,
+                value: {
+                  ...zipper.value,
+                  start: position,
+                  end: position,
+                  value: "",
+                },
+              }),
+              m,
+            ],
+          ];
+        // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
+        return [
+          [
+            "down",
+            down(
+              expressionNode({
+                ...zipper,
+                value: {
+                  ...zipper.value,
+                  expressionType: "SeqC",
+                  m,
+                  start: position,
+                },
+              })
+            ),
+            undefined,
+          ],
+        ];
+      case "Alt": {
+        const x = expressionNode({
+          ...zipper,
+          down: null,
+          value: {
+            ...zipper.value,
+            expressionType: "AltC",
+            m,
+            start: position,
+          },
+        });
+        return mapToArray("right", zipper.down, (e) => [
+          "down",
+          expressionNode({ ...(e.loop ? e.down! : e), up: x, right: null }),
+          undefined,
+        ]);
+      }
+      // Extension
+      case "Rep": {
+        let x = down(
           expressionNode({
             ...zipper,
-            down: null,
             value: {
               ...zipper.value,
-              expressionType: "Seq",
-              value: token,
+              expressionType: "RepC",
+              m,
               start: position,
-              end: position + 1,
             },
-          }),
-          m,
-        ],
-      ];
-    case "Seq":
-      // | Seq (s, []) -> d↑ (Seq (s, [])) m
-      if (zipper.down === null)
+          })
+        );
+        x = insertAfter(x, x);
         return [
+          ["down", x, undefined],
           [
             "up",
             expressionNode({
               ...zipper,
+              down: null,
               value: {
                 ...zipper.value,
+                expressionType: "Seq",
                 start: position,
                 end: position,
                 value: "",
@@ -257,116 +316,50 @@ function deriveDownPrime(
             m,
           ],
         ];
-      // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
-      return [
-        [
-          "down",
-          down(
-            expressionNode({
-              ...zipper,
-              value: {
-                ...zipper.value,
-                expressionType: "SeqC",
-                m,
-                start: position,
-              },
-            })
-          ),
-          undefined,
-        ],
-      ];
-    case "Alt": {
-      const x = expressionNode({
-        ...zipper,
-        down: null,
-        value: {
-          ...zipper.value,
-          expressionType: "AltC",
-          m,
-          start: position,
-        },
-      });
-      return mapToArray("right", zipper.down, (e) => [
-        "down",
-        expressionNode({ ...(e.loop ? e.down! : e), up: x, right: null }),
-        undefined,
-      ]);
+      }
+      case "Lex":
+        return [
+          [
+            "down",
+            down(
+              expressionNode({
+                ...zipper,
+                value: {
+                  ...zipper.value,
+                  expressionType: "LexC",
+                  m,
+                  start: position,
+                },
+              })
+            ),
+            undefined,
+          ],
+        ];
+      case "Ign":
+        return [
+          [
+            "down",
+            down(
+              expressionNode({
+                ...zipper,
+                value: {
+                  ...zipper.value,
+                  expressionType: "IgnC",
+                  m,
+                  start: position,
+                },
+              })
+            ),
+            undefined,
+          ],
+        ];
+      default:
+        throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
     }
-    // Extension
-    case "Rep": {
-      let x = down(
-        expressionNode({
-          ...zipper,
-          value: {
-            ...zipper.value,
-            expressionType: "RepC",
-            m,
-            start: position,
-          },
-        })
-      );
-      x = insertAfter(x, x);
-      return [
-        ["down", x, undefined],
-        [
-          "up",
-          expressionNode({
-            ...zipper,
-            down: null,
-            value: {
-              ...zipper.value,
-              expressionType: "Seq",
-              start: position,
-              end: position,
-              value: "",
-            },
-          }),
-          m,
-        ],
-      ];
-    }
-    case "Lex":
-      return [
-        [
-          "down",
-          down(
-            expressionNode({
-              ...zipper,
-              value: {
-                ...zipper.value,
-                expressionType: "LexC",
-                m,
-                start: position,
-              },
-            })
-          ),
-          undefined,
-        ],
-      ];
-    case "Ign":
-      return [
-        [
-          "down",
-          down(
-            expressionNode({
-              ...zipper,
-              value: {
-                ...zipper.value,
-                expressionType: "IgnC",
-                m,
-                start: position,
-              },
-            })
-          ),
-          undefined,
-        ],
-      ];
-    default:
-      throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
   }
-}
+);
 
-function deriveUpPrime(zipper: ExpressionZipper): Step[] {
+const deriveUpPrime = prevIdTransaction((zipper: ExpressionZipper): Step[] => {
   // | TopC -> []
   if (zipper.up === null) return [];
   switch (zipper.up.value.expressionType) {
@@ -501,57 +494,72 @@ function deriveUpPrime(zipper: ExpressionZipper): Step[] {
     default:
       throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
   }
-}
+});
 
-const verticalCompaction = (zipper: ExpressionZipper) => {
-  if (treeCompaction && zipper.value.label === "" && zipper.down) {
-    return deleteAfter(left(insertBefore(zipper, zipper.down)));
+const deriveDown = prevIdTransaction(
+  (position: number, zipper: ExpressionZipper): Step[] => {
+    const id = zipper.prevId || zipper.id;
+    let m = mems.get(id, position);
+    // match mems.get(p, e) with
+    // | Some (m) ->
+    if (m) {
+      // m.parents <- c :: m.parents;
+      // if (m.parents.indexOf(zipper) === -1)
+      m.parents.unshift(zipper);
+      // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
+      return (m.result[position] || []).map((focus) => [
+        "upPrime",
+        verticalCompaction(
+          expressionNode({ ...zipper, value: focus.value, down: focus.down })
+        ),
+        undefined,
+      ]);
+    }
+    // | None ->
+    else {
+      // let m = { parents = [c]; result = ∅ } in
+      m = {
+        parents: [zipper],
+        result: {},
+      };
+      // mems.put(p, e, m);
+      mems.set(id, position, m);
+      // d′↓ m e
+      return [["downPrime", zipper, m]];
+    }
   }
-  return zipper;
-};
+);
 
-function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
-  const id = zipper.prevId || zipper.id;
-  let m = mems.get(id, position);
-  // match mems.get(p, e) with
-  // | Some (m) ->
-  if (m) {
-    // m.parents <- c :: m.parents;
-    // if (m.parents.indexOf(zipper) === -1)
-    m.parents.unshift(zipper);
-    // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
-    return (m.result[position] || []).map((focus) => [
+const deriveUp = prevIdTransaction(
+  (position: number, zipper: ExpressionZipper, m: Mem): Step[] => {
+    // m.result.put(p, e :: m.result.get(p));
+    if (!m.result[position]) m.result[position] = [];
+    m.result[position].unshift(zipper);
+    // List.concat (List.map (d′↑ e) m.parents)
+    return m.parents.map((c) => [
       "upPrime",
       verticalCompaction(
-        expressionNode({ ...zipper, value: focus.value, down: focus.down })
+        expressionNode({ ...zipper, up: c.up, left: c.left, right: c.right })
       ),
       undefined,
     ]);
   }
-  // | None ->
-  else {
-    // let m = { parents = [c]; result = ∅ } in
-    m = {
-      parents: [zipper],
-      result: {},
-    };
-    // mems.put(p, e, m);
-    mems.set(id, position, m);
-    // d′↓ m e
-    return [["downPrime", zipper, m]];
-  }
-}
+);
 
-function deriveUp(position: number, zipper: ExpressionZipper, m: Mem): Step[] {
-  // m.result.put(p, e :: m.result.get(p));
-  if (!m.result[position]) m.result[position] = [];
-  m.result[position].unshift(zipper);
-  // List.concat (List.map (d′↑ e) m.parents)
-  return m.parents.map((c) => [
-    "upPrime",
-    verticalCompaction(
-      expressionNode({ ...c, value: zipper.value, down: zipper.down })
-    ),
-    undefined,
-  ]);
+function deriveStep(position: number, token: string, step: Step): Step[] {
+  const [direction, zipper, m] = step;
+  switch (direction) {
+    case "down":
+      return deriveDown(position, zipper);
+    case "up":
+      if (!m) console.log("undefined m");
+      return deriveUp(position, zipper, m!);
+    case "downPrime":
+      if (!m) console.log("undefined m");
+      return deriveDownPrime(position, token, zipper, m!);
+    case "upPrime":
+      return deriveUpPrime(zipper);
+    case "none":
+      return [step];
+  }
 }

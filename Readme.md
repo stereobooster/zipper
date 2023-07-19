@@ -109,7 +109,6 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
-  - preserve selected node across cycles (previousId)
   - draw direction where zipper will move (pink arrow). Tricky cases:
     - Alt - multiple arrows
     - For SeqC down - arrow goes right
