@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 // https://github.com/magjac/d3-graphviz
 import { graphviz, GraphvizOptions } from "d3-graphviz";
 // import * as d3 from "d3-selection";
-import { ID } from "./LcrsTree";
+import { ID } from "../LcrsTree";
 import "./Graphviz.css";
 
 export type GraphvizProps = {

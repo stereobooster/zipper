@@ -1,6 +1,6 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
+import { Nobr } from "./components/Nobr";
 import { useState } from "react";
-import { Nobr } from "./Nobr";
 import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 

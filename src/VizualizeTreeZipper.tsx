@@ -1,7 +1,7 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
 import { useState } from "react";
 import { Tree } from "./Tree";
-import { Graphviz } from "./Graphviz";
+import { Graphviz } from "./components/Graphviz";
 import {
   down,
   left,

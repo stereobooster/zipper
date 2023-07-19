@@ -1,6 +1,6 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
+import { Graphviz } from "./components/Graphviz";
 import { useState } from "react";
-import { Graphviz } from "./Graphviz";
 import {
   LcrsTree,
   down,

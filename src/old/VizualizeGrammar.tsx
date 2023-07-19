@@ -1,6 +1,6 @@
-import c from "./common.module.css";
+import c from ".../components/common.module.css";
+import { Graphviz } from "../components/Graphviz";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Graphviz } from "../Graphviz";
 import {
   DeriveDirection,
   Expression,
@@ -10,7 +10,7 @@ import {
   expressionZipperToDot,
   processSteps,
 } from "./pwz";
-import { Nobr } from "../Nobr";
+import { Nobr } from "../components/Nobr";
 
 type VizualizeGrammarProps = {
   tree: Expression;

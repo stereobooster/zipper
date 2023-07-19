@@ -1,4 +1,4 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
 import { LcrsGrammarPlayground } from "./LcrsGrammarPlayground";
 import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";

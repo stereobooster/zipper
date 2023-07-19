@@ -1,4 +1,5 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
+import { useState, Fragment } from "react";
 import { ArcherContainer, ArcherElement } from "react-archer";
 import {
   List,
@@ -8,7 +9,6 @@ import {
   right,
   zipperToDisplay,
 } from "./List";
-import { useState, Fragment } from "react";
 import {
   grayColor,
   leftColor,

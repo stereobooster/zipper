@@ -1,8 +1,8 @@
+import c from "../components/common.module.css";
+import { Nobr } from "../components/Nobr";
 import { useState } from "react";
-import { Nobr } from "../Nobr";
 import { parseGrammar } from "./pwzGrammar";
 import { VizualizeGrammar } from "./VizualizeGrammar";
-import c from "./common.module.css";
 
 // TODO: I think this is a bug in the original paper it can't handle S -> SS | "" | a
 

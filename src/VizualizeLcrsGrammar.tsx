@@ -1,6 +1,8 @@
-import c from "./common.module.css";
+import c from "./components/common.module.css";
+import { Graphviz } from "./components/Graphviz";
+import { Nobr } from "./components/Nobr";
+import { BaseButton, ButtonProps } from "./components/BaseButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Graphviz } from "./Graphviz";
 import {
   DeriveDirection,
   Expression,
@@ -9,7 +11,6 @@ import {
   deriveFinalSteps,
   processSteps,
 } from "./lcrsPwz";
-import { Nobr } from "./Nobr";
 import {
   DisplayItem,
   ID,
@@ -19,7 +20,6 @@ import {
   stepsToDot,
   treeToZipper,
 } from "./LcrsTree";
-import { BaseButton, ButtonProps } from "./BaseButton";
 
 type VizualizeGrammarProps = {
   tree: Expression;
