@@ -5,8 +5,6 @@ import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
 const examples = [
-  // interesting case: cycle 44
-  // case before mem splits: cycle 65
   [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
   [`S -> "" | "a" S;`, "Kleene star as right recursion", "aaa"],
   [`S -> "" | S "a";`, "Kleene star as left recursion", "aaa"],

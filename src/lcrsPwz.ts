@@ -757,20 +757,20 @@ export const stepsToDot = ({
         );
       }
       const zipperNextIds = new Set(
-        zipperNext.map(([_, z]) => {
+        zipperNext.flatMap(([_, z]) => {
           if (direction === "up" || direction === "upPrime") {
             if (zipper.right?.loop && zipper.right?.down?.id === z.prevId) {
-              return zipper.right.id;
+              return [zipper.right.id];
             }
             return zipper.up?.id === z.prevId || zipper.right?.id === z.prevId
-              ? z.prevId
-              : z.up?.id;
+              ? [z.prevId]
+              : [z.up?.id, z.prevId];
           }
           if (direction === "down" || direction === "downPrime")
             return zipper.down?.loop && zipper.down?.down?.id === z.prevId
-              ? zipper.down.id
-              : z.prevId;
-          return z.prevId;
+              ? [zipper.down.id]
+              : [z.prevId];
+          return [z.prevId];
         })
       );
       const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;

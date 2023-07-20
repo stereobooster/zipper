@@ -25,11 +25,11 @@ const terminal = seq([
 const arrow = ign("→", seq(["-", ">"]));
 const spaceOptional = ign("Space?", star(" \t"));
 const space = ign("Space", plus(" \t"));
-const ruleBody = recs((_, v) => {
+const ruleBody = recs((rb, v) => {
   const variable = alt([
     terminal,
     nonTerminal,
-    seq([ign("("), spaceOptional, v, spaceOptional, ign(")")]),
+    seq([ign("("), spaceOptional, rb, spaceOptional, ign(")")]),
     seq("Star", [v, ign("*")]),
     seq("Plus", [v, ign("+")]),
     seq("Opt", [v, ign("?")]),

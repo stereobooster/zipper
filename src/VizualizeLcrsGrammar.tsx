@@ -337,6 +337,8 @@ export const VizualizeLcrsGrammar = ({
             className={c.buttonRect}
             onClick={go}
             disabled={finished || autoDerivate}
+            onMouseEnter={() => steps[step] && setHighlightedNodes([steps[step][1].id])}
+            onMouseLeave={() => setHighlightedNodes([])}
           >
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>

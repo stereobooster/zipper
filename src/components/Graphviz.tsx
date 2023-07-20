@@ -49,19 +49,15 @@ export const Graphviz = ({
   useEffect(() => {
     if (!highlighted || highlighted.length === 0) return;
     const nodes = highlighted.flatMap((x) => {
-      const node = document.querySelector(`#${x} path`) || document.querySelector(`#${x} polygon`);
+      const node =
+        document.querySelector(`#${x} path`) ||
+        document.querySelector(`#${x} polygon`);
       if (!node) return [];
-      const stroke = node.getAttribute("stroke");
-      const fill =  node.getAttribute("fill");
-      node.setAttribute("stroke", "#27ae60");
-      node.setAttribute("fill", "#27ae60");
-      return [{ node, stroke, fill }];
+      node.setAttribute("filter", "drop-shadow(0 0 2px black)");
+      return [node];
     });
     return () => {
-      nodes.forEach(({ node, stroke, fill }) => {
-        node.setAttribute("stroke", stroke!);
-        node.setAttribute("fill", fill!);
-      });
+      nodes.forEach((node) => node.setAttribute("filter", ""));
     };
   }, [highlighted, counter]);
 
