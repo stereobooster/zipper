@@ -310,7 +310,7 @@ export function memoizeWeakChain<K extends object | null, V, R extends Array<unk
 // Vizualization ----------------------------------------------------------------------------
 
 type Level = number;
-type Edge = {
+export type Edge = {
   from: ID;
   to: ID;
   type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple" | "pink";

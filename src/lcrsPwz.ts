@@ -1,4 +1,5 @@
 import {
+  Edge,
   LcrsTree,
   LcrsZipper,
   NodeType,
@@ -627,7 +628,8 @@ const expressionToDot = memoizeWeakChain(
       fillColor = leftColor;
       borderColor = leftColor;
     } else if (type === "gray" && originalId !== undefined) {
-      fillColor = grayColor;
+      fillColor = "white";
+      fontcolor = "black";
       borderColor = grayColor;
     } else if (type === "purple" && originalId !== undefined) {
       fillColor = purpleColor;
@@ -693,6 +695,16 @@ export const stepsToDot = ({
         };
     });
 
+    // stupid workaround to fix BUG: left-edge of focus is wrong color
+    if (zipper.left) {
+      index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) =>
+        e.from === zipper.left?.id ? { ...e, type: "blue" } : e
+      );
+      index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) =>
+        e.from === zipper.left?.id ? { ...e, type: "blue" } : e
+      );
+    }
+
     if (m && mem) {
       m.parents.forEach((p) => {
         // show empty node if there are no nodes above?
@@ -725,11 +737,10 @@ export const stepsToDot = ({
     }
 
     // it kind of works but...
-    // - how to mark zippers that derive "in place", like Tok with down
-    // - how to mark zippers that will disapper
     // - do I need to take into account m.results?
     // - also need to add memoization
     // - shall I draw empty node for TopC?
+    // - bug on cycle 119
     let [direction] = step;
     if (position !== undefined && token !== undefined) {
       let zipperNext;
@@ -747,10 +758,14 @@ export const stepsToDot = ({
       }
       const zipperNextIds = new Set(
         zipperNext.map(([_, z]) => {
-          if (direction === "up" || direction === "upPrime")
+          if (direction === "up" || direction === "upPrime") {
+            if (zipper.right?.loop && zipper.right?.down?.id === z.prevId) {
+              return zipper.right.id;
+            }
             return zipper.up?.id === z.prevId || zipper.right?.id === z.prevId
               ? z.prevId
               : z.up?.id;
+          }
           if (direction === "down" || direction === "downPrime")
             return zipper.down?.loop && zipper.down?.down?.id === z.prevId
               ? zipper.down.id
@@ -770,6 +785,24 @@ export const stepsToDot = ({
           return e;
         });
       });
+      // if zipper stays in place
+      if (zipperNextIds.has(zipper.id)) {
+        const edge: Edge = {
+          from: zipper.id,
+          to: zipper.id,
+          type: "pink",
+          constraint: false,
+        };
+        index[zipper.id].dagEdges.push(edge);
+        index[zipper.id].lcrsEdges.push(edge);
+      }
+      // if next move would remove zipper
+      if (zipperNextIds.size === 0) {
+        // maybe draw whole zipper in grey?
+        index[zipper.id].type = "gray";
+        index[zipper.id].dagEdges = index[zipper.id].dagEdges.map(e => ({...e, type: "gray"}))
+        index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map(e => ({...e, type: "gray"}))
+      }
     }
   });
   const graphPieces = Object.values(index).flatMap((x) => [

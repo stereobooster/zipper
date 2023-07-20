@@ -226,7 +226,7 @@ export const VizualizeLcrsGrammar = ({
       logical: layout === "dag",
       mem: showMem,
       position,
-      token
+      token,
     });
   }, [layout, steps, displayZippers, showMem, position, token]);
   const nodes = index as NodesIndex<ExpressionValue>;
@@ -415,6 +415,8 @@ export const VizualizeLcrsGrammar = ({
                       : [...displayZippers, i].sort((a, b) => a - b)
                   )
                 }
+                onMouseEnter={() => setHighlightedNodes([z.id])}
+                onMouseLeave={() => setHighlightedNodes([])}
               >
                 {dir(d)} {getLevel(z)}
               </BaseButton>
