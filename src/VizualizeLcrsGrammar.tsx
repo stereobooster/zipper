@@ -10,6 +10,7 @@ import {
   Step,
   deriveFinalSteps,
   processSteps,
+  stepsToDot,
 } from "./lcrsPwz";
 import {
   DisplayItem,
@@ -17,7 +18,6 @@ import {
   LcrsZipper,
   NodesIndex,
   getLevel,
-  stepsToDot,
   treeToZipper,
 } from "./LcrsTree";
 
@@ -225,8 +225,10 @@ export const VizualizeLcrsGrammar = ({
       steps: displaySteps.length !== 0 ? displaySteps : steps,
       logical: layout === "dag",
       mem: showMem,
+      position,
+      token
     });
-  }, [layout, steps, displayZippers, showMem]);
+  }, [layout, steps, displayZippers, showMem, position, token]);
   const nodes = index as NodesIndex<ExpressionValue>;
   const [cycle, setCycle] = useState(0);
   const [finished, setFinished] = useState(false);
@@ -331,7 +333,11 @@ export const VizualizeLcrsGrammar = ({
         </label>
         <div>
           <br />
-          <button className={c.buttonRect} onClick={go} disabled={finished || autoDerivate}>
+          <button
+            className={c.buttonRect}
+            onClick={go}
+            disabled={finished || autoDerivate}
+          >
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>

@@ -1,20 +1,36 @@
 import {
   LcrsTree,
   LcrsZipper,
+  NodeType,
+  NodesIndex,
   PartialLcrsZipper,
   deleteAfter,
   deleteBefore,
   down,
+  edgesToDot,
+  getLevel,
   insertAfter,
   insertBefore,
   left,
+  levelsDot,
   mapToArray,
+  memoizeWeakChain,
   node,
   prevIdTransaction,
+  ranksDot,
   right,
   treeToZipper,
   up,
+  zipperDot,
 } from "./LcrsTree";
+import {
+  grayColor,
+  leftColor,
+  listColor,
+  purpleColor,
+  rightColor,
+  zipperColor,
+} from "./colors";
 import { Memo } from "./lcrsPwzMemo";
 
 export type ExpressionType =
@@ -497,15 +513,14 @@ const deriveUpPrime = prevIdTransaction((zipper: ExpressionZipper): Step[] => {
 });
 
 const deriveDown = prevIdTransaction(
-  (position: number, zipper: ExpressionZipper): Step[] => {
+  (position: number, zipper: ExpressionZipper, dryRun: boolean): Step[] => {
     const id = zipper.prevId || zipper.id;
     let m = mems.get(id, position);
     // match mems.get(p, e) with
     // | Some (m) ->
     if (m) {
       // m.parents <- c :: m.parents;
-      // if (m.parents.indexOf(zipper) === -1)
-      m.parents.unshift(zipper);
+      if (!dryRun) m.parents.unshift(zipper);
       // List.concat (List.map (fun e -> d′↑ e c) m.result.get(p)
       return (m.result[position] || []).map((focus) => [
         "upPrime",
@@ -523,7 +538,7 @@ const deriveDown = prevIdTransaction(
         result: {},
       };
       // mems.put(p, e, m);
-      mems.set(id, position, m);
+      if (!dryRun) mems.set(id, position, m);
       // d′↓ m e
       return [["downPrime", zipper, m]];
     }
@@ -531,10 +546,17 @@ const deriveDown = prevIdTransaction(
 );
 
 const deriveUp = prevIdTransaction(
-  (position: number, zipper: ExpressionZipper, m: Mem): Step[] => {
+  (
+    position: number,
+    zipper: ExpressionZipper,
+    m: Mem,
+    dryRun: boolean
+  ): Step[] => {
     // m.result.put(p, e :: m.result.get(p));
-    if (!m.result[position]) m.result[position] = [];
-    m.result[position].unshift(zipper);
+    if (!dryRun) {
+      if (!m.result[position]) m.result[position] = [];
+      m.result[position].unshift(zipper);
+    }
     // List.concat (List.map (d′↑ e) m.parents)
     return m.parents.map((c) => [
       "upPrime",
@@ -546,14 +568,19 @@ const deriveUp = prevIdTransaction(
   }
 );
 
-function deriveStep(position: number, token: string, step: Step): Step[] {
+function deriveStep(
+  position: number,
+  token: string,
+  step: Step,
+  dryRun = false
+): Step[] {
   const [direction, zipper, m] = step;
   switch (direction) {
     case "down":
-      return deriveDown(position, zipper);
+      return deriveDown(position, zipper, dryRun);
     case "up":
       if (!m) console.log("undefined m");
-      return deriveUp(position, zipper, m!);
+      return deriveUp(position, zipper, m!, dryRun);
     case "downPrime":
       if (!m) console.log("undefined m");
       return deriveDownPrime(position, token, zipper, m!);
@@ -563,3 +590,201 @@ function deriveStep(position: number, token: string, step: Step): Step[] {
       return [step];
   }
 }
+
+const expressionToDot = memoizeWeakChain(
+  "",
+  (
+    {
+      id,
+      originalId,
+      down,
+      loop,
+      value: { label, expressionType, value, m },
+    }: LcrsZipper<ExpressionValue>,
+    type: NodeType
+  ): string => {
+    if (loop) {
+      label = down?.value.label as string;
+      expressionType = down?.value.expressionType as ExpressionType;
+      value = down?.value.value;
+    }
+
+    let borderColor = listColor;
+    let fillColor = listColor;
+    let fontcolor = "white";
+
+    if (type === "empty") {
+      fillColor = "white";
+      borderColor = "white";
+    } else if (type === "focus") {
+      fillColor = "white";
+      fontcolor = "black";
+      borderColor = zipperColor;
+    } else if (type === "green" && originalId !== undefined) {
+      fillColor = rightColor;
+      borderColor = rightColor;
+    } else if (type === "blue" && originalId !== undefined) {
+      fillColor = leftColor;
+      borderColor = leftColor;
+    } else if (type === "gray" && originalId !== undefined) {
+      fillColor = grayColor;
+      borderColor = grayColor;
+    } else if (type === "purple" && originalId !== undefined) {
+      fillColor = purpleColor;
+      borderColor = purpleColor;
+    }
+    if (loop) {
+      fillColor = "white";
+      fontcolor = "black";
+    }
+
+    const short = true;
+    if (value) {
+      label = value;
+    } else if (expressionType === "Seq" && down === null) {
+      label = "ϵ";
+    } else if (label === "") {
+      if (expressionType === "SeqC" || expressionType === "Seq") {
+        label = short ? "∙" : "Seq";
+      } else if (expressionType === "Alt" || expressionType === "AltC") {
+        label = short ? "∪" : "Alt";
+      } else if (expressionType === "Rep" || expressionType === "RepC") {
+        label = short ? "∗" : "Rep";
+      }
+    }
+    // https://graphviz.org/doc/info/shapes.html
+    const shape = label.length <= 1 ? "square" : "rect";
+    label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+    const rounded = !m;
+
+    return `${id} [id=${id} penwidth=4 style="filled,solid${
+      rounded ? ",rounded" : ""
+    }" label="${label}" color="${borderColor}" fillcolor="${fillColor}" fontcolor="${fontcolor}" shape=${shape}]`;
+  }
+);
+
+export const stepsToDot = ({
+  steps,
+  logical,
+  mem,
+  position,
+  token,
+}: {
+  steps: Step[];
+  logical: boolean;
+  mem: boolean;
+  position?: number;
+  token?: string;
+}) => {
+  const index: NodesIndex<ExpressionValue> = {};
+  steps.forEach((step) => {
+    const [, zipper, m] = step;
+    const newIndex = zipperDot(
+      zipper,
+      "focus",
+      mem
+    ) as NodesIndex<ExpressionValue>;
+    Object.entries(newIndex).forEach(([id, item]) => {
+      if (!index[id]) index[id] = item;
+      else
+        index[id] = {
+          ...(index[id].type === "purple" ? item : index[id]),
+          level: Math.max(index[id].level, item.level),
+        };
+    });
+
+    if (m && mem) {
+      m.parents.forEach((p) => {
+        // show empty node if there are no nodes above?
+        if (!p.up) return;
+        const newIndex = zipperDot(
+          p.up,
+          "purple",
+          true,
+          mem,
+          getLevel(zipper) - 1
+        ) as NodesIndex<ExpressionValue>;
+        Object.entries(newIndex).forEach(([id, item]) => {
+          if (!index[id]) index[id] = item;
+          else
+            index[id] = {
+              ...index[id],
+              level: Math.max(index[id].level, item.level),
+            };
+        });
+
+        if (p.up.id !== zipper.up?.id)
+          index[zipper.id].memEdges.push({
+            from: p.up.id,
+            to: zipper.id,
+            type: "purple",
+            constraint: false,
+            direction: "backward",
+          });
+      });
+    }
+
+    // it kind of works but...
+    // - how to mark zippers that derive "in place", like Tok with down
+    // - how to mark zippers that will disapper
+    // - do I need to take into account m.results?
+    // - also need to add memoization
+    // - shall I draw empty node for TopC?
+    let [direction] = step;
+    if (position !== undefined && token !== undefined) {
+      let zipperNext;
+      if (direction === "none") {
+        direction = "up";
+        const newStep = [direction, step[1], step[2]] as Step;
+        zipperNext = deriveStep(position, token, newStep, true);
+      } else {
+        zipperNext = deriveStep(position, token, step, true);
+      }
+      if (direction === "up" || direction === "down") {
+        zipperNext = zipperNext.flatMap((s) =>
+          deriveStep(position, token, s, true)
+        );
+      }
+      const zipperNextIds = new Set(
+        zipperNext.map(([_, z]) => {
+          if (direction === "up" || direction === "upPrime")
+            return zipper.up?.id === z.prevId || zipper.right?.id === z.prevId
+              ? z.prevId
+              : z.up?.id;
+          if (direction === "down" || direction === "downPrime")
+            return zipper.down?.loop && zipper.down?.down?.id === z.prevId
+              ? zipper.down.id
+              : z.prevId;
+          return z.prevId;
+        })
+      );
+      const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
+      edgeTypes.forEach((et) => {
+        index[zipper.id][et] = index[zipper.id][et].map((e) => {
+          if (
+            (e.from !== zipper.id && zipperNextIds.has(e.from)) ||
+            (e.to !== zipper.id && zipperNextIds.has(e.to))
+          ) {
+            return { ...e, type: "pink" };
+          }
+          return e;
+        });
+      });
+    }
+  });
+  const graphPieces = Object.values(index).flatMap((x) => [
+    expressionToDot(x.zipper, x.type),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
+    mem ? edgesToDot(x.memEdges) : [],
+  ]);
+  return {
+    dot: `digraph {
+    ${levelsDot(index)}
+    node [fontcolor=white fixedsize=true height=0.3]
+    edge [color="${listColor}"]
+    ${ranksDot(index)}
+    ${graphPieces.join("\n")}
+  }`,
+    index,
+  };
+};
