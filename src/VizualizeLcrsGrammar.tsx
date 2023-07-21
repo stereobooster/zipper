@@ -20,6 +20,7 @@ import {
   getLevel,
   treeToZipper,
 } from "./LcrsTree";
+import { GraphvizOptions } from "d3-graphviz";
 
 type VizualizeGrammarProps = {
   tree: Expression;
@@ -201,6 +202,7 @@ export const VizualizeLcrsGrammar = ({
   str,
 }: VizualizeGrammarProps) => {
   const [fit, setFit] = useState(true);
+  const [animate, setAnimate] = useState(false);
   const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
 
@@ -298,15 +300,8 @@ export const VizualizeLcrsGrammar = ({
     return () => clearInterval(i);
   }, [autoDerivate, finished, go]);
 
-  const options = useMemo(
-    () =>
-      ({
-        height: height || 600,
-        width: width || 800,
-        engine: "dot",
-        useWorker: false,
-        fit,
-      } as const),
+  const options: GraphvizOptions = useMemo(
+    () => ({ height, width, fit }),
     [height, width, fit]
   );
 
@@ -337,7 +332,9 @@ export const VizualizeLcrsGrammar = ({
             className={c.buttonRect}
             onClick={go}
             disabled={finished || autoDerivate}
-            onMouseEnter={() => steps[step] && setHighlightedNodes([steps[step][1].id])}
+            onMouseEnter={() =>
+              steps[step] && setHighlightedNodes([steps[step][1].id])
+            }
             onMouseLeave={() => setHighlightedNodes([])}
           >
             {steps[step] ? dir(steps[step][0]) : "×"}
@@ -436,6 +433,17 @@ export const VizualizeLcrsGrammar = ({
             Fit
           </label>
         </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={animate}
+              onChange={() => setAnimate((x) => !x)}
+            />{" "}
+            Animate
+          </label>
+        </div>
       </div>
       <div className={c.row}>
         <Graphviz
@@ -443,6 +451,7 @@ export const VizualizeLcrsGrammar = ({
           onClick={setSelectedNode}
           options={options}
           highlighted={highlighted}
+          animate={animate}
         />
         {selectedNode && nodes[selectedNode] && (
           <Legend

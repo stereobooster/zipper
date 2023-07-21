@@ -10,13 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/d3-graphviz": "^2.6.7",
+    "@types/d3-selection": "^3.0.5",
+    "d3-ease": "^3.0.1",
     "d3-graphviz": "^5.0.2",
+    "d3-transition": "^3.0.1",
     "react": "^18.2.0",
     "react-archer": "^4.2.3",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/d3-ease": "^3.0.0",
+    "@types/d3-graphviz": "^2.6.7",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^5.57.1",

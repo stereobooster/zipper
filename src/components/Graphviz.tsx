@@ -3,9 +3,14 @@
 import { useEffect, useId, useRef, useState } from "react";
 // https://github.com/magjac/d3-graphviz
 import { graphviz, GraphvizOptions } from "d3-graphviz";
-// import * as d3 from "d3-selection";
+import { Transition, transition } from "d3-transition";
+import { easeLinear } from "d3-ease";
 import { ID } from "../LcrsTree";
 import "./Graphviz.css";
+
+type Tr = Transition<any, any, any, any>;
+export const transitionFactory = () =>
+  transition("main").ease(easeLinear).delay(40).duration(300) as Tr;
 
 export type GraphvizProps = {
   /**
@@ -25,13 +30,16 @@ export type GraphvizProps = {
   onClick?: (key: ID | undefined) => void;
   // TODO: none property as array: [{ id, stroke, fill }]
   highlighted?: ID[];
+  animate?: boolean;
 };
 
 const defaultOptions: GraphvizOptions = {
   fit: true,
-  height: 500,
-  width: 500,
+  height: 600,
+  width: 800,
   zoom: false,
+  tweenPaths: false,
+  tweenShapes: false,
 };
 
 export const Graphviz = ({
@@ -41,6 +49,7 @@ export const Graphviz = ({
   onHover,
   onClick,
   highlighted,
+  animate,
 }: GraphvizProps) => {
   const id = useId();
   const divRef = useRef<HTMLDivElement>(null);
@@ -91,13 +100,21 @@ export const Graphviz = ({
 
   useEffect(() => {
     const idSelector = `#${id.replaceAll(":", "\\:")}`;
-    graphviz(idSelector, {
+    const result = graphviz(idSelector, {
       ...defaultOptions,
       ...(options || {}),
+      // oh common...
+      width: options?.width || defaultOptions.width,
+      height: options?.height || defaultOptions.height,
     })
       .renderDot(dot)
       .on("end", () => setCounter((x) => x + 1));
-  }, [dot, options, id]);
+    if (animate) {
+      result.transition(transitionFactory);
+      // @ts-expect-error destroy
+      return () => result.destroy();
+    }
+  }, [dot, options, animate, id]);
 
   return <div className={className} id={id} ref={divRef} />;
 };

@@ -740,7 +740,8 @@ export const stepsToDot = ({
     // - do I need to take into account m.results?
     // - also need to add memoization
     // - shall I draw empty node for TopC?
-    // - bug on cycle 119
+    // - bug on cycle 50 - need to show different arrow https://thenewcode.com/1068/Making-Arrows-in-SVG
+    //   or different color
     let [direction] = step;
     if (position !== undefined && token !== undefined) {
       let zipperNext;
@@ -751,7 +752,10 @@ export const stepsToDot = ({
       } else {
         zipperNext = deriveStep(position, token, step, true);
       }
-      if (direction === "up" || direction === "down") {
+      if (
+        zipperNext.length === 1 &&
+        (direction === "up" || direction === "down")
+      ) {
         zipperNext = zipperNext.flatMap((s) =>
           deriveStep(position, token, s, true)
         );
@@ -786,7 +790,10 @@ export const stepsToDot = ({
         });
       });
       // if zipper stays in place
-      if (zipperNextIds.has(zipper.id)) {
+      if (
+        zipperNextIds.has(zipper.id) &&
+        (direction === "down" || direction === "downPrime")
+      ) {
         const edge: Edge = {
           from: zipper.id,
           to: zipper.id,
@@ -800,8 +807,14 @@ export const stepsToDot = ({
       if (zipperNextIds.size === 0) {
         // maybe draw whole zipper in grey?
         index[zipper.id].type = "gray";
-        index[zipper.id].dagEdges = index[zipper.id].dagEdges.map(e => ({...e, type: "gray"}))
-        index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map(e => ({...e, type: "gray"}))
+        index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => ({
+          ...e,
+          type: "gray",
+        }));
+        index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => ({
+          ...e,
+          type: "gray",
+        }));
       }
     }
   });

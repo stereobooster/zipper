@@ -109,7 +109,6 @@ TODO:
 
 - PwZ without memoization table?
 - vizualization
-  - enable animation of nodes and edges on zipper change?
   - use same colors, shapes, labels for `NodeButton` as for node
   - add "URL state" so that any state of derivative could be shared
   - click on mem-nodes to draw whole zipper behind it?
