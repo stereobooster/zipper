@@ -175,7 +175,7 @@ export function deriveFinalSteps(
   do {
     if (targetCycle === cycle) break;
     const token = str[position] || "";
-    const [newSteps, newPosition, newStep] = processSteps(
+    const [newSteps, newPosition, , , nextStep] = processSteps(
       token,
       position === str.length,
       position,
@@ -187,7 +187,7 @@ export function deriveFinalSteps(
     }
     position = newPosition;
     steps = newSteps;
-    step = newStep;
+    step = nextStep;
     cycle += 1;
   } while (position <= str.length);
 
@@ -753,8 +753,8 @@ export const stepsToDot = ({
     // - do I need to take into account m.results?
     // - also need to add memoization
     // - shall I draw empty node for TopC?
-    // - bug on cycle 50 - need to show different arrow https://thenewcode.com/1068/Making-Arrows-in-SVG
-    //   or different color
+    // - issue on cycle 50 - need to show different arrow
+    //   - https://graphviz.org/docs/attr-types/arrowType/
     let [direction] = step;
     if (position !== undefined && token !== undefined) {
       let zipperNext;

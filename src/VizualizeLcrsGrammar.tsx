@@ -279,14 +279,14 @@ export const VizualizeLcrsGrammar = ({
   ]);
 
   const jumpToCycle = useCallback(() => {
-    const [newSteps, newPosition, newStep, newCycle] = deriveFinalSteps(
+    const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
       str,
       tree,
       cycle
     );
     setFinished(false);
     setPosition(newPosition);
-    setStep(newStep);
+    setStep(nextStep);
     setSteps(newSteps);
     setCycle(newCycle);
     setAutoDerivate(false);

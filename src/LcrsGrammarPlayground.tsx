@@ -5,14 +5,22 @@ import { parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
 const examples = [
+  // Algebraic expressions
   [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
-  [`S -> "" | "a" S;`, "Kleene star as right recursion", "aaa"],
-  [`S -> "" | S "a";`, "Kleene star as left recursion", "aaa"],
+  [`N -> "0-9"; S -> S "+" N | N;`, "Left associative operation", "1+2+3"],
+  [`N -> "0-9"; S -> N "+" S | N;`, "Right associative operation", "1+2+3"],
+  [`N -> "0-9"; M -> M "*" N | N; S -> S "+" M | M;`, "Priority of operations", "1+2*3+4"],
+  // Kleene star
+  [`S -> S "a" | "";`, "Kleene star as left recursion", "aaa"],
+  [`S -> "a" S | "";`, "Kleene star as right recursion", "aaa"],
   [`S -> "a"*;`, "Kleene star", "aaa"],
-  [`S -> ("(" S ")")*;`, "Matching parenthesis", "(()())"],
-  [`S -> "a"* "a"*;`, "Highly ambigiuous", "aaa"],
-  // TODO: I think this is a bug in the original paper
-  // but this one works: S -> "a" | S S;
+  // Classical context-free grammar
+  [`S -> "(" S S ")" | "";`, "Matching parenthesis #1", "(()())"],
+  [`S -> ("(" S ")")*;`, "Matching parenthesis #2", "(()())"],
+  // Ambigiuous grammars
+  [`S -> "a"* "a"*;`, "Highly ambigiuous #1", "aaa"],
+  [`S -> "a"****;`, "Highly ambigiuous #2", "aa"],
+  // TODO: I think this is a bug in the original paper, but this one works: S -> "a" | S S;
   [`S -> "a" | "" | S S;`, "Bug (infinite loop)", "aaa"],
 ];
 

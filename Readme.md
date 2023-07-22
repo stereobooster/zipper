@@ -126,10 +126,16 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - I wonder if it is possible to modify PwZ to produce [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) instead of list of trees
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
+- Collect more "interesting" examples of grammars
 
 ### Small bugs and unsorted noted
 
+- "Grammar grammar"
+  - Use `[]` for character classes
+  - Does it support c-escaped characters
+  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
 - vizualization
+  - hover on "next step button" doesn't highlight active zipper after click
   - add ability to collapse graph by click on node
     - show mem graph (collapsed by default)
     - Collapse `lex` nodes on click
