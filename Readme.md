@@ -79,44 +79,69 @@ const right = <T>(zipper: ListZipper<T>): ListZipper<T> => {
 
 I had trouble understanding Zippers. So I decided to do vizualization for the Zipper, to grasp the concept - https://zipper-huet.netlify.app/.
 
-## TODO other derivatives
+## History
 
-- [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md)
-  - `&` should behave the same as `Alt` except it matches only when there are matches for each children
-- [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md)
-  - `!` should behave the same as `ALt`, but the problem is that it can spill over the current tree
-    - so I can either store it somehow in mem
-    - or move node higher in the tree
-- [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md)
-  - https://arxiv.org/pdf/1808.08893.pdf
+- Implemented linked list and zipper for it
+- Implemented vizaulization using `react-archer`
+- Implemented narry tree and (Huet's) zipper for it
+- Implemented vizualization using Graphviz
+- Implemented vizualization for "cycled" tree (detection of loops)
+- Implemented parsing with zippers
+- Extended "parsing with zippers" with:
+  - Kleene star (`Rep`) - tree for it is similar to `Seq`
+    - Didn't implemented Kleene plus (`+`) and optional (`?`), because I was lazy instead use `Alt`
+  - lexical nodes (`Lex`) - when parsed derivation tree is replaced by single node with matched value
+  - ignored nodes (`Ign`) - when parsed derivation tree is replaced by empty string node
+- Added DSL for grammar
+  - Including `letrec`-like function to handle creation of cycles. OCaml provide this function ability out of the box, for JS I had to do some hacks
+- Extended "parsing with zippers" with tree compaction
+  - All nodes except terminals and labeleled non-terminal are removed from parse tree
+- Implemented "grammar grammar" e.g. grammar to parse BNF-like grammar
+- Implemented playground for "parsing with zippers"
+  - User can provide grammar and string and use controls to experiment, observe how parsing happens
+- Realized that my Narry-tree and Huet zipper implementation is cumbersome
+  - I wanted to make it "by the book" e.g. to show that zipper indeed can be implemented as McBride derivtive and that this exact derivative can be used for parsing (with zipper). It indeed works, but it is very hard to maintain this codebase
+  - So I chnaged implementation to LCRS tree and zipper which treats LCRS tree as Narry tree (not as binary tree). It is not by the book, but it is easier for me to handle
+- Added vizualization of `Mem` for "parsing with zippers". For now it shows only one-level parents from mem and edges due to `Mem`. I can't use memoization because `Mem` is mutable structure
+  - Still consider adding vizualization of `results` from `Mem` and displaying empty (fake) nodes for `TopC`
+- Added different UI improvements, like
+  - Ability to select node to show "legend" e.g. details about node: label, value, top, left, right, etc..
+  - Ability to highlight nodes when other controls are hovered - to easily identify which node is related to this control
+  - Ability to jump to specific derivation cycle. This makes debuging so much easier I whould have done this earlier
+  - Animation between cycles
+  - Pink arrows where zipper will move next (this feature needs more work)
 
-## TODO
+## Next
 
-- Tried to implement PwZ without memoization table, but failed miserably
-  - Authors store `start` and `end` in `mem`, but I store those in tree nodes. Maybe I can get something out of this
-- PwZ can work as [scannerless](https://en.wikipedia.org/wiki/Scannerless_parsing) parser (parser generator)
-  - The only thing that we need to add is ability to specify [lexical grammar](https://spoofax.dev/references/sdf3/lexical-syntax/) separately from syntactical grammar.
-    - There are different ways, for example:
-      - I can add special nodes (`lex`), which are when matched (e.g. moves zipper up through node) would collapse tree underneath and store string value in the node
-      - Or I can add special flag to nodes (`lex: true`), which would work the same as separate node, but without need to introduce separate node
-    - In order to capture string value I can:
-      - accumulate input string and use `start`, `end` to slice required part frrom accumulated input
-      - or use `Mem` to accumulate string
-    - What to do if there are nested lexical nodes?
-      - I think it is reasonable to collapse tree to the highest lexical node.
+- I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
+  - As soon as I will understand it better I can implement PwZ without memoization table
+- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md), [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
+  - Conjuctive should be possible, because `&` behaves same as `|` (`Alt`) except it matched only if all branches are matched
+  - REwLA is problematic because lookahed can "spill" over the current tree. I'm not sure what to do about it
+    - I can "bubble up" lookahed node in the tree
+    - Or maybe I can put it in `Mem` somehow
+  - PEG
+    - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
+    - If I would be able to implement `REwLA` I can use is to parse PEF
+- I wonder if it is possible to modify PwZ to produce [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) instead of list of trees
+- Need to investigate how to improve parse error message. So it would be something like: in position `N` expected `M` and instead found `L`
+- Extend "Grammar grammar" to support `Ign` and `Lex`
 
-TODO:
+### Small bugs and unsorted noted
 
-- PwZ without memoization table?
+- add backlink from html page to readme
+- add replace function to `LCRS tree` and use it for  `Zipper for a "cycled tree"`
 - vizualization
-  - use same colors, shapes, labels for `NodeButton` as for node
-  - add "URL state" so that any state of derivative could be shared
-  - click on mem-nodes to draw whole zipper behind it?
   - add ability to collapse graph by click on node
-    - show mem-parents graph collapsed by default
+    - show mem graph (collapsed by default)
+    - Collapse `lex` nodes on click
+    - Semi-transparent `ign` nodes
   - allow to highlight nodes and/or edges
     - for example to show all nodes with `mem`
     - for example to show focus/zipper instead of using dot-medium for that
+  - use same colors, shapes, labels for `NodeButton` as for node
+  - add "URL state" so that any state of derivative could be shared
+  - animation is problematic because zipper changes id of node on movement
   - alternative vizualization library
     - https://js.cytoscape.org/
       - https://github.com/plotly/react-cytoscapejs
@@ -132,30 +157,19 @@ TODO:
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types
-  - BUG: left-edge of focus is wrong color
-  - do memoization if there is no loop
-  - it doesn't show original tree
-- "Jump" button - derivate until number of steps change 1 -> N, N -> 1
-- Improve parsing error messages
 - refactor shared variables (`mems`, `memoInput`, `treeCompaction`)
-- Tree compaction
-  - document and test
 - `ign` doesn't work inside `lex`
-- `alt(["\n", "\r\n"])` ambigious, because second treated as set, not as consequence
+- `alt(["\n", "\r\n"])` ambigious, because second treated as set, not as sequence
 - `Warning: no value for width of non-ASCII character 207. Falling back to width of space character`
 - Kleene plus and other quantifiers
-- Compact display of grammar
-  - Collapse `lex` nodes on click
-  - Semi-transparent `ign` nodes
 - Ignore consequent space without parsing?
-- Problem of disappering zippers in PwZ vizualization
-  - [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) vs list of zippers
 - Fix display "Zipper + tree"
   - need to change order in which nodes (and edges ?) are printed out. Topological sort?
-- BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges
-- Mention combinatorial species
 - refactor list vizualization to use the same viz as tree
   - `[React Archer] Could not find target element! Not drawing the arrow.`
+- BUG: Zipper for a "cycled tree" in "LCRS tree" mode - sometimes draws double edges
+  - but this problem is fixed in LCRS tree implementation
+- Mention combinatorial species
 
 ## Other
 
