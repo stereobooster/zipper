@@ -124,8 +124,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
     - If I would be able to implement `REwLA` I can use is to parse `PEG`
 - I wonder if it is possible to modify PwZ to produce [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) instead of list of trees
-- Need to investigate how to improve parse error message. So it would be something like: in position `N` expected `M` and instead found `L`
 - Extend "Grammar grammar" to support `Ign` and `Lex`
+- Better error message should take in account `Ign` and `Lex`
 
 ### Small bugs and unsorted noted
 

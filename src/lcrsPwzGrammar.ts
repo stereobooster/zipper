@@ -117,7 +117,6 @@ export const parseGrammar = (str: string) => {
   str = str.trim();
   if (str.length === 0) throw new Error("Empty input");
   const exps = parse(str, grammarExpression);
-  if (exps.length === 0) throw new Error("Failed to parse grammar");
   // if (exps.length > 1) throw new Error("Result is ambigious");
   return evaluate(exps[0] as Expression);
 };

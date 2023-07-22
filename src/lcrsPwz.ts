@@ -146,8 +146,17 @@ let treeCompaction = false;
 export function parse(str: string, tree: Expression) {
   const treeCompactionPrev = treeCompaction;
   treeCompaction = true;
-  const [steps] = deriveFinalSteps(str, tree);
+  const [steps, position, , , error] = deriveFinalSteps(str, tree);
   treeCompaction = treeCompactionPrev;
+  if (error)
+    // this is not perfect because it can show "Ign" items, which doesn't help
+    throw new Error(
+      `Failed to parse: expected ${steps
+        .map(([, z]) => `"${z.value.label}"`)
+        .join(" or ")} at position ${position} instead found ${
+        str[position] === undefined ? "EOF" : `"${str[position]}"`
+      }`
+    );
   return steps.map(([, z]) => z);
 }
 
@@ -162,6 +171,7 @@ export function deriveFinalSteps(
   let position = 0;
   let step = 0;
   let cycle = 0;
+  let error = false;
   do {
     if (targetCycle === cycle) break;
     const token = str[position] || "";
@@ -171,16 +181,19 @@ export function deriveFinalSteps(
       position,
       steps
     );
+    if (newSteps.length === 0) {
+      error = true;
+      break;
+    }
     position = newPosition;
     steps = newSteps;
     step = newStep;
     cycle += 1;
-    if (steps.length === 0) break;
   } while (position <= str.length);
 
   mems.reset();
   memoInput.length = 0;
-  return [steps, position, step, cycle] as const;
+  return [steps, position, step, cycle, error] as const;
 }
 
 export function processSteps(
