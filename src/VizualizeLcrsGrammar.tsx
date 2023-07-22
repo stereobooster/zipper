@@ -263,6 +263,17 @@ export const VizualizeLcrsGrammar = ({
       }
       return selectedNode;
     });
+    // if (currentStepLength === 1 && newSteps[nextStep][0] === "downPrime") {
+    //   const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
+    //     str,
+    //     tree,
+    //     cycle + 2
+    //   );
+    //   setPosition(newPosition);
+    //   setStep(nextStep);
+    //   setSteps(newSteps);
+    //   setCycle(newCycle);
+    // }
   }, [
     step,
     position,

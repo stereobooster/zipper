@@ -134,6 +134,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Use `[]` for character classes
   - Does it support c-escaped characters
   - convert multi-character strings (`"..."`) to `Seq` of `Tok`
+- Jump over "borring" steps (1 step, zipper didn't move)
 - vizualization
   - hover on "next step button" doesn't highlight active zipper after click
   - add ability to collapse graph by click on node

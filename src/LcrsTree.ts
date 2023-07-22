@@ -317,28 +317,53 @@ export function memoizeWeakChain<
 // Vizualization ----------------------------------------------------------------------------
 
 type Level = number;
+export type NodeType = "green" | "blue" | "empty" | "focus" | "gray" | "purple";
 export type Edge = {
   from: ID;
   to: ID;
   type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple" | "pink";
   // https://graphviz.org/docs/attrs/dir/
-  direction?: "forward" | "backward";
+  direction?: "forward" | "back";
   // https://graphviz.org/docs/attrs/constraint/
   constraint?: boolean;
   // https://graphviz.org/docs/attr-types/style/
   style?: "dotted";
+  // https://graphviz.org/docs/attr-types/arrowType/
+  arrowhead?: "inv" | "none" | "dot" | "normal";
+  // This will only appear if the dir attribute is back or both.
+  arrowtail?: "inv" | "none" | "dot" | "normal";
+  strokeWidth?: number;
 };
-export type NodeType = "green" | "blue" | "empty" | "focus" | "gray" | "purple";
 
-const edgeToDot = ({ from, to, type, direction, constraint, style }: Edge) => {
-  const dir = direction === "backward" ? "dir=back" : "";
+const pp = (name: string, value?: string | boolean | number) =>
+  value === undefined ? "" : `${name}="${value}"`;
+
+const edgeToDot = ({
+  from,
+  to,
+  type,
+  direction,
+  constraint,
+  style,
+  arrowhead,
+  arrowtail,
+  strokeWidth,
+}: Edge) => {
+  if (direction == "back") {
+    // from is always the same as node,
+    // but when we draw left edges we need to flip them - so they would appear on the left side
+    [from, to] = [to, from];
+  }
+  if (arrowhead !== undefined) {
+    // special arrowhead for mem parents
+    [from, to] = [to, from];
+  }
   let color = listColor;
-  let borderWidth = 1;
-  let arrow = "";
   if (type === "zipper") {
-    borderWidth = 4;
+    strokeWidth = 4;
     color = zipperColor;
-    arrow = "arrowhead=none arrowtail=none";
+    arrowhead = "none";
+    arrowtail = "none";
   } else if (type === "blue") {
     color = leftColor;
   } else if (type == "green") {
@@ -350,18 +375,28 @@ const edgeToDot = ({ from, to, type, direction, constraint, style }: Edge) => {
     color = purpleColor;
     constraint = false;
   } else if (type === "pink") {
-    borderWidth = 2;
+    strokeWidth = 2;
     color = zipperColor;
   } else if (type === "invisible") {
-    return `${from} -> ${to} [style=invis]`;
+    return `${from} -> ${to} [style=invis];`;
   }
   if (style === "dotted") {
     constraint = false;
-    arrow = "arrowhead=none arrowtail=none";
+    arrowhead = "none";
+    arrowtail = "none";
   }
-  return `${from} -> ${to} [id="${from}-${to}" penwidth=${borderWidth} ${arrow} ${dir} color="${color}" ${
-    constraint === false ? "constraint=false" : ""
-  } ${style ? `style=${style}` : ""}];`;
+  const props = [
+    pp("id", `${from}-${to}`),
+    pp("color", color),
+    pp("penwidth", strokeWidth),
+    pp("constraint", constraint),
+    pp("dir", direction),
+    pp("style", style),
+    pp("arrowhead", arrowhead),
+    pp("arrowtail", arrowtail),
+  ].filter(Boolean);
+  // if (arrowtail !== undefined) console.log(props);
+  return `${from} -> ${to} [${props.join(" ")}];`;
 };
 
 const nodeToDot = memoizeWeakChain(
@@ -454,7 +489,7 @@ const getEdges = (
     if (givenType === "purple") {
       memEdges.push({ from: zipper.id, to: zipper.up.id, type: "purple" });
     } else {
-      const edge = { from: zipper.id, to: zipper.up.id, type: "blue" } as const;
+      const edge: Edge = { from: zipper.id, to: zipper.up.id, type: "blue" };
       dagEdges.push(edge);
       lcrsEdges.push(edge);
     }
@@ -462,11 +497,11 @@ const getEdges = (
 
   if (zipper.left) {
     type = zipper.originalId ? givenType || "blue" : undefined;
-    const edge = {
-      from: zipper.left.id,
-      to: zipper.id,
-      direction: "backward",
-    } as const;
+    const edge: Edge = {
+      from: zipper.id,
+      to: zipper.left.id,
+      direction: "back",
+    };
     dagEdges.push({
       ...edge,
       type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",

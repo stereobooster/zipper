@@ -711,10 +711,10 @@ export const stepsToDot = ({
     // stupid workaround to fix BUG: left-edge of focus is wrong color
     if (zipper.left) {
       index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) =>
-        e.from === zipper.left?.id ? { ...e, type: "blue" } : e
+        e.to === zipper.left?.id ? { ...e, type: "blue" } : e
       );
       index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) =>
-        e.from === zipper.left?.id ? { ...e, type: "blue" } : e
+        e.to === zipper.left?.id ? { ...e, type: "blue" } : e
       );
     }
 
@@ -740,11 +740,10 @@ export const stepsToDot = ({
 
         if (p.up.id !== zipper.up?.id)
           index[zipper.id].memEdges.push({
-            from: p.up.id,
-            to: zipper.id,
+            from: zipper.id,
+            to: p.up.id,
             type: "purple",
-            constraint: false,
-            direction: "backward",
+            constraint: false
           });
       });
     }
@@ -753,8 +752,6 @@ export const stepsToDot = ({
     // - do I need to take into account m.results?
     // - also need to add memoization
     // - shall I draw empty node for TopC?
-    // - issue on cycle 50 - need to show different arrow
-    //   - https://graphviz.org/docs/attr-types/arrowType/
     let [direction] = step;
     if (position !== undefined && token !== undefined) {
       let zipperNext;
@@ -793,11 +790,16 @@ export const stepsToDot = ({
       const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
       edgeTypes.forEach((et) => {
         index[zipper.id][et] = index[zipper.id][et].map((e) => {
-          if (
-            (e.from !== zipper.id && zipperNextIds.has(e.from)) ||
-            (e.to !== zipper.id && zipperNextIds.has(e.to))
-          ) {
-            return { ...e, type: "pink" };
+          if (zipperNextIds.has(e.to)) {
+            return {
+              ...e,
+              type: "pink",
+              // special arrowhead for mem parents
+              arrowhead:
+                direction === "up" && zipperNextIds.size > 1
+                  ? "dot"
+                  : undefined,
+            };
           }
           return e;
         });
