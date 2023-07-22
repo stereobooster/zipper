@@ -509,7 +509,9 @@ const edgeToDot = ({ from, to, type, direction, constraint }: Edge) => {
   let borderWidth = 1;
   let arrow = "";
   if (type === "zipper") {
-    borderWidth = 12;
+    // as alternative I can move nodes over edges in generated SVG and 
+    // use stroke-linecap="square" and stroke-width="26"
+    borderWidth = 6;
     color = zipperColor;
     arrow = "arrowhead=none arrowtail=none";
   } else if (type === "blue") {

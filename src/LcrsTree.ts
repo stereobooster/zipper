@@ -118,6 +118,12 @@ export const node = <T>({
   originalId: originalId || id,
 });
 
+export const replace = <T>(zipper: LcrsZipper<T>, value: T): LcrsZipper<T> =>
+  node({
+    ...zipper,
+    value,
+  });
+
 export const right = <T>(zipper: LcrsZipper<T>): LcrsZipper<T> => {
   if (zipper.right === null) throw new Error("Can't move right");
   if (zipper.right.loop)
@@ -288,10 +294,11 @@ const setChain = (
   return obj;
 };
 
-export function memoizeWeakChain<K extends object | null, V, R extends Array<unknown>>(
-  bottom: V,
-  cb: (input: K, ...rest: R) => V
-): (input: K, ...rest: R) => V {
+export function memoizeWeakChain<
+  K extends object | null,
+  V,
+  R extends Array<unknown>
+>(bottom: V, cb: (input: K, ...rest: R) => V): (input: K, ...rest: R) => V {
   const memo = new WeakMap<NonNullable<K>, Record<any, any>>();
   const fn = (input: K, ...rest: R) => {
     if (input === null) return cb(input, ...rest);

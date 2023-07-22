@@ -3,7 +3,6 @@ import { LcrsGrammarPlayground } from "./LcrsGrammarPlayground";
 import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";
 import { narryTreeToTree } from "./Tree";
-import { VizualizeLcrsTreeZipper } from "./VizualizeLcrsTreeZipper";
 import { VizualizeListZipper } from "./VizualizeListZipper";
 import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
 
@@ -43,6 +42,14 @@ x.down = lcrsTree;
 const App = () => {
   return (
     <>
+      <section>
+        <div className={c.paragraph}>
+          <h2>Source</h2>
+          <p>
+            Source code and readme are <a href="https://github.com/stereobooster/zipper">here</a>.
+          </p>
+        </div>
+      </section>
       <section>
         <div className={c.paragraph}>
           <h2>Linked list</h2>
@@ -174,18 +181,7 @@ const App = () => {
             </li>
           </ul>
         </div>
-        <VizualizeTreeZipper
-          tree={cicledTree}
-          showZipper
-          height={600}
-          width={600}
-        />
-      </section>
-      <section>
-        <div className={c.paragraph}>
-          <h2>LCRS tree</h2>
-        </div>
-        <VizualizeLcrsTreeZipper tree={lcrsTree} showZipper height={300} />
+        <VizualizeTreeZipper tree={cicledTree} showZipper height={300} />
       </section>
       <section>
         <div className={c.paragraph}>

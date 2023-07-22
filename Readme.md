@@ -129,8 +129,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Small bugs and unsorted noted
 
-- add backlink from html page to readme
-- add replace function to `LCRS tree` and use it for  `Zipper for a "cycled tree"`
+- add code splitting
 - vizualization
   - add ability to collapse graph by click on node
     - show mem graph (collapsed by default)

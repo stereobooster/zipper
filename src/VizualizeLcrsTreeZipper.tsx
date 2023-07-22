@@ -9,6 +9,7 @@ import {
   right,
   treeToZipper,
   up,
+  replace,
 } from "./LcrsTree";
 
 type VizualizeLcrsTreeZipperProps<T> = {
@@ -27,7 +28,10 @@ export function VizualizeLcrsTreeZipper<T>({
   const [layout, setLayout] = useState("dag");
   const [fit, setFit] = useState(false);
   const [zipper, setZipper] = useState(() => treeToZipper(tree));
-  const { dot } = lcrsZipperToDot({ zippers: [zipper], logical: layout === "dag" });
+  const { dot } = lcrsZipperToDot({
+    zippers: [zipper],
+    logical: layout === "dag",
+  });
 
   const callback = (direction: "u" | "l" | "r" | "d") => () => {
     setZipper((zipper) => {
@@ -99,15 +103,17 @@ export function VizualizeLcrsTreeZipper<T>({
                 </button>
               </div>
             </div>
-            {/* <label>
+            <label>
               Value at focus
               <br />
               <input
-                value={zipper.value}
-                onChange={(e) => setZipper((x) => replace(x, e.target.value))}
+                value={zipper.value as string}
+                onChange={(e) =>
+                  setZipper((x) => replace(x, e.target.value as any))
+                }
                 className={c.buttonRect}
               />
-            </label> */}
+            </label>
             <div>
               <br />
               <label>
