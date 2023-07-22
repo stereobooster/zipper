@@ -1,6 +1,6 @@
 // initially copied from https://github.com/DomParfitt/graphviz-react/blob/master/src/Graphviz.tsx
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 // https://github.com/magjac/d3-graphviz
 import { graphviz, GraphvizOptions } from "d3-graphviz";
 import { Transition, transition } from "d3-transition";
@@ -65,9 +65,7 @@ export const Graphviz = ({
       node.setAttribute("filter", "drop-shadow(0 0 2px black)");
       return [node];
     });
-    return () => {
-      nodes.forEach((node) => node.setAttribute("filter", ""));
-    };
+    return () => nodes.forEach((node) => node.setAttribute("filter", ""));
   }, [highlighted, counter]);
 
   useEffect(() => {
@@ -82,7 +80,7 @@ export const Graphviz = ({
       current.addEventListener("click", callback);
       return () => current.removeEventListener("click", callback);
     }
-  }, [divRef, onClick]);
+  }, [onClick, divRef]);
 
   useEffect(() => {
     const current = divRef.current;
@@ -98,14 +96,21 @@ export const Graphviz = ({
     }
   }, [divRef, onHover]);
 
+  // to prevent jumps on re-render
+  const style = useMemo(
+    () => ({
+      width: options?.width || defaultOptions.width,
+      height: options?.height || defaultOptions.height,
+    }),
+    [options]
+  );
+
   useEffect(() => {
     const idSelector = `#${id.replaceAll(":", "\\:")}`;
     const result = graphviz(idSelector, {
       ...defaultOptions,
       ...(options || {}),
-      // oh common...
-      width: options?.width || defaultOptions.width,
-      height: options?.height || defaultOptions.height,
+      ...style
     })
       .renderDot(dot)
       .on("end", () => setCounter((x) => x + 1));
@@ -114,7 +119,7 @@ export const Graphviz = ({
       // @ts-expect-error destroy
       return () => result.destroy();
     }
-  }, [dot, options, animate, id]);
+  }, [dot, options, animate, style, id]);
 
-  return <div className={className} id={id} ref={divRef} />;
+  return <div className={className} id={id} ref={divRef} style={style} />;
 };

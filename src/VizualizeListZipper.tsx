@@ -183,3 +183,5 @@ export const VizualizeListZipper = ({
     </div>
   );
 };
+
+export default VizualizeListZipper;

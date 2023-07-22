@@ -82,3 +82,5 @@ export const LcrsGrammarPlayground = () => {
     </>
   );
 };
+
+export default LcrsGrammarPlayground

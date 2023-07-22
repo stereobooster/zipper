@@ -100,7 +100,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Implemented playground for "parsing with zippers"
   - User can provide grammar and string and use controls to experiment, observe how parsing happens
 - Realized that my Narry-tree and Huet zipper implementation is cumbersome
-  - I wanted to make it "by the book" e.g. to show that zipper indeed can be implemented as McBride derivtive and that this exact derivative can be used for parsing (with zipper). It indeed works, but it is very hard to maintain this codebase
+  - I wanted to make it "by the book" e.g. to show that zipper indeed can be implemented as McBride derivtive and that this exact zipper can be used for parsing (with zipper). It indeed works, but it is very hard to maintain this codebase
   - So I chnaged implementation to LCRS tree and zipper which treats LCRS tree as Narry tree (not as binary tree). It is not by the book, but it is easier for me to handle
 - Added vizualization of `Mem` for "parsing with zippers". For now it shows only one-level parents from mem and edges due to `Mem`. I can't use memoization because `Mem` is mutable structure
   - Still consider adding vizualization of `results` from `Mem` and displaying empty (fake) nodes for `TopC`
@@ -113,23 +113,22 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## Next
 
-- I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
+- I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table and I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
 - I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md), [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
-  - Conjuctive should be possible, because `&` behaves same as `|` (`Alt`) except it matched only if all branches are matched
-  - REwLA is problematic because lookahed can "spill" over the current tree. I'm not sure what to do about it
+  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matched only if all branches are matched
+  - `REwLA` is problematic because lookahed can "spill" over the current tree. I'm not sure what to do about it
     - I can "bubble up" lookahed node in the tree
     - Or maybe I can put it in `Mem` somehow
-  - PEG
+  - `PEG`
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
-    - If I would be able to implement `REwLA` I can use is to parse PEF
+    - If I would be able to implement `REwLA` I can use is to parse `PEG`
 - I wonder if it is possible to modify PwZ to produce [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) instead of list of trees
 - Need to investigate how to improve parse error message. So it would be something like: in position `N` expected `M` and instead found `L`
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 
 ### Small bugs and unsorted noted
 
-- add code splitting
 - vizualization
   - add ability to collapse graph by click on node
     - show mem graph (collapsed by default)

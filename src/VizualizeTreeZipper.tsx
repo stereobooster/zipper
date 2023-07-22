@@ -142,3 +142,5 @@ export const VizualizeTreeZipper = ({
     </>
   );
 };
+
+export default VizualizeTreeZipper;

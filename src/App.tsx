@@ -1,10 +1,11 @@
 import c from "./components/common.module.css";
-import { LcrsGrammarPlayground } from "./LcrsGrammarPlayground";
 import { narryToLcrsTree } from "./LcrsTree";
 import { arrayToList, cons } from "./List";
 import { narryTreeToTree } from "./Tree";
-import { VizualizeListZipper } from "./VizualizeListZipper";
-import { VizualizeTreeZipper } from "./VizualizeTreeZipper";
+import { lazy, Suspense } from "react";
+const VizualizeListZipper = lazy(() => import("./VizualizeListZipper"));
+const VizualizeTreeZipper = lazy(() => import("./VizualizeTreeZipper"));
+const LcrsGrammarPlayground = lazy(() => import("./LcrsGrammarPlayground"));
 
 const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const list = arrayToList(array);
@@ -41,12 +42,13 @@ x.down = lcrsTree;
 
 const App = () => {
   return (
-    <>
+    <Suspense fallback={<div />}>
       <section>
         <div className={c.paragraph}>
           <h2>Source</h2>
           <p>
-            Source code and readme are <a href="https://github.com/stereobooster/zipper">here</a>.
+            Source code and readme are{" "}
+            <a href="https://github.com/stereobooster/zipper">here</a>.
           </p>
         </div>
       </section>
@@ -223,7 +225,7 @@ const App = () => {
         </div>
         <LcrsGrammarPlayground />
       </section>
-    </>
+    </Suspense>
   );
 };
 
