@@ -808,16 +808,15 @@ export const stepsToDot = ({
       } else {
         zipperNext = deriveStep(position, token, step, true);
       }
-      // unfortuantley this sometimes doesn't work due to dry run
       // calculate after-next move, if current one is "borring"
-      // if (
-      //   zipperNext.length === 1 &&
-      //   (direction === "up" || direction === "down")
-      // ) {
-      //   zipperNext = zipperNext.flatMap((s) =>
-      //     deriveStep(position, token, s, true)
-      //   );
-      // }
+      if (
+        zipperNext.length === 1 &&
+        (direction === "up" || direction === "down")
+      ) {
+        zipperNext = zipperNext.flatMap((s) =>
+          deriveStep(position, token, s, true)
+        );
+      }
 
       // if next move would remove zipper
       if (zipperNext.length === 0) {
