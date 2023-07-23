@@ -12,7 +12,7 @@ import {
   insertBefore,
   left,
   levelsDot,
-  mapToArray,
+  mapChildren,
   mergeNodesIndex,
   node,
   prevIdTransaction,
@@ -307,7 +307,7 @@ const deriveDownPrime = prevIdTransaction(
             start: position,
           },
         });
-        return mapToArray("right", zipper.down, (e) => [
+        return mapChildren(zipper, (e) => [
           "down",
           expressionNode({ ...(e.loop ? e.down! : e), up: x, right: null }),
           undefined,
@@ -406,8 +406,6 @@ const deriveUpPrime = prevIdTransaction((zipper: ExpressionZipper): Step[] => {
           // horizontal compaction
           if (zipper.left !== null) {
             res = deleteAfter(left(zipper));
-            // } else {
-            //   throw new Error("can this even happen");
           }
         }
         res = up(res);
@@ -701,9 +699,9 @@ export const stepsToDot = ({
   steps,
   logical,
   mem,
-  // position,
-  // token,
-}: {
+}: // position,
+// token,
+{
   steps: Step[];
   logical: boolean;
   mem: boolean;
@@ -720,12 +718,8 @@ export const stepsToDot = ({
 
     // stupid workaround to fix BUG: left-edge of focus is wrong color
     if (zipper.left) {
-      index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) =>
-        e.to === zipper.left?.id ? { ...e, type: "blue" } : e
-      );
-      index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) =>
-        e.to === zipper.left?.id ? { ...e, type: "blue" } : e
-      );
+      index[zipper.id].dagEdges[zipper.left?.id].type = "blue";
+      index[zipper.id].lcrsEdges[zipper.left?.id].type = "blue";
     }
 
     // this is a mess
@@ -873,8 +867,8 @@ export const stepsToDot = ({
 
   const graphPieces = Object.values(index).flatMap((x) => [
     expressionToDot(x.zipper, x.type),
-    edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
-    mem ? edgesToDot(x.memEdges) : [],
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges, x.zipper.id),
+    mem ? edgesToDot(x.memEdges, x.zipper.id) : [],
   ]);
   return {
     dot: `digraph {

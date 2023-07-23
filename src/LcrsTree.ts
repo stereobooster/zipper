@@ -240,14 +240,22 @@ export const mapToArray = <T, P>(
   return res;
 };
 
+// to hide implementation details
+export const mapChildren = <T, P>(
+  zipper: LcrsZipperPath<T>,
+  cb: (x: LcrsZipper<T>) => P
+) => mapToArray("right", zipper?.down || null, cb);
+
 // Vizualization ----------------------------------------------------------------------------
 
 type Level = number;
 export type NodeType = "green" | "blue" | "empty" | "focus" | "gray" | "purple";
 export type Edge = {
-  from: ID;
-  to: ID;
+  /* zipper & vizualisation */
   type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple" | "pink";
+  // do I even need this ???
+  zipperDirection: "up" | "left" | "down" | "right";
+  /* Graphviz */
   // https://graphviz.org/docs/attrs/dir/
   direction?: "forward" | "back";
   // https://graphviz.org/docs/attrs/constraint/
@@ -264,17 +272,19 @@ export type Edge = {
 const pp = (name: string, value?: string | boolean | number) =>
   value === undefined ? "" : `${name}="${value}"`;
 
-const edgeToDot = ({
-  from,
-  to,
-  type,
-  direction,
-  constraint,
-  style,
-  arrowhead,
-  arrowtail,
-  strokeWidth,
-}: Edge) => {
+const edgeToDot = (
+  from: ID,
+  to: ID,
+  {
+    type,
+    direction,
+    constraint,
+    style,
+    arrowhead,
+    arrowtail,
+    strokeWidth,
+  }: Edge
+) => {
   if (direction == "back") {
     // from is always the same as node,
     // but when we draw left edges we need to flip them - so they would appear on the left side
@@ -396,6 +406,11 @@ export const getLevel = memoizeWeak(
   }
 );
 
+const addEdge = (edgeIndex: EdgeIndex, to: ID, edge: Edge) => {
+  if (edgeIndex[to]) console.warn("Overwrite edge");
+  edgeIndex[to] = edge;
+};
+
 const getEdges = (
   zipper: LcrsZipperPath<unknown>,
   givenType: Edge["type"],
@@ -404,48 +419,48 @@ const getEdges = (
   // TODO: add support for zipper nodes/edges
   const isFocus = false;
 
-  const dagEdges: Edge[] = [];
-  const lcrsEdges: Edge[] = [];
-  const memEdges: Edge[] = [];
+  const dagEdges: EdgeIndex = {};
+  const lcrsEdges: EdgeIndex = {};
+  const memEdges: EdgeIndex = {};
+
   if (zipper === null) return { dagEdges, lcrsEdges, memEdges };
 
   let type: Edge["type"];
 
   if (zipper.up) {
     if (givenType === "purple") {
-      const edge: Edge = { from: zipper.id, to: zipper.up.id, type: "purple" };
-      // memEdges.push(edge);
-      dagEdges.push(edge);
-      lcrsEdges.push(edge);
+      const edge: Edge = { type: "purple", zipperDirection: "up" };
+      // memEdges ???
+      addEdge(dagEdges, zipper.up.id, edge);
+      addEdge(lcrsEdges, zipper.up.id, edge);
     } else {
-      const edge: Edge = { from: zipper.id, to: zipper.up.id, type: "blue" };
-      dagEdges.push(edge);
-      lcrsEdges.push(edge);
+      const edge: Edge = { type: "blue", zipperDirection: "up" };
+      addEdge(dagEdges, zipper.up.id, edge);
+      addEdge(lcrsEdges, zipper.up.id, edge);
     }
   }
 
   if (zipper.left) {
     type = zipper.originalId ? givenType || "blue" : undefined;
-    const edge: Edge = {
-      from: zipper.id,
-      to: zipper.left.id,
-      direction: "back",
-    };
-    dagEdges.push({
+    const edge: Edge = { direction: "back", zipperDirection: "left" };
+    addEdge(dagEdges, zipper.left.id, {
       ...edge,
       type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
     });
-    lcrsEdges.push({ ...edge, type: isFocus ? "zipper" : type });
+    addEdge(lcrsEdges, zipper.left.id, {
+      ...edge,
+      type: isFocus ? "zipper" : type,
+    });
   }
 
   if (zipper.right) {
     type = zipper.originalId ? givenType || "green" : undefined;
-    const edge = { from: zipper.id, to: zipper.right.id };
-    dagEdges.push({
+    const edge: Edge = { zipperDirection: "right" };
+    addEdge(dagEdges, zipper.right.id, {
       ...edge,
       type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
     });
-    lcrsEdges.push({
+    addEdge(lcrsEdges, zipper.right.id, {
       ...edge,
       type: isFocus ? "zipper" : type,
     });
@@ -455,40 +470,41 @@ const getEdges = (
     type = zipper.originalId ? givenType || "green" : undefined;
     const down = zipper.down;
     if (zipper.loop) {
-      const edge = {
-        from: down.id,
-        to: zipper.id,
+      const edge: Edge = {
         type,
         style: "dotted",
-      } as const;
-      dagEdges.push(edge);
-      lcrsEdges.push(edge);
+        zipperDirection: "down",
+        direction: "back",
+      };
+      addEdge(dagEdges, down.id, edge);
+      addEdge(lcrsEdges, down.id, edge);
     } else {
-      forEach("right", zipper.down, (to) => {
-        dagEdges.push({ from: zipper.id, to: to.id, type });
+      mapChildren(zipper, (to) => {
+        addEdge(dagEdges, to.id, { type, zipperDirection: "down" });
       });
-      lcrsEdges.push({ from: zipper.id, to: down.id, type });
+      addEdge(lcrsEdges, down.id, { type, zipperDirection: "down" });
     }
   }
 
   return { dagEdges, lcrsEdges, memEdges };
 };
 
-export const edgesToDot = memoizeWeakChain("", (edges: Edge[]) =>
-  edges.map(edgeToDot).join("\n")
+export const edgesToDot = memoizeWeakChain("", (edges: EdgeIndex, from: ID) =>
+  Object.entries(edges)
+    .map(([to, e]) => edgeToDot(from, to, e))
+    .join("\n")
 );
 
 export type DisplayItem<T> = {
   level: Level;
   zipper: LcrsZipper<T>;
   type: NodeType;
-  // I changed algorithm to make sure that from is always the same as node
-  // So now I can store edge as Record<to, Edge>
-  dagEdges: Edge[];
-  lcrsEdges: Edge[];
-  memEdges: Edge[];
-  afterLoop?: boolean;
+  dagEdges: EdgeIndex;
+  // I don't really need to store them separately because it would be the same as Edges stored on Node
+  lcrsEdges: EdgeIndex;
+  memEdges: EdgeIndex;
 };
+export type EdgeIndex = Record<ID, Edge>;
 export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
 
 // maybe replace `type` with `direction`?
@@ -578,19 +594,19 @@ export const zipperDot = <T = unknown>(
   };
 
   if (type === "purple" && mem) {
-    memo[zipper.id].lcrsEdges = [];
-    memo[zipper.id].dagEdges = [];
-    memo[zipper.id].memEdges = [];
+    memo[zipper.id].lcrsEdges = {};
+    memo[zipper.id].dagEdges = {};
+    memo[zipper.id].memEdges = {};
     const v = zipper.value as ExpressionValue;
     if (v.m) {
       v.m.parents.forEach((p) => {
         if (p.up && memo[p.up.id]) {
-          memo[zipper.id].memEdges.push({
-            from: zipper.id,
-            to: p.up.id,
+          const memEdge: Edge = {
             type: "purple",
             constraint: false,
-          });
+            zipperDirection: "up",
+          };
+          addEdge(memo[zipper.id].memEdges, p.up.id, memEdge);
         }
       });
     }
@@ -637,12 +653,12 @@ export const zipperDot = <T = unknown>(
     v.m.parents.forEach((p) => {
       // same for left and right?
       if (p.up) {
-        memo[zipper.id].memEdges.push({
-          from: zipper.id,
-          to: p.up.id,
+        const memEdge: Edge = {
           type: "purple",
           constraint: false,
-        });
+          zipperDirection: "up",
+        };
+        addEdge(memo[zipper.id].memEdges, p.up.id, memEdge);
         if (p.up.originalId !== undefined)
           zipperDot(
             p.up,
@@ -690,8 +706,8 @@ export const lcrsZipperToDot = <T>({
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     nodeToDot(x.zipper, x.type),
-    edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
-    edgesToDot(x.memEdges),
+    edgesToDot(logical ? x.dagEdges : x.lcrsEdges, x.zipper.id),
+    edgesToDot(x.memEdges, x.zipper.id),
   ]);
   return {
     dot: `digraph {
