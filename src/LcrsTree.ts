@@ -59,7 +59,7 @@ export const narryToLcrsTree = <T>(
 // Zipper ----------------------------------------------------------------------------
 
 // Key difference from classical Zipper is that it modifies node immediately on navigation,
-// but classical Zipper modifies node only whne navigates away
+// but classical Zipper modifies node only when navigates away
 // this can be changed if I move `down` and `right` inside of `value`
 export type LcrsZipper<T> = {
   id: ID;
@@ -73,7 +73,7 @@ export type LcrsZipper<T> = {
   // classical N-arry tree uses list, but in this case tree-node itslef is a list-node
   // so if there is a loop, there is no way to put recursive node in the tree without modifying it
   // so in order to fix we insert one additional special-node to make it possible to do the loop
-  // without modifyin the original node
+  // without modifying the original node
   // this node is omitted in zipper movements
   loop?: boolean;
 };
@@ -406,7 +406,7 @@ export const getLevel = memoizeWeak(
   }
 );
 
-const addEdge = (edgeIndex: EdgeIndex, to: ID, edge: Edge) => {
+export const addEdge = (edgeIndex: EdgeIndex, to: ID, edge: Edge) => {
   if (edgeIndex[to]) console.warn("Overwrite edge");
   edgeIndex[to] = edge;
 };
@@ -497,13 +497,14 @@ export const edgesToDot = memoizeWeakChain("", (edges: EdgeIndex, from: ID) =>
 
 export type DisplayItem<T> = {
   level: Level;
-  zipper: LcrsZipper<T>;
   type: NodeType;
-  dagEdges: EdgeIndex;
+  zipper: LcrsZipper<T>;
   // I don't really need to store them separately because it would be the same as Edges stored on Node
   lcrsEdges: EdgeIndex;
+  dagEdges: EdgeIndex;
   memEdges: EdgeIndex;
 };
+// Map would be faster than `{}`
 export type EdgeIndex = Record<ID, Edge>;
 export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
 

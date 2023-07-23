@@ -690,18 +690,16 @@ const expressionToDot = memoizeWeakChain(
 //     originalId: "TopC",
 //   },
 //   type: "purple",
-//   dagEdges: [],
-//   lcrsEdges: [],
-//   memEdges: [],
+//   dagEdges: {},
+//   lcrsEdges: {},
+//   memEdges: {},
 // };
 
 export const stepsToDot = ({
   steps,
   logical,
   mem,
-}: // position,
-// token,
-{
+}: {
   steps: Step[];
   logical: boolean;
   mem: boolean;
@@ -747,14 +745,13 @@ export const stepsToDot = ({
 
     //       if (upId !== zipper.up?.id) {
     //         const edge: Edge = {
-    //           from: zipper.id,
-    //           to: upId,
     //           type: "pink",
     //           // special arrowhead for mem parents
     //           arrowhead: "dot",
+    //           zipperDirection: "down",
     //         };
-    //         index[zipper.id].dagEdges.push(edge);
-    //         index[zipper.id].lcrsEdges.push(edge);
+    //         addEdge(index[zipper.id].dagEdges, upId, edge);
+    //         addEdge(index[zipper.id].lcrsEdges, upId, edge);
     //       }
     //     });
     //   }
@@ -775,12 +772,11 @@ export const stepsToDot = ({
     //         );
     //         mergeNodesIndex(index, newIndex);
     //         const edge: Edge = {
-    //           from: r.id,
-    //           to: zipper.up.id,
     //           type: "pink",
+    //           zipperDirection: "down",
     //         };
-    //         index[r.id].dagEdges.push(edge);
-    //         index[r.id].lcrsEdges.push(edge);
+    //         addEdge(index[r.id].dagEdges, zipper.up.id, edge);
+    //         addEdge(index[r.id].lcrsEdges, zipper.up.id, edge);
     //       }
     //     });
     //   }
@@ -820,19 +816,11 @@ export const stepsToDot = ({
     //   );
     //   const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
     //   edgeTypes.forEach((et) => {
-    //     index[zipper.id][et] = index[zipper.id][et].map((e) => {
-    //       if (zipperNextIds.has(e.to)) {
-    //         return {
-    //           ...e,
-    //           type: "pink",
-    //           // special arrowhead for mem parents
-    //           arrowhead:
-    //             direction === "up" && zipperNextIds.size > 1
-    //               ? "dot"
-    //               : undefined,
-    //         };
-    //       }
-    //       return e;
+    //     Object.keys(index[zipper.id][et]).forEach((to) => {
+    //       if (!zipperNextIds.has(to)) return;
+    //       index[zipper.id][et][to].type = "pink";
+    //       index[zipper.id][et][to].arrowhead =
+    //         direction === "up" && zipperNextIds.size > 1 ? "dot" : undefined;
     //     });
     //   });
     //   // if zipper stays in place
@@ -841,26 +829,23 @@ export const stepsToDot = ({
     //     (direction === "down" || direction === "downPrime")
     //   ) {
     //     const edge: Edge = {
-    //       from: zipper.id,
-    //       to: zipper.id,
     //       type: "pink",
     //       constraint: false,
+    //       zipperDirection: "down",
     //     };
-    //     index[zipper.id].dagEdges.push(edge);
-    //     index[zipper.id].lcrsEdges.push(edge);
+    //     addEdge(index[zipper.id].dagEdges, zipper.id, edge);
+    //     addEdge(index[zipper.id].lcrsEdges, zipper.id, edge);
     //   }
     //   // if next move would remove zipper
     //   if (zipperNextIds.size === 0) {
     //     // maybe draw whole zipper in grey?
     //     index[zipper.id].type = "gray";
-    //     index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => ({
-    //       ...e,
-    //       type: "gray",
-    //     }));
-    //     index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => ({
-    //       ...e,
-    //       type: "gray",
-    //     }));
+    //     Object.keys(index[zipper.id].dagEdges).forEach((to) => {
+    //       index[zipper.id].dagEdges[to].type = "gray";
+    //     });
+    //     Object.keys(index[zipper.id].lcrsEdges).forEach((to) => {
+    //       index[zipper.id].lcrsEdges[to].type = "gray";
+    //     });
     //   }
     // }
   });
