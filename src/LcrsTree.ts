@@ -487,7 +487,10 @@ const getEdges = (
 
   if (zipper.up) {
     if (givenType === "purple") {
-      memEdges.push({ from: zipper.id, to: zipper.up.id, type: "purple" });
+      const edge: Edge = { from: zipper.id, to: zipper.up.id, type: "purple" };
+      // memEdges.push(edge);
+      dagEdges.push(edge);
+      lcrsEdges.push(edge);
     } else {
       const edge: Edge = { from: zipper.id, to: zipper.up.id, type: "blue" };
       dagEdges.push(edge);
@@ -619,14 +622,14 @@ const zipperDotMemo = memoizeWeakChain(
   }
 );
 
-export const zipperDot = (
-  zipper: LcrsZipperPath<unknown>,
+export const zipperDot = <T = unknown>(
+  zipper: LcrsZipperPath<T>,
   type: NodeType,
   mem = false,
   zipperTraverse = true,
   level = -1,
-  memo: NodesIndex = {}
-): NodesIndex => {
+  memo: NodesIndex<T> = {}
+): NodesIndex<T> => {
   if (!zipper) return {};
   level = level === -1 ? getLevel(zipper) : level;
 
@@ -646,7 +649,7 @@ export const zipperDot = (
     ),
   };
 
-  if (type === "purple") {
+  if (type === "purple" && mem) {
     memo[zipper.id].lcrsEdges = [];
     memo[zipper.id].dagEdges = [];
     memo[zipper.id].memEdges = [];
@@ -713,12 +716,34 @@ export const zipperDot = (
           constraint: false,
         });
         if (p.up.originalId !== undefined)
-          zipperDot(p.up, "purple", zipperTraverse, mem, level - 1, memo);
+          zipperDot(
+            p.up,
+            "purple",
+            zipperTraverse,
+            mem,
+            level - 1,
+            memo as NodesIndex<any>
+          );
       }
     });
   }
 
   return { ...up, ...left, ...memo, ...right, ...down };
+};
+
+export const mergeNodesIndex = <T>(
+  oldNI: NodesIndex<T>,
+  newNI: NodesIndex<T>,
+  cb?: (oldItem: DisplayItem<T>, newItem: DisplayItem<T>) => DisplayItem<T>
+) => {
+  Object.entries(newNI).forEach(([id, item]) => {
+    if (!oldNI[id]) oldNI[id] = item;
+    else
+      oldNI[id] = {
+        ...(cb ? cb(oldNI[id], item) : oldNI[id]),
+        level: Math.max(oldNI[id].level, item.level),
+      };
+  });
 };
 
 export const lcrsZipperToDot = <T>({
@@ -730,15 +755,10 @@ export const lcrsZipperToDot = <T>({
 }) => {
   const index: NodesIndex<T> = {};
   zippers.forEach((zipper) => {
-    const newIndex = zipperDot(zipper, "focus") as NodesIndex<T>;
-    Object.entries(newIndex).forEach(([id, item]) => {
-      if (!index[id]) index[id] = item;
-      else
-        index[id] = {
-          ...(index[id].type === "purple" ? item : index[id]),
-          level: Math.max(index[id].level, item.level),
-        };
-    });
+    const newIndex = zipperDot(zipper, "focus");
+    mergeNodesIndex(index, newIndex, (oldItem, newItem) =>
+      oldItem.type === "purple" ? newItem : oldItem
+    );
   });
   const graphPieces = Object.values(index).flatMap((x) => [
     nodeToDot(x.zipper, x.type),

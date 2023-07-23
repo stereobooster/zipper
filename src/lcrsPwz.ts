@@ -1,4 +1,5 @@
 import {
+  DisplayItem,
   Edge,
   LcrsTree,
   LcrsZipper,
@@ -16,6 +17,7 @@ import {
   levelsDot,
   mapToArray,
   memoizeWeakChain,
+  mergeNodesIndex,
   node,
   prevIdTransaction,
   ranksDot,
@@ -678,12 +680,32 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
+const topC: DisplayItem<ExpressionValue> = {
+  level: 0,
+  zipper: {
+    value: {
+      expressionType: "Alt",
+      label: "TopC",
+    },
+    right: null,
+    down: null,
+    up: null,
+    left: null,
+    id: "TopC",
+    originalId: "TopC",
+  },
+  type: "purple",
+  dagEdges: [],
+  lcrsEdges: [],
+  memEdges: [],
+};
+
 export const stepsToDot = ({
   steps,
   logical,
   mem,
-  position,
-  token,
+  // position,
+  // token,
 }: {
   steps: Step[];
   logical: boolean;
@@ -694,19 +716,10 @@ export const stepsToDot = ({
   const index: NodesIndex<ExpressionValue> = {};
   steps.forEach((step) => {
     const [, zipper, m] = step;
-    const newIndex = zipperDot(
-      zipper,
-      "focus",
-      mem
-    ) as NodesIndex<ExpressionValue>;
-    Object.entries(newIndex).forEach(([id, item]) => {
-      if (!index[id]) index[id] = item;
-      else
-        index[id] = {
-          ...(index[id].type === "purple" ? item : index[id]),
-          level: Math.max(index[id].level, item.level),
-        };
-    });
+    const newIndex = zipperDot(zipper, "focus", mem);
+    mergeNodesIndex(index, newIndex, (oldItem, newItem) =>
+      oldItem.type === "purple" ? newItem : oldItem
+    );
 
     // stupid workaround to fix BUG: left-edge of focus is wrong color
     if (zipper.left) {
@@ -718,121 +731,149 @@ export const stepsToDot = ({
       );
     }
 
-    if (m && mem) {
-      m.parents.forEach((p) => {
-        // show empty node if there are no nodes above?
-        if (!p.up) return;
-        const newIndex = zipperDot(
-          p.up,
-          "purple",
-          true,
-          mem,
-          getLevel(zipper) - 1
-        ) as NodesIndex<ExpressionValue>;
-        Object.entries(newIndex).forEach(([id, item]) => {
-          if (!index[id]) index[id] = item;
-          else
-            index[id] = {
-              ...index[id],
-              level: Math.max(index[id].level, item.level),
-            };
-        });
+    // this is a mess
+    // if (position !== undefined && token !== undefined) {
+    //   let [direction] = step;
+    //   if (m && (direction === "up" || direction === "upPrime")) {
+    //     m.parents.forEach((p) => {
+    //       // show empty node if there are no nodes above?
+    //       const upId = p.up ? p.up.id : topC.zipper.id;
+    //       if (p.up) {
+    //         const newIndex = zipperDot(
+    //           p.up,
+    //           "purple",
+    //           false,
+    //           true,
+    //           getLevel(zipper) - 1
+    //         );
+    //         mergeNodesIndex(index, newIndex);
+    //       } else {
+    //         index[topC.zipper.id] = {
+    //           ...topC,
+    //           level: getLevel(zipper) - 1,
+    //         };
+    //       }
 
-        if (p.up.id !== zipper.up?.id)
-          index[zipper.id].memEdges.push({
-            from: zipper.id,
-            to: p.up.id,
-            type: "purple",
-            constraint: false
-          });
-      });
-    }
+    //       if (upId !== zipper.up?.id) {
+    //         const edge: Edge = {
+    //           from: zipper.id,
+    //           to: upId,
+    //           type: "pink",
+    //           // special arrowhead for mem parents
+    //           arrowhead: "dot",
+    //         };
+    //         index[zipper.id].dagEdges.push(edge);
+    //         index[zipper.id].lcrsEdges.push(edge);
+    //       }
+    //     });
+    //   }
 
-    // it kind of works but...
-    // - do I need to take into account m.results?
-    // - also need to add memoization
-    // - shall I draw empty node for TopC?
-    let [direction] = step;
-    if (position !== undefined && token !== undefined) {
-      let zipperNext;
-      if (direction === "none") {
-        direction = "up";
-        const newStep = [direction, step[1], step[2]] as Step;
-        zipperNext = deriveStep(position, token, newStep, true);
-      } else {
-        zipperNext = deriveStep(position, token, step, true);
-      }
-      if (
-        zipperNext.length === 1 &&
-        (direction === "up" || direction === "down")
-      ) {
-        zipperNext = zipperNext.flatMap((s) =>
-          deriveStep(position, token, s, true)
-        );
-      }
-      const zipperNextIds = new Set(
-        zipperNext.flatMap(([_, z]) => {
-          if (direction === "up" || direction === "upPrime") {
-            if (zipper.right?.loop && zipper.right?.down?.id === z.prevId) {
-              return [zipper.right.id];
-            }
-            return zipper.up?.id === z.prevId || zipper.right?.id === z.prevId
-              ? [z.prevId]
-              : [z.up?.id, z.prevId];
-          }
-          if (direction === "down" || direction === "downPrime")
-            return zipper.down?.loop && zipper.down?.down?.id === z.prevId
-              ? [zipper.down.id]
-              : [z.prevId];
-          return [z.prevId];
-        })
-      );
-      const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
-      edgeTypes.forEach((et) => {
-        index[zipper.id][et] = index[zipper.id][et].map((e) => {
-          if (zipperNextIds.has(e.to)) {
-            return {
-              ...e,
-              type: "pink",
-              // special arrowhead for mem parents
-              arrowhead:
-                direction === "up" && zipperNextIds.size > 1
-                  ? "dot"
-                  : undefined,
-            };
-          }
-          return e;
-        });
-      });
-      // if zipper stays in place
-      if (
-        zipperNextIds.has(zipper.id) &&
-        (direction === "down" || direction === "downPrime")
-      ) {
-        const edge: Edge = {
-          from: zipper.id,
-          to: zipper.id,
-          type: "pink",
-          constraint: false,
-        };
-        index[zipper.id].dagEdges.push(edge);
-        index[zipper.id].lcrsEdges.push(edge);
-      }
-      // if next move would remove zipper
-      if (zipperNextIds.size === 0) {
-        // maybe draw whole zipper in grey?
-        index[zipper.id].type = "gray";
-        index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => ({
-          ...e,
-          type: "gray",
-        }));
-        index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => ({
-          ...e,
-          type: "gray",
-        }));
-      }
-    }
+    //   if (
+    //     m &&
+    //     m.result[position] &&
+    //     (direction === "down" || direction === "downPrime")
+    //   ) {
+    //     m.result[position].forEach((r) => {
+    //       if (r.id !== zipper.id && zipper.up) {
+    //         const newIndex = zipperDot(
+    //           r,
+    //           "purple",
+    //           false,
+    //           true,
+    //           getLevel(zipper)
+    //         );
+    //         mergeNodesIndex(index, newIndex);
+    //         const edge: Edge = {
+    //           from: r.id,
+    //           to: zipper.up.id,
+    //           type: "pink",
+    //         };
+    //         index[r.id].dagEdges.push(edge);
+    //         index[r.id].lcrsEdges.push(edge);
+    //       }
+    //     });
+    //   }
+
+    //   let zipperNext;
+    //   if (direction === "none") {
+    //     direction = "up";
+    //     const newStep = [direction, step[1], step[2]] as Step;
+    //     zipperNext = deriveStep(position, token, newStep, true);
+    //   } else {
+    //     zipperNext = deriveStep(position, token, step, true);
+    //   }
+    //   if (
+    //     zipperNext.length === 1 &&
+    //     (direction === "up" || direction === "down")
+    //   ) {
+    //     zipperNext = zipperNext.flatMap((s) =>
+    //       deriveStep(position, token, s, true)
+    //     );
+    //   }
+    //   const zipperNextIds = new Set(
+    //     zipperNext.flatMap(([_, z]) => {
+    //       if (direction === "up" || direction === "upPrime") {
+    //         if (zipper.right?.loop && zipper.right?.down?.id === z.prevId) {
+    //           return [zipper.right.id];
+    //         }
+    //         return zipper.up?.id === z.prevId || zipper.right?.id === z.prevId
+    //           ? [z.prevId]
+    //           : [z.up?.id, z.prevId];
+    //       }
+    //       if (direction === "down" || direction === "downPrime")
+    //         return zipper.down?.loop && zipper.down?.down?.id === z.prevId
+    //           ? [zipper.down.id]
+    //           : [z.prevId];
+    //       return [z.prevId];
+    //     })
+    //   );
+    //   const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
+    //   edgeTypes.forEach((et) => {
+    //     index[zipper.id][et] = index[zipper.id][et].map((e) => {
+    //       if (zipperNextIds.has(e.to)) {
+    //         return {
+    //           ...e,
+    //           type: "pink",
+    //           // special arrowhead for mem parents
+    //           arrowhead:
+    //             direction === "up" && zipperNextIds.size > 1
+    //               ? "dot"
+    //               : undefined,
+    //         };
+    //       }
+    //       return e;
+    //     });
+    //   });
+    //   // if zipper stays in place
+    //   if (
+    //     zipperNextIds.has(zipper.id) &&
+    //     (direction === "down" || direction === "downPrime")
+    //   ) {
+    //     const edge: Edge = {
+    //       from: zipper.id,
+    //       to: zipper.id,
+    //       type: "pink",
+    //       constraint: false,
+    //     };
+    //     index[zipper.id].dagEdges.push(edge);
+    //     index[zipper.id].lcrsEdges.push(edge);
+    //   }
+    //   // if next move would remove zipper
+    //   if (zipperNextIds.size === 0) {
+    //     // maybe draw whole zipper in grey?
+    //     index[zipper.id].type = "gray";
+    //     index[zipper.id].dagEdges = index[zipper.id].dagEdges.map((e) => ({
+    //       ...e,
+    //       type: "gray",
+    //     }));
+    //     index[zipper.id].lcrsEdges = index[zipper.id].lcrsEdges.map((e) => ({
+    //       ...e,
+    //       type: "gray",
+    //     }));
+    //   }
+    // }
   });
+
   const graphPieces = Object.values(index).flatMap((x) => [
     expressionToDot(x.zipper, x.type),
     edgesToDot(logical ? x.dagEdges : x.lcrsEdges),
