@@ -65,7 +65,7 @@ export function alt(...args: [string, StrExp[]] | [StrExp[]]) {
  * instead of OCAML's `letrec`
  */
 export const rec = (cb: (x: Expression) => Expression): Expression => {
-  const res = {} as any;
+  const res = Object.create(null) as any;
   const tmp = cb(res);
   Object.entries(tmp).forEach(([k, v]) => (res[k] = v));
   return res;

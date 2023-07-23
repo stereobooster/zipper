@@ -79,7 +79,7 @@ type Edge = {
 type Trie = Record<ID, Record<ID, Edge>>;
 
 const addToTrie = (trie: Trie, edge: Edge) => {
-  if (!trie[edge.from]) trie[edge.from] = {};
+  if (!trie[edge.from]) trie[edge.from] = Object.create(null);
   trie[edge.from][edge.to] = edge;
 };
 
@@ -303,7 +303,7 @@ const levelsDot = (ranks: Record<ID, Level>) => `{
 }`;
 
 const ranksDot = (ranks: Record<ID, Level>) => {
-  const res = {} as Record<Level, ID[]>;
+  const res = Object.create(null) as Record<Level, ID[]>;
   Object.entries(ranks).forEach(([k, v]) => {
     if (!res[v]) res[v] = [];
     res[v].push(k as any);
@@ -1207,7 +1207,7 @@ const traverseUp = (
 
 const treeToHash = (
   tree: Expression,
-  result: Record<ID, { label: string; expressionType: ExpressionType }> = {}
+  result: Record<ID, { label: string; expressionType: ExpressionType }> = Object.create(null)
 ) => {
   if (!tree) return result;
   // loop detection

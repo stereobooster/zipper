@@ -388,7 +388,7 @@ export const levelsDot = (index: NodesIndex) => `{
 }`;
 
 export const ranksDot = (index: NodesIndex) => {
-  const res = {} as Record<Level, ID[]>;
+  const res = Object.create(null) as Record<Level, ID[]>;
   Object.entries(index).forEach(([k, v]) => {
     if (!res[v.level]) res[v.level] = [];
     res[v.level].push(k as any);
@@ -419,9 +419,9 @@ const getEdges = (
   // TODO: add support for zipper nodes/edges
   const isFocus = false;
 
-  const dagEdges: EdgeIndex = {};
-  const lcrsEdges: EdgeIndex = {};
-  const memEdges: EdgeIndex = {};
+  const dagEdges: EdgeIndex = Object.create(null);
+  const lcrsEdges: EdgeIndex = Object.create(null);
+  const memEdges: EdgeIndex = Object.create(null);
 
   if (zipper === null) return { dagEdges, lcrsEdges, memEdges };
 
@@ -518,11 +518,11 @@ const zipperDotMemo = memoizeWeakChain(
     zipperTraverse = true,
     // eslint-disable-next-line @typescript-eslint/no-inferrable-types
     level: number = -1,
-    memo: NodesIndex = {}
+    memo: NodesIndex = Object.create(null)
   ): NodesIndex => {
-    if (!zipper) return {};
+    if (!zipper) return Object.create(null);
     level = level === -1 ? getLevel(zipper) : level;
-    if (memo[zipper.id] !== undefined) return {};
+    if (memo[zipper.id] !== undefined) return Object.create(null);
     memo[zipper.id] = {
       level,
       zipper,
@@ -573,7 +573,7 @@ export const zipperDot = <T = unknown>(
   mem = false,
   zipperTraverse = true,
   level = -1,
-  memo: NodesIndex<T> = {}
+  memo: NodesIndex<T> = Object.create(null)
 ): NodesIndex<T> => {
   if (!zipper) return {};
   level = level === -1 ? getLevel(zipper) : level;
@@ -595,9 +595,9 @@ export const zipperDot = <T = unknown>(
   };
 
   if (type === "purple" && mem) {
-    memo[zipper.id].lcrsEdges = {};
-    memo[zipper.id].dagEdges = {};
-    memo[zipper.id].memEdges = {};
+    memo[zipper.id].lcrsEdges = Object.create(null);
+    memo[zipper.id].dagEdges = Object.create(null);
+    memo[zipper.id].memEdges = Object.create(null);
     const v = zipper.value as ExpressionValue;
     if (v.m) {
       v.m.parents.forEach((p) => {
@@ -698,7 +698,7 @@ export const lcrsZipperToDot = <T>({
   zippers: LcrsZipper<T>[];
   logical: boolean;
 }) => {
-  const index: NodesIndex<T> = {};
+  const index: NodesIndex<T> = Object.create(null);
   zippers.forEach((zipper) => {
     const newIndex = zipperDot(zipper, "focus");
     mergeNodesIndex(index, newIndex, (oldItem, newItem) =>

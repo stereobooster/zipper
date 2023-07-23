@@ -459,7 +459,7 @@ const traverseUp = <T>(
   return display;
 };
 
-const treeToHash = <T>(tree: Tree<T>, result: Record<ID, T> = {}) => {
+const treeToHash = <T>(tree: Tree<T>, result: Record<ID, T> = Object.create(null)) => {
   if (!tree) return result;
   result[tree.id] = tree.value;
   forEach(tree.children, (node) => treeToHash(node, result));
@@ -569,7 +569,7 @@ const levelsDot = (ranks: Record<ID, Level>) => `{
 }`;
 
 const ranksDot = (ranks: Record<ID, Level>) => {
-  const res = {} as Record<Level, ID[]>;
+  const res = Object.create(null) as Record<Level, ID[]>;
   Object.entries(ranks).forEach(([k, v]) => {
     if (!res[v]) res[v] = [];
     res[v].push(k as any);

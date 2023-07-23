@@ -61,9 +61,9 @@ export const grammarExpression = rules;
 const isEmpty = (obj: Record<any, any>) => Object.keys(obj).length === 0;
 
 export function evaluate(tree: Expression) {
-  const env: Record<string, Expression> = {};
+  const env: Record<string, Expression> = Object.create(null);
   const get = (name: string) => {
-    if (!env[name]) env[name] = {} as any;
+    if (!env[name]) env[name] = Object.create(null) as any;
     return env[name];
   };
   const set = (name: string, value: Expression) => {

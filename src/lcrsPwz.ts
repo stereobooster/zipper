@@ -706,7 +706,7 @@ export const stepsToDot = ({
   position?: number;
   token?: string;
 }) => {
-  const index: NodesIndex<ExpressionValue> = {};
+  const index: NodesIndex<ExpressionValue> = Object.create(null);
   steps.forEach((step) => {
     const [, zipper, _m] = step;
     const newIndex = zipperDot(zipper, "focus", mem);
