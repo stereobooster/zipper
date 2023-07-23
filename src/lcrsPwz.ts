@@ -1,6 +1,4 @@
 import {
-  DisplayItem,
-  Edge,
   LcrsTree,
   LcrsZipper,
   NodeType,
@@ -10,13 +8,11 @@ import {
   deleteBefore,
   down,
   edgesToDot,
-  getLevel,
   insertAfter,
   insertBefore,
   left,
   levelsDot,
   mapToArray,
-  memoizeWeakChain,
   mergeNodesIndex,
   node,
   prevIdTransaction,
@@ -35,6 +31,7 @@ import {
   zipperColor,
 } from "./colors";
 import { Memo } from "./lcrsPwzMemo";
+import { memoizeWeakChain } from "./memoization";
 
 export type ExpressionType =
   | "Tok"
@@ -680,25 +677,25 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
-const topC: DisplayItem<ExpressionValue> = {
-  level: 0,
-  zipper: {
-    value: {
-      expressionType: "Alt",
-      label: "TopC",
-    },
-    right: null,
-    down: null,
-    up: null,
-    left: null,
-    id: "TopC",
-    originalId: "TopC",
-  },
-  type: "purple",
-  dagEdges: [],
-  lcrsEdges: [],
-  memEdges: [],
-};
+// const topC: DisplayItem<ExpressionValue> = {
+//   level: 0,
+//   zipper: {
+//     value: {
+//       expressionType: "Alt",
+//       label: "TopC",
+//     },
+//     right: null,
+//     down: null,
+//     up: null,
+//     left: null,
+//     id: "TopC",
+//     originalId: "TopC",
+//   },
+//   type: "purple",
+//   dagEdges: [],
+//   lcrsEdges: [],
+//   memEdges: [],
+// };
 
 export const stepsToDot = ({
   steps,
@@ -715,7 +712,7 @@ export const stepsToDot = ({
 }) => {
   const index: NodesIndex<ExpressionValue> = {};
   steps.forEach((step) => {
-    const [, zipper, m] = step;
+    const [, zipper, _m] = step;
     const newIndex = zipperDot(zipper, "focus", mem);
     mergeNodesIndex(index, newIndex, (oldItem, newItem) =>
       oldItem.type === "purple" ? newItem : oldItem
