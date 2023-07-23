@@ -130,6 +130,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Small bugs and unsorted notes
 
+- Next zipper movement vizualisation
+  - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
 - "Grammar grammar"
   - Use `[]` for character classes
   - Does it support c-escaped characters?
@@ -137,6 +139,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Jump over "borring" steps (1 step, zipper didn't move)
 - vizualization
   - hover on "next step button" doesn't highlight active zipper after click
+  - hovering on zipper node - highlight button in `Direction and depth`
   - add ability to collapse graph by click on node
     - show mem graph (collapsed by default)
     - Collapse `lex` nodes on click
