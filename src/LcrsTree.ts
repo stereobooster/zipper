@@ -508,20 +508,22 @@ export type DisplayItem<T = unknown> = {
 export type EdgeIndex = Record<ID, Edge>;
 export type NodesIndex<T = unknown> = Record<ID, DisplayItem<T>>;
 
+const levelBottom = -1000000;
+
 // maybe replace `type` with `direction`?
 // Can we memoize zipper segment if it doesn't contain loop?
-const zipperDotMemo = memoizeWeakChain(
+const traverseZipperMemo = memoizeWeakChain(
   {} as NodesIndex,
   (
     zipper: LcrsZipperPath<unknown>,
     type: NodeType,
     zipperTraverse = true,
     // eslint-disable-next-line @typescript-eslint/no-inferrable-types
-    level: number = -1,
+    level: number = levelBottom,
     memo: NodesIndex = Object.create(null)
   ): NodesIndex => {
     if (!zipper) return Object.create(null);
-    level = level === -1 ? getLevel(zipper) : level;
+    level = level === levelBottom ? getLevel(zipper) : level;
     if (memo[zipper.id] !== undefined) return Object.create(null);
     memo[zipper.id] = {
       level,
@@ -534,20 +536,20 @@ const zipperDotMemo = memoizeWeakChain(
       ),
     };
 
-    const up = zipperDotMemo(
+    const up = traverseZipperMemo(
       zipper.up,
       type === "focus" ? "blue" : type,
       zipperTraverse,
       level - 1
     );
-    const left = zipperDotMemo(
+    const left = traverseZipperMemo(
       zipper.left,
       type === "focus" ? "blue" : type,
       zipperTraverse,
       level
     );
     // @ts-expect-error need to add type
-    const right = zipperDotMemo.original(
+    const right = traverseZipperMemo.original(
       zipper.right,
       type === "focus" ? "green" : type,
       zipperTraverse,
@@ -555,7 +557,7 @@ const zipperDotMemo = memoizeWeakChain(
       memo
     );
     // @ts-expect-error need to add type
-    const down = zipperDotMemo.original(
+    const down = traverseZipperMemo.original(
       zipper.down,
       type === "focus" ? "green" : type,
       false,
@@ -567,16 +569,16 @@ const zipperDotMemo = memoizeWeakChain(
   }
 );
 
-export const zipperDot = <T = unknown>(
+export const traverseZipper = <T = unknown>(
   zipper: LcrsZipperPath<T>,
   type: NodeType,
   mem = false,
   zipperTraverse = true,
-  level = -1,
+  level = levelBottom,
   memo: NodesIndex<T> = Object.create(null)
 ): NodesIndex<T> => {
   if (!zipper) return {};
-  level = level === -1 ? getLevel(zipper) : level;
+  level = level === levelBottom ? getLevel(zipper) : level;
 
   if (memo[zipper.id] !== undefined) {
     // memo[zipper.id].level = Math.max(memo[zipper.id].level, level)
@@ -614,7 +616,7 @@ export const zipperDot = <T = unknown>(
     return memo;
   }
 
-  const up = zipperDot(
+  const up = traverseZipper(
     zipper.up,
     type === "focus" ? "blue" : type,
     mem,
@@ -622,7 +624,7 @@ export const zipperDot = <T = unknown>(
     level - 1,
     memo
   );
-  const left = zipperDot(
+  const left = traverseZipper(
     zipper.left,
     type === "focus" ? "blue" : type,
     mem,
@@ -630,7 +632,7 @@ export const zipperDot = <T = unknown>(
     level,
     memo
   );
-  const right = zipperDot(
+  const right = traverseZipper(
     zipper.right,
     type === "focus" ? "green" : type,
     mem,
@@ -638,7 +640,7 @@ export const zipperDot = <T = unknown>(
     level,
     memo
   );
-  const down = zipperDot(
+  const down = traverseZipper(
     zipper.down,
     type === "focus" ? "green" : type,
     mem,
@@ -661,7 +663,7 @@ export const zipperDot = <T = unknown>(
         };
         addEdge(memo[zipper.id].memEdges, p.up.id, memEdge);
         if (p.up.originalId !== undefined)
-          zipperDot(
+          traverseZipper(
             p.up,
             "purple",
             zipperTraverse,
@@ -700,7 +702,7 @@ export const lcrsZipperToDot = <T>({
 }) => {
   const index: NodesIndex<T> = Object.create(null);
   zippers.forEach((zipper) => {
-    const newIndex = zipperDot(zipper, "focus");
+    const newIndex = traverseZipper(zipper, "focus");
     mergeNodesIndex(index, newIndex, (oldItem, newItem) =>
       oldItem.type === "purple" ? newItem : oldItem
     );

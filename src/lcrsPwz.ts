@@ -4,7 +4,6 @@ import {
   ID,
   LcrsTree,
   LcrsZipper,
-  LcrsZipperPath,
   NodeType,
   NodesIndex,
   PartialLcrsZipper,
@@ -13,6 +12,7 @@ import {
   deleteBefore,
   down,
   edgesToDot,
+  getLevel,
   insertAfter,
   insertBefore,
   left,
@@ -25,7 +25,7 @@ import {
   right,
   treeToZipper,
   up,
-  zipperDot,
+  traverseZipper,
 } from "./LcrsTree";
 import {
   grayColor,
@@ -680,25 +680,25 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
-// const topC: DisplayItem<ExpressionValue> = {
-//   level: 0,
-//   zipper: {
-//     value: {
-//       expressionType: "Alt",
-//       label: "TopC",
-//     },
-//     right: null,
-//     down: null,
-//     up: null,
-//     left: null,
-//     id: "TopC",
-//     originalId: "TopC",
-//   },
-//   type: "purple",
-//   dagEdges: {},
-//   lcrsEdges: {},
-//   memEdges: {},
-// };
+const topC: DisplayItem<ExpressionValue> = {
+  level: 0,
+  zipper: {
+    value: {
+      expressionType: "Alt",
+      label: "TopC",
+    },
+    right: null,
+    down: null,
+    up: null,
+    left: null,
+    id: "TopC",
+    originalId: "TopC",
+  },
+  type: "purple",
+  dagEdges: Object.create(null),
+  lcrsEdges: Object.create(null),
+  memEdges: Object.create(null),
+};
 
 const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
 
@@ -711,8 +711,6 @@ const setZipperDirectionEdge = (
   edgeTypes.forEach((et) => {
     if (from[et][to] === undefined) return;
     from[et][to].type = "pink";
-    // index[zipper.id][et][to].arrowhead =
-    //   direction === "up" && zipperNext.length > 1 ? "dot" : undefined;
   });
 };
 
@@ -732,7 +730,7 @@ export const stepsToDot = ({
   const index: NodesIndex<ExpressionValue> = Object.create(null);
   steps.forEach((step) => {
     const [, zipper, m] = step;
-    const newIndex = zipperDot(zipper, "focus", mem);
+    const newIndex = traverseZipper(zipper, "focus", mem);
     mergeNodesIndex(index, newIndex, (oldItem, newItem) =>
       oldItem.type === "purple" ? newItem : oldItem
     );
@@ -745,64 +743,63 @@ export const stepsToDot = ({
 
     if (position !== undefined && token !== undefined) {
       let [direction] = step;
-      // this is a mess
-      // if (m && (direction === "up" || direction === "upPrime")) {
-      //   m.parents.forEach((p) => {
-      //     // show empty node if there are no nodes above?
-      //     const upId = p.up ? p.up.id : topC.zipper.id;
-      //     if (p.up) {
-      //       const newIndex = zipperDot(
-      //         p.up,
-      //         "purple",
-      //         false,
-      //         true,
-      //         getLevel(zipper) - 1
-      //       );
-      //       mergeNodesIndex(index, newIndex);
-      //     } else {
-      //       index[topC.zipper.id] = {
-      //         ...topC,
-      //         level: getLevel(zipper) - 1,
-      //       };
-      //     }
+      if (m && (direction === "up" || direction === "upPrime")) {
+        m.parents.forEach((p) => {
+          // draw TopC nodes if there are no nodes above
+          const upId = p.up ? p.up.id : topC.zipper.id;
+          if (p.up) {
+            const newIndex = traverseZipper(
+              p.up,
+              "purple",
+              false,
+              true,
+              getLevel(zipper) - 1
+            );
+            mergeNodesIndex(index, newIndex);
+          } else {
+            index[topC.zipper.id] = {
+              ...topC,
+              level: getLevel(zipper) - 1,
+            };
+          }
 
-      //     if (upId !== zipper.up?.id) {
-      //       const edge: Edge = {
-      //         type: "pink",
-      //         // special arrowhead for mem parents
-      //         arrowhead: "dot",
-      //         zipperDirection: "down",
-      //       };
-      //       addEdge(index[zipper.id].dagEdges, upId, edge);
-      //       addEdge(index[zipper.id].lcrsEdges, upId, edge);
-      //     }
-      //   });
-      // }
+          if (upId !== zipper.up?.id) {
+            const edge: Edge = {
+              type: "pink",
+              // special arrowhead for mem parents
+              arrowhead: "dot",
+              zipperDirection: "down",
+            };
+            addEdge(index[zipper.id].dagEdges, upId, edge);
+            addEdge(index[zipper.id].lcrsEdges, upId, edge);
+          }
+        });
+      }
 
-      // if (
-      //   m &&
-      //   m.result[position] &&
-      //   (direction === "down" || direction === "downPrime")
-      // ) {
-      //   m.result[position].forEach((r) => {
-      //     if (r.id !== zipper.id && zipper.up) {
-      //       const newIndex = zipperDot(
-      //         r,
-      //         "purple",
-      //         false,
-      //         true,
-      //         getLevel(zipper)
-      //       );
-      //       mergeNodesIndex(index, newIndex);
-      //       const edge: Edge = {
-      //         type: "pink",
-      //         zipperDirection: "down",
-      //       };
-      //       addEdge(index[r.id].dagEdges, zipper.up.id, edge);
-      //       addEdge(index[r.id].lcrsEdges, zipper.up.id, edge);
-      //     }
-      //   });
-      // }
+      if (
+        m &&
+        m.result[position] &&
+        (direction === "down" || direction === "downPrime")
+      ) {
+        m.result[position].forEach((r) => {
+          if (r.id !== zipper.id && zipper.up) {
+            const newIndex = traverseZipper(
+              r,
+              "purple",
+              false,
+              true,
+              getLevel(zipper)
+            );
+            mergeNodesIndex(index, newIndex);
+            const edge: Edge = {
+              type: "pink",
+              zipperDirection: "down",
+            };
+            addEdge(index[r.id].dagEdges, zipper.up.id, edge);
+            addEdge(index[r.id].lcrsEdges, zipper.up.id, edge);
+          }
+        });
+      }
 
       // calculate next move
       let zipperNext;
@@ -835,13 +832,15 @@ export const stepsToDot = ({
         return;
       }
 
-      zipperNext.forEach(([_d, z]) => {
-        // if (d === "none") d = "up";
+      zipperNext.forEach(([d, z]) => {
+        if (d === "none") d = "up";
         if (zipper.right?.loop && zipper.right?.down?.id === z.prevId) {
           setZipperDirectionEdge(index[zipper.id], zipper.right.id);
         } else if (zipper.down?.loop && zipper.down?.down?.id === z.prevId) {
           setZipperDirectionEdge(index[zipper.id], zipper.down.id);
         } else if (z.prevId === zipper.id) {
+          // don't draw self edge for this case, because it will draw mem-parents edges
+          if (d === "upPrime") return;
           // on next move zipper stays in place - add self-edge
           const edge: Edge = {
             type: "pink",
