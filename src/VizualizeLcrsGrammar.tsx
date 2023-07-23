@@ -240,10 +240,18 @@ export const VizualizeLcrsGrammar = ({
   }, [layout, steps, displayZippers, showMem, position, token]);
 
   const go = useCallback(() => {
-    if (position > str.length) return setFinished(true);
+    if (position > str.length) {
+      setFinished(true);
+      setAutoDerivate(false);
+      return
+    }
     const [newSteps, newPosition, currentStep, currentStepLength, nextStep] =
       processSteps(token, position === str.length, position, steps);
-    if (newSteps.length === 0) return setAutoDerivate(false);
+    if (newSteps.length === 0) {
+      setFinished(true);
+      setAutoDerivate(false);
+      return
+    }
     setCycle((x) => x + 1);
     setPosition(newPosition);
     setStep(nextStep);
@@ -282,17 +290,17 @@ export const VizualizeLcrsGrammar = ({
   ]);
 
   const jumpToCycle = useCallback(() => {
+    setFinished(false);
+    setAutoDerivate(false);
     const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
       str,
       initialStep,
       cycle
     );
-    setAutoDerivate(false);
     setCycle(newCycle);
     setPosition(newPosition);
     setStep(nextStep);
     setSteps(newSteps);
-    setFinished(false);
     setDisplayZippers([]);
   }, [
     cycle,

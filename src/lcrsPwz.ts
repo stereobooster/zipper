@@ -152,6 +152,8 @@ export function parse(str: string, tree: Expression) {
   treeCompaction = true;
   const initialStep: Step[] = [["down", treeToZipper(tree), undefined]];
   const [steps, position, , , error] = deriveFinalSteps(str, initialStep);
+  mems.reset();
+  memoInput.length = 0;
   treeCompaction = treeCompactionPrev;
   if (error)
     // this is not perfect because it can show "Ign" items, which doesn't help
@@ -191,8 +193,6 @@ export function deriveFinalSteps(str: string, steps: Step[], targetCycle = -1) {
     cycle += 1;
   } while (position <= str.length);
 
-  mems.reset();
-  memoInput.length = 0;
   return [steps, position, step, cycle, error] as const;
 }
 
