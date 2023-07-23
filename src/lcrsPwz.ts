@@ -150,7 +150,8 @@ let treeCompaction = false;
 export function parse(str: string, tree: Expression) {
   const treeCompactionPrev = treeCompaction;
   treeCompaction = true;
-  const [steps, position, , , error] = deriveFinalSteps(str, tree);
+  const initialStep: Step[] = [["down", treeToZipper(tree), undefined]];
+  const [steps, position, , , error] = deriveFinalSteps(str, initialStep);
   treeCompaction = treeCompactionPrev;
   if (error)
     // this is not perfect because it can show "Ign" items, which doesn't help
@@ -164,14 +165,9 @@ export function parse(str: string, tree: Expression) {
   return steps.map(([, z]) => z);
 }
 
-export function deriveFinalSteps(
-  str: string,
-  tree: Expression,
-  targetCycle = -1
-) {
+export function deriveFinalSteps(str: string, steps: Step[], targetCycle = -1) {
   mems.reset();
   memoInput.length = 0;
-  let steps: Step[] = [["down", treeToZipper(tree), undefined]];
   let position = 0;
   let step = 0;
   let cycle = 0;
@@ -724,7 +720,9 @@ export const stepsToDot = ({
   steps: Step[];
   logical: boolean;
   mem: boolean;
+  // required for m.result
   position?: number;
+  // required to calculate next step
   token?: string;
 }) => {
   const index: NodesIndex<ExpressionValue> = Object.create(null);
@@ -810,15 +808,16 @@ export const stepsToDot = ({
       } else {
         zipperNext = deriveStep(position, token, step, true);
       }
+      // unfortuantley this sometimes doesn't work due to dry run
       // calculate after-next move, if current one is "borring"
-      if (
-        zipperNext.length === 1 &&
-        (direction === "up" || direction === "down")
-      ) {
-        zipperNext = zipperNext.flatMap((s) =>
-          deriveStep(position, token, s, true)
-        );
-      }
+      // if (
+      //   zipperNext.length === 1 &&
+      //   (direction === "up" || direction === "down")
+      // ) {
+      //   zipperNext = zipperNext.flatMap((s) =>
+      //     deriveStep(position, token, s, true)
+      //   );
+      // }
 
       // if next move would remove zipper
       if (zipperNext.length === 0) {

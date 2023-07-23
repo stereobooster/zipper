@@ -128,8 +128,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Better error message should take in account `Ign` and `Lex`
 - Collect more "interesting" examples of grammars
 
-### Small bugs and unsorted noted
+### Small bugs and unsorted notes
 
+- Bug in "Jump" button
+  - if you click to cycle 4: you see 3 focuses and one gray. On the next move it would be 2 focuse
+  - if you jump to cycle 4: you see 3 focuses. On the next move (c:6) it would be 5 focuses
 - "Grammar grammar"
   - Use `[]` for character classes
   - Does it support c-escaped characters?

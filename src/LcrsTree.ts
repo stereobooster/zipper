@@ -331,7 +331,6 @@ const edgeToDot = (
     pp("arrowhead", arrowhead),
     pp("arrowtail", arrowtail),
   ].filter(Boolean);
-  // if (arrowtail !== undefined) console.log(props);
   return `${from} -> ${to} [${props.join(" ")}];`;
 };
 

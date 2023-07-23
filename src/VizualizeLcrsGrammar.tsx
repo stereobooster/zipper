@@ -202,26 +202,33 @@ export const VizualizeLcrsGrammar = ({
   str,
 }: VizualizeGrammarProps) => {
   const [fit, setFit] = useState(true);
+  const options: GraphvizOptions = useMemo(
+    () => ({ height, width, fit }),
+    [height, width, fit]
+  );
+
   const [animate, setAnimate] = useState(false);
   const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
 
+  const [autoDerivate, setAutoDerivate] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [displayZippers, setDisplayZippers] = useState([] as number[]);
-  const [step, setStep] = useState(0);
-  const [steps, setSteps] = useState<Step[]>(() => [
-    ["down", treeToZipper(tree), undefined],
-  ]);
+  const [selectedNode, setSelectedNode] = useState<ID | undefined>();
+  const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
 
+  const initialStep: Step[] = useMemo(
+    () => [["down", treeToZipper(tree), undefined]],
+    [tree]
+  );
+  const [cycle, setCycle] = useState(0);
   const [position, setPosition] = useState(0);
+  const [step, setStep] = useState(0);
+  const [steps, setSteps] = useState(initialStep);
+
   const token = str[position] || "";
 
-  const strWithPos =
-    str.substring(0, position) +
-    `<span style="text-decoration: underline;">${token}</span>` +
-    str.substring(position + 1, str.length);
-
-  const [selectedNode, setSelectedNode] = useState<ID | undefined>();
-  const { dot, index } = useMemo(() => {
+  const { dot, index: nodes } = useMemo(() => {
     const displaySteps = displayZippers.map((x) => steps[x]).filter(Boolean);
     return stepsToDot({
       steps: displaySteps.length !== 0 ? displaySteps : steps,
@@ -231,27 +238,24 @@ export const VizualizeLcrsGrammar = ({
       token,
     });
   }, [layout, steps, displayZippers, showMem, position, token]);
-  const nodes = index as NodesIndex<ExpressionValue>;
-  const [cycle, setCycle] = useState(0);
-  const [finished, setFinished] = useState(false);
+
   const go = useCallback(() => {
     if (position > str.length) return setFinished(true);
-    setCycle((x) => x + 1);
     const [newSteps, newPosition, currentStep, currentStepLength, nextStep] =
       processSteps(token, position === str.length, position, steps);
     if (newSteps.length === 0) return setAutoDerivate(false);
+    setCycle((x) => x + 1);
     setPosition(newPosition);
     setStep(nextStep);
     setSteps(newSteps);
-    if (displayZippers.length !== 0) {
-      setDisplayZippers(
-        displayZippers.flatMap((x) => {
-          if (x < currentStep) return [x];
-          if (x > currentStep) return [x + currentStepLength - 1];
-          return Array.from({ length: currentStepLength }, (_, i) => i + x);
-        })
-      );
-    }
+    setDisplayZippers((displayZippers) => {
+      if (displayZippers.length !== 0) return displayZippers;
+      return displayZippers.flatMap((x) => {
+        if (x < currentStep) return [x];
+        if (x > currentStep) return [x + currentStepLength - 1];
+        return Array.from({ length: currentStepLength }, (_, i) => i + x);
+      });
+    });
     setSelectedNode((selectedNode) => {
       if (currentStepLength > 0 && selectedNode) {
         const z = newSteps[step][1];
@@ -263,24 +267,12 @@ export const VizualizeLcrsGrammar = ({
       }
       return selectedNode;
     });
-    // if (currentStepLength === 1 && newSteps[nextStep][0] === "downPrime") {
-    //   const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
-    //     str,
-    //     tree,
-    //     cycle + 2
-    //   );
-    //   setPosition(newPosition);
-    //   setStep(nextStep);
-    //   setSteps(newSteps);
-    //   setCycle(newCycle);
-    // }
   }, [
     step,
     position,
     token,
     steps,
     str,
-    displayZippers,
     setFinished,
     setStep,
     setSteps,
@@ -292,31 +284,32 @@ export const VizualizeLcrsGrammar = ({
   const jumpToCycle = useCallback(() => {
     const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
       str,
-      tree,
+      initialStep,
       cycle
     );
-    setFinished(false);
+    setAutoDerivate(false);
+    setCycle(newCycle);
     setPosition(newPosition);
     setStep(nextStep);
     setSteps(newSteps);
-    setCycle(newCycle);
-    setAutoDerivate(false);
+    setFinished(false);
     setDisplayZippers([]);
-  }, [cycle, str, tree, setFinished, setStep, setSteps, setDisplayZippers]);
+  }, [
+    cycle,
+    str,
+    initialStep,
+    setFinished,
+    setStep,
+    setSteps,
+    setDisplayZippers,
+  ]);
 
-  const [autoDerivate, setAutoDerivate] = useState(false);
   useEffect(() => {
     if (finished || !autoDerivate) return;
     const i = setInterval(go, 20);
     return () => clearInterval(i);
   }, [autoDerivate, finished, go]);
 
-  const options: GraphvizOptions = useMemo(
-    () => ({ height, width, fit }),
-    [height, width, fit]
-  );
-
-  const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
   const highlighted = useMemo(() => {
     if (selectedNode) return [...new Set([selectedNode, ...highlightedNodes])];
     return highlightedNodes;
@@ -391,10 +384,11 @@ export const VizualizeLcrsGrammar = ({
           <Nobr>String to parse</Nobr>
           <br />
           <div className={c.text}>
-            <code
-              className={c.code}
-              dangerouslySetInnerHTML={{ __html: strWithPos }}
-            />
+            <code className={c.code}>
+              {str.substring(0, position)}
+              <span style={{ textDecoration: "underline" }}>{token}</span>
+              {str.substring(position + 1, str.length)}
+            </code>
           </div>
         </div>
         <div>
