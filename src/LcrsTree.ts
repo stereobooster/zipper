@@ -78,11 +78,11 @@ export type LcrsZipper<T> = {
   loop?: boolean;
 };
 
-export type LcrsZipperPath<T> = LcrsZipper<T> | null;
+export type LcrsZipperPath<T = unknown> = LcrsZipper<T> | null;
 
 export const treeToZipper = <T>(tree: LcrsTree<T>): LcrsZipper<T> => tree;
 
-export type PartialLcrsZipper<T> = Partial<LcrsZipper<T>> & {
+export type PartialLcrsZipper<T = unknown> = Partial<LcrsZipper<T>> & {
   value: T;
 };
 
@@ -495,7 +495,7 @@ export const edgesToDot = memoizeWeakChain("", (edges: EdgeIndex, from: ID) =>
     .join("\n")
 );
 
-export type DisplayItem<T> = {
+export type DisplayItem<T = unknown> = {
   level: Level;
   type: NodeType;
   zipper: LcrsZipper<T>;

@@ -132,7 +132,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 - "Grammar grammar"
   - Use `[]` for character classes
-  - Does it support c-escaped characters
+  - Does it support c-escaped characters?
   - convert multi-character strings (`"..."`) to `Seq` of `Tok`
 - Jump over "borring" steps (1 step, zipper didn't move)
 - vizualization
