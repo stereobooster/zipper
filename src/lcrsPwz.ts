@@ -50,6 +50,8 @@ export type ExpressionType =
   | "LexC"
   | "Ign"
   | "IgnC";
+// | "Int"
+// | "IntC";
 
 export type ExpressionValue = {
   expressionType: ExpressionType;
@@ -298,6 +300,7 @@ const deriveDownPrime = prevIdTransaction(
           ],
         ];
       case "Alt": {
+        // | Alt (es) -> List.concat (List.map (d↓ (AltC m)) es)
         const x = expressionNode({
           ...zipper,
           down: null,
@@ -310,7 +313,7 @@ const deriveDownPrime = prevIdTransaction(
         });
         return mapChildren(zipper, (e) => [
           "down",
-          expressionNode({ ...(e.loop ? e.down! : e), up: x, right: null }),
+          expressionNode({ ...e, up: x }),
           undefined,
         ]);
       }
@@ -676,6 +679,51 @@ const expressionToDot = memoizeWeakChain(
   }
 );
 
+const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
+
+const indexByOriginalId = (nodes: NodesIndex<ExpressionValue>) => {
+  const index: Record<ID, Record<number, Record<number, ID[]>>> = Object.create(
+    null
+  );
+  const duplicates: Record<ID, ID> = Object.create(null);
+  Object.entries(nodes).forEach(([id, item]) => {
+    const { start, end } = item.zipper.value;
+    const { originalId } = item.zipper;
+    if (start === undefined || end === undefined || originalId === undefined)
+      return;
+    if (!index[originalId]) index[originalId] = Object.create(null);
+    if (!index[originalId][start])
+      index[originalId][start] = Object.create(null);
+    if (!index[originalId][start][end]) index[originalId][start][end] = [];
+    index[originalId][start][end].push(id);
+    if (index[originalId][start][end].length > 1) {
+      duplicates[id] = index[originalId][start][end][0];
+    }
+  });
+  return duplicates;
+};
+
+// can be improved - because it can hide focus nodes and look edges strange
+const visualCompaction = (nodes: NodesIndex<ExpressionValue>) => {
+  const duplicates = indexByOriginalId(nodes);
+  const newNodes: NodesIndex<ExpressionValue> = Object.create(null);
+  Object.entries(nodes).forEach(([id, item]) => {
+    const newItem = duplicates[id] ? newNodes[duplicates[id]] : { ...item };
+    newItem.level = Math.max(newItem.level, item.level);
+    edgeTypes.forEach((et) => {
+      newItem[et] = { ...newItem[et], ...item[et] };
+      Object.entries(duplicates).forEach(([oldToId, newToid]) => {
+        if (newItem[et][oldToId] === undefined) return;
+        newItem[et][newToid] = newItem[et][oldToId];
+        delete newItem[et][oldToId];
+      });
+    });
+    if (!duplicates[id]) newNodes[id] = newItem;
+  });
+
+  return newNodes;
+};
+
 const topC: DisplayItem<ExpressionValue> = {
   level: 0,
   zipper: {
@@ -696,8 +744,6 @@ const topC: DisplayItem<ExpressionValue> = {
   memEdges: Object.create(null),
 };
 
-const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
-
 const setZipperDirectionEdge = (
   from: DisplayItem,
   to: ID | undefined
@@ -716,6 +762,7 @@ export const stepsToDot = ({
   mem,
   position,
   token,
+  compact,
 }: {
   steps: Step[];
   logical: boolean;
@@ -724,8 +771,9 @@ export const stepsToDot = ({
   position?: number;
   // required to calculate next step
   token?: string;
+  compact: boolean;
 }) => {
-  const index: NodesIndex<ExpressionValue> = Object.create(null);
+  let index: NodesIndex<ExpressionValue> = Object.create(null);
   steps.forEach((step) => {
     const [, zipper, m] = step;
     const newIndex = traverseZipper(zipper, "focus", mem);
@@ -819,7 +867,7 @@ export const stepsToDot = ({
       }
 
       // if next move would remove zipper
-      if (zipperNext.length === 0) {
+      if (zipperNext.length === 0 && token !== "") {
         // maybe draw whole zipper in grey?
         index[zipper.id].type = "gray";
         edgeTypes.forEach((et) =>
@@ -853,6 +901,8 @@ export const stepsToDot = ({
       });
     }
   });
+
+  if (compact) index = visualCompaction(index);
 
   const graphPieces = Object.values(index).flatMap((x) => [
     expressionToDot(x.zipper, x.type),

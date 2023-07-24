@@ -36,6 +36,7 @@ export const VizualizeLcrsGrammar = ({
   const [animate, setAnimate] = useState(false);
   const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
+  const [compact, setCompact] = useState(false);
 
   const [autoDerivate, setAutoDerivate] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -62,8 +63,9 @@ export const VizualizeLcrsGrammar = ({
       mem: showMem,
       position,
       token,
+      compact,
     });
-  }, [layout, steps, displayZippers, showMem, position, token]);
+  }, [layout, steps, displayZippers, compact, showMem, position, token]);
 
   const go = useCallback(() => {
     if (position > str.length) {
@@ -260,6 +262,17 @@ export const VizualizeLcrsGrammar = ({
               </BaseButton>
             ))}
           </div>
+        </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={compact}
+              onChange={() => setCompact((x) => !x)}
+            />{" "}
+            Compact
+          </label>
         </div>
         <div>
           <br />

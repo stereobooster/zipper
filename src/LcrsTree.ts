@@ -244,7 +244,13 @@ export const mapToArray = <T, P>(
 export const mapChildren = <T, P>(
   zipper: LcrsZipperPath<T>,
   cb: (x: LcrsZipper<T>) => P
-) => mapToArray("right", zipper?.down || null, cb);
+) =>
+  mapToArray("right", zipper?.down || null, (x) =>
+    cb({
+      ...(x.loop ? x.down! : x),
+      right: null,
+    })
+  );
 
 // Vizualization ----------------------------------------------------------------------------
 
@@ -478,9 +484,9 @@ const getEdges = (
       addEdge(dagEdges, down.id, edge);
       addEdge(lcrsEdges, down.id, edge);
     } else {
-      mapChildren(zipper, (to) => {
-        addEdge(dagEdges, to.id, { type, zipperDirection: "down" });
-      });
+      mapToArray("right", zipper?.down, (to) =>
+        addEdge(dagEdges, to.id, { type, zipperDirection: "down" })
+      );
       addEdge(lcrsEdges, down.id, { type, zipperDirection: "down" });
     }
   }

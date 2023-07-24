@@ -109,7 +109,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Ability to highlight nodes when other controls are hovered - to easily identify which node is related to this control
   - Ability to jump to specific derivation cycle. This makes debuging so much easier I whould have done this earlier
   - Animation between cycles
-  - Pink arrows where zipper will move next (this feature needs more work)
+  - Pink arrows where zipper will move next
+- Display compaction (not the same as tree compaction)
+  - It removes all duplicate nodes and joins all edges from duplicate nodes. Node is duplicate if it has the same `originalId`, `start` and `end`
+  - This feature needs more work
 
 ## Next
 
