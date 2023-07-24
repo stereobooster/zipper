@@ -111,8 +111,13 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Animation between cycles
   - Pink arrows where zipper will move next
 - Display compaction (not the same as tree compaction)
-  - It removes all duplicate nodes and joins all edges from duplicate nodes. Node is duplicate if it has the same `originalId`, `start` and `end`
-  - This feature needs more work
+  - It removes all duplicate nodes and changes edges to point to de-duped nodes.
+    - Node is duplicate if it has the same `originalId`, `start` and `end` and same children (after de-duplication)
+  - This is very similar to [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html), except this representation doesn't have ambiguation-nodes
+  - The compaction algorithm only works for derived parts of tree and is a total mess
+  - If it is possible to compact final result, it means that **memoization doesn't fully work**. It memoizes some nodes, but not all of them
+    - Which means that either I messed up implementation
+    - Or that it works the same in the original paper
 
 ## Next
 
@@ -126,7 +131,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `PEG`
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
     - If I would be able to implement `REwLA` I can use is to parse `PEG`
-- I wonder if it is possible to modify PwZ to produce [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html) instead of list of trees
+- I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
 - Collect more "interesting" examples of grammars

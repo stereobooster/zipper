@@ -681,46 +681,100 @@ const expressionToDot = memoizeWeakChain(
 
 const edgeTypes = ["dagEdges", "lcrsEdges", "memEdges"] as const;
 
+// this is a mess, but works
 const indexByOriginalId = (nodes: NodesIndex<ExpressionValue>) => {
   const index: Record<ID, Record<number, Record<number, ID[]>>> = Object.create(
     null
   );
   const duplicates: Record<ID, ID> = Object.create(null);
-  Object.entries(nodes).forEach(([id, item]) => {
-    const { start, end } = item.zipper.value;
-    const { originalId } = item.zipper;
-    if (start === undefined || end === undefined || originalId === undefined)
-      return;
-    if (!index[originalId]) index[originalId] = Object.create(null);
-    if (!index[originalId][start])
-      index[originalId][start] = Object.create(null);
-    if (!index[originalId][start][end]) index[originalId][start][end] = [];
-    index[originalId][start][end].push(id);
-    if (index[originalId][start][end].length > 1) {
-      duplicates[id] = index[originalId][start][end][0];
-    }
-  });
+  Object.values(nodes)
+    .sort((a, b) => b.level - a.level)
+    .sort((a, b) => {
+      if (a.zipper.down === null && b.zipper.down === null) return 0;
+      if (a.zipper.down !== null && b.zipper.down !== null) return 0;
+      return b.zipper.down === null ? 1 : -1;
+    })
+    .forEach((item) => {
+      // for now it works only for derived parts of tree
+      const { type } = item;
+      if (type !== "green") return;
+
+      const { start, end } = item.zipper.value;
+      const { originalId } = item.zipper;
+      const { id } = item.zipper;
+      if (start === undefined || end === undefined || originalId === undefined)
+        return;
+      if (!index[originalId]) index[originalId] = Object.create(null);
+      if (!index[originalId][start])
+        index[originalId][start] = Object.create(null);
+      if (!index[originalId][start][end]) index[originalId][start][end] = [];
+
+      if (index[originalId][start][end].length === 0) {
+        index[originalId][start][end].push(id);
+      } else {
+        const prev = index[originalId][start][end];
+        prev.forEach((prevId) => {
+          const children1 = mapChildren(item.zipper, (c) => [
+            c.id,
+            c.originalId,
+            c.value.start,
+            c.value.end,
+          ]);
+          const children2 = mapChildren(nodes[prevId].zipper, (c) => [
+            c.id,
+            c.originalId,
+            c.value.start,
+            c.value.end,
+          ]);
+          let same = true;
+          if (children1.length !== children2.length) {
+            same = false;
+          } else {
+            let i = 0;
+            while (i < children1.length) {
+              const id1 = children1[i][0]!;
+              const id2 = children2[i][0]!;
+              if (
+                id1 === id2 ||
+                id1 === duplicates[id2] ||
+                duplicates[id1] === id2 ||
+                (duplicates[id1] === duplicates[id2] &&
+                  duplicates[id1] !== undefined)
+              ) {
+                i++;
+                continue;
+              }
+              same = false;
+              break;
+            }
+          }
+          if (same) {
+            duplicates[id] = duplicates[prevId] || prevId;
+          }
+        });
+        index[originalId][start][end].push(id);
+      }
+    });
   return duplicates;
 };
 
-// can be improved - because it can hide focus nodes and look edges strange
 const visualCompaction = (nodes: NodesIndex<ExpressionValue>) => {
   const duplicates = indexByOriginalId(nodes);
+  if (Object.keys(duplicates).length === 0) return nodes;
   const newNodes: NodesIndex<ExpressionValue> = Object.create(null);
   Object.entries(nodes).forEach(([id, item]) => {
-    const newItem = duplicates[id] ? newNodes[duplicates[id]] : { ...item };
-    newItem.level = Math.max(newItem.level, item.level);
+    if (duplicates[id] && duplicates[id] !== id) return;
+    const newItem = { ...item };
     edgeTypes.forEach((et) => {
-      newItem[et] = { ...newItem[et], ...item[et] };
+      newItem[et] = { ...newItem[et] };
       Object.entries(duplicates).forEach(([oldToId, newToid]) => {
         if (newItem[et][oldToId] === undefined) return;
         newItem[et][newToid] = newItem[et][oldToId];
         delete newItem[et][oldToId];
       });
     });
-    if (!duplicates[id]) newNodes[id] = newItem;
+    newNodes[id] = newItem;
   });
-
   return newNodes;
 };
 
