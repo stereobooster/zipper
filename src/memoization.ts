@@ -5,7 +5,11 @@
 // one, n-arguments
 
 const memoizePlaceholder = Symbol();
-export const memoizeWeak = <K extends object | null, V, R extends Array<unknown>>(
+export const memoizeWeak = <
+  K extends object | null,
+  V,
+  R extends Array<unknown>
+>(
   bottom: V,
   cb: (input: K, ...rest: R) => V
 ) => {
@@ -45,11 +49,33 @@ const setChain = (
     if (i === keys.length - 1) {
       current[key] = value;
     } else {
-      current[key] = current[key] || {};
+      current[key] = current[key] || Object.create(null);
       current = current[key];
     }
   }
   return obj!;
+};
+
+// works as getChain
+// except when value is not there it will put default value
+export const getChainSetDefault = <T>(
+  obj: Record<any, any> | undefined,
+  keys: any[],
+  defaultValue: T
+): T => {
+  if (!obj) obj = Object.create(null);
+  let current = obj!;
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (i === keys.length - 1) {
+      current[key] = current[key] || defaultValue;
+      current = current[key];
+    } else {
+      current[key] = current[key] || Object.create(null);
+      current = current[key];
+    }
+  }
+  return current;
 };
 
 export function memoizeWeakChain<

@@ -118,10 +118,10 @@ const addEdge = (
 const traverseExpression = (
   tree: Expression,
   display: Display = {
-    logicalEdges: {},
-    memoryEdges: {},
-    ranks: {},
-    nodes: {},
+    logicalEdges: Object.create(null),
+    memoryEdges: Object.create(null),
+    ranks: Object.create(null),
+    nodes: Object.create(null),
   },
   showOriginal?: boolean,
   type?: "green" | "blue",
@@ -729,7 +729,7 @@ function deriveDownPrime(
           expressionNode({
             ...zipper.focus,
             expressionType: "AltC",
-            children: cons({} as any, null),
+            children: cons(Object.create(null) as any, null),
             m,
             start: position,
           })
@@ -985,7 +985,7 @@ function deriveDown(position: number, zipper: ExpressionZipper): Step[] {
     // let m = { parents = [c]; result = ∅ } in
     m = {
       parents: [zipper],
-      result: {},
+      result: Object.create(null),
     };
     // mems.put(p, e, m);
     mems.set(id, position, m);
@@ -1277,10 +1277,10 @@ export const expressionZipperToDot = ({
   tree?: Expression;
 }) => {
   const display: Display = {
-    logicalEdges: {},
-    memoryEdges: {},
-    ranks: {},
-    nodes: {},
+    logicalEdges: Object.create(null),
+    memoryEdges: Object.create(null),
+    ranks: Object.create(null),
+    nodes: Object.create(null),
   };
   zippers.forEach((zipper) => traverseZipper(display, zipper, tree));
   const dot = `digraph {

@@ -74,7 +74,7 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 export const recs = (
   cb: (...x: Expression[]) => Expression[]
 ): Expression[] => {
-  const res = Array.from(Array(cb.length)).map(() => ({} as any));
+  const res = Array.from(Array(cb.length)).map(() => (Object.create(null) as any));
   const tmp = cb(...res);
   res.forEach((_, i) => {
     Object.entries(tmp[i]).forEach(([k, v]) => (res[i][k] = v));

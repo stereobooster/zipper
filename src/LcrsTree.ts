@@ -513,7 +513,7 @@ const levelBottom = -1000000;
 // maybe replace `type` with `direction`?
 // Can we memoize zipper segment if it doesn't contain loop?
 const traverseZipperMemo = memoizeWeakChain(
-  {} as NodesIndex,
+  Object.create(null) as NodesIndex,
   (
     zipper: LcrsZipperPath<unknown>,
     type: NodeType,
@@ -577,12 +577,12 @@ export const traverseZipper = <T = unknown>(
   level = levelBottom,
   memo: NodesIndex<T> = Object.create(null)
 ): NodesIndex<T> => {
-  if (!zipper) return {};
+  if (!zipper) return Object.create(null);
   level = level === levelBottom ? getLevel(zipper) : level;
 
   if (memo[zipper.id] !== undefined) {
     // memo[zipper.id].level = Math.max(memo[zipper.id].level, level)
-    return {};
+    return Object.create(null);
   }
 
   memo[zipper.id] = {

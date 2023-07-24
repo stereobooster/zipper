@@ -167,8 +167,8 @@ const traverseTree = <T>(
   display: Display<T> = {
     logicalEdges: [],
     memoryEdges: [],
-    ranks: {},
-    nodes: {},
+    ranks: Object.create(null),
+    nodes: Object.create(null),
   },
   showOriginal?: boolean,
   type?: "green" | "blue",
@@ -248,8 +248,8 @@ const traverseUp = <T>(
   display: Display<T> = {
     logicalEdges: [],
     memoryEdges: [],
-    ranks: {},
-    nodes: {},
+    ranks: Object.create(null),
+    nodes: Object.create(null),
   },
   showOriginal: boolean,
   focus?: Tree<T>
@@ -470,8 +470,8 @@ const traverseZipper = <T>(zipper: TreeZipper<T>, tree?: Tree<T>) => {
   const display: Display<T> = {
     logicalEdges: [],
     memoryEdges: [],
-    ranks: {},
-    nodes: {},
+    ranks: Object.create(null),
+    nodes: Object.create(null),
   };
   if (!zipper.focus) return display;
   const focus = zipper.focus;

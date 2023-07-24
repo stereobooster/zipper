@@ -8,7 +8,7 @@ export class Memo<T = any> {
   }
 
   get(expression: ID, position: number) {
-    return (this.map[expression] || {})[position];
+    return (this.map[expression] || Object.create(null))[position];
   }
 
   set(expression: ID, position: number, value: T) {

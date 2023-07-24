@@ -36,7 +36,7 @@ import {
   zipperColor,
 } from "./colors";
 import { Memo } from "./lcrsPwzMemo";
-import { memoizeWeakChain } from "./memoization";
+import { memoizeWeakChain, getChainSetDefault } from "./memoization";
 
 export type ExpressionType =
   | "Tok"
@@ -85,7 +85,7 @@ export const expressionNode = (
     return node({
       loop: true,
       down: nodeProps as ExpressionZipper,
-      value: {} as any,
+      value: Object.create(null) as any,
     });
   }
   const { label } = value;
@@ -550,7 +550,7 @@ const deriveDown = prevIdTransaction(
       // let m = { parents = [c]; result = ∅ } in
       m = {
         parents: [zipper],
-        result: {},
+        result: Object.create(null),
       };
       // mems.put(p, e, m);
       if (!dryRun) mems.set(id, position, m);
@@ -695,8 +695,10 @@ const indexByOriginalId = (nodes: NodesIndex<ExpressionValue>) => {
       return b.zipper.down === null ? 1 : -1;
     })
     .forEach((item) => {
-      // for now it works only for derived parts of tree
+      // maybe group by type as well?
+      // but if this is no a green node we need to merge edges
       const { type } = item;
+      // for now it works only for derived parts of tree
       if (type !== "green") return;
 
       const { start, end } = item.zipper.value;
@@ -704,56 +706,37 @@ const indexByOriginalId = (nodes: NodesIndex<ExpressionValue>) => {
       const { id } = item.zipper;
       if (start === undefined || end === undefined || originalId === undefined)
         return;
-      if (!index[originalId]) index[originalId] = Object.create(null);
-      if (!index[originalId][start])
-        index[originalId][start] = Object.create(null);
-      if (!index[originalId][start][end]) index[originalId][start][end] = [];
 
-      if (index[originalId][start][end].length === 0) {
-        index[originalId][start][end].push(id);
-      } else {
-        const prev = index[originalId][start][end];
-        prev.forEach((prevId) => {
-          const children1 = mapChildren(item.zipper, (c) => [
-            c.id,
-            c.originalId,
-            c.value.start,
-            c.value.end,
-          ]);
-          const children2 = mapChildren(nodes[prevId].zipper, (c) => [
-            c.id,
-            c.originalId,
-            c.value.start,
-            c.value.end,
-          ]);
-          let same = true;
-          if (children1.length !== children2.length) {
-            same = false;
-          } else {
-            let i = 0;
-            while (i < children1.length) {
-              const id1 = children1[i][0]!;
-              const id2 = children2[i][0]!;
-              if (
-                id1 === id2 ||
-                id1 === duplicates[id2] ||
-                duplicates[id1] === id2 ||
-                (duplicates[id1] === duplicates[id2] &&
-                  duplicates[id1] !== undefined)
-              ) {
-                i++;
-                continue;
-              }
-              same = false;
-              break;
+      const ids: ID[] = getChainSetDefault(index, [originalId, start, end], []);
+      ids.forEach((prevId) => {
+        const children1 = mapChildren(item.zipper, (c) => c.id);
+        const children2 = mapChildren(nodes[prevId].zipper, (c) => c.id);
+        let same = true;
+        if (children1.length !== children2.length) {
+          same = false;
+        } else {
+          let i = 0;
+          while (i < children1.length) {
+            const id1 = children1[i];
+            const id2 = children2[i];
+            if (
+              id1 === id2 ||
+              id1 === duplicates[id2] ||
+              duplicates[id1] === id2 ||
+              (duplicates[id1] === duplicates[id2] &&
+                duplicates[id1] !== undefined)
+            ) {
+              i++;
+              continue;
             }
+            same = false;
+            break;
           }
-          if (same) {
-            duplicates[id] = duplicates[prevId] || prevId;
-          }
-        });
-        index[originalId][start][end].push(id);
-      }
+        }
+        if (same) duplicates[id] = duplicates[prevId] || prevId;
+      });
+
+      ids.push(id);
     });
   return duplicates;
 };
@@ -798,11 +781,7 @@ const topC: DisplayItem<ExpressionValue> = {
   memEdges: Object.create(null),
 };
 
-const setZipperDirectionEdge = (
-  from: DisplayItem,
-  to: ID | undefined
-  // direction: DeriveDirection,
-) => {
+const setZipperDirectionEdge = (from: DisplayItem, to: ID | undefined) => {
   if (to === undefined) return;
   edgeTypes.forEach((et) => {
     if (from[et][to] === undefined) return;
