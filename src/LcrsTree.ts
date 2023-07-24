@@ -259,8 +259,6 @@ export type NodeType = "green" | "blue" | "empty" | "focus" | "gray" | "purple";
 export type Edge = {
   /* zipper & vizualisation */
   type?: "zipper" | "green" | "blue" | "gray" | "invisible" | "purple" | "pink";
-  // do I even need this ???
-  zipperDirection: "up" | "left" | "down" | "right";
   /* Graphviz */
   // https://graphviz.org/docs/attrs/dir/
   direction?: "forward" | "back";
@@ -434,12 +432,12 @@ const getEdges = (
 
   if (zipper.up) {
     if (givenType === "purple") {
-      const edge: Edge = { type: "purple", zipperDirection: "up" };
+      const edge: Edge = { type: "purple" };
       // memEdges ???
       addEdge(dagEdges, zipper.up.id, edge);
       addEdge(lcrsEdges, zipper.up.id, edge);
     } else {
-      const edge: Edge = { type: "blue", zipperDirection: "up" };
+      const edge: Edge = { type: "blue" };
       addEdge(dagEdges, zipper.up.id, edge);
       addEdge(lcrsEdges, zipper.up.id, edge);
     }
@@ -447,7 +445,7 @@ const getEdges = (
 
   if (zipper.left) {
     type = zipper.originalId ? givenType || "blue" : undefined;
-    const edge: Edge = { direction: "back", zipperDirection: "left" };
+    const edge: Edge = { direction: "back" };
     addEdge(dagEdges, zipper.left.id, {
       ...edge,
       type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
@@ -460,13 +458,10 @@ const getEdges = (
 
   if (zipper.right) {
     type = zipper.originalId ? givenType || "green" : undefined;
-    const edge: Edge = { zipperDirection: "right" };
     addEdge(dagEdges, zipper.right.id, {
-      ...edge,
       type: isFocus ? "zipper" : zipperTraverse ? type : "invisible",
     });
     addEdge(lcrsEdges, zipper.right.id, {
-      ...edge,
       type: isFocus ? "zipper" : type,
     });
   }
@@ -478,16 +473,16 @@ const getEdges = (
       const edge: Edge = {
         type,
         style: "dotted",
-        zipperDirection: "down",
+
         direction: "back",
       };
       addEdge(dagEdges, down.id, edge);
       addEdge(lcrsEdges, down.id, edge);
     } else {
       mapToArray("right", zipper?.down, (to) =>
-        addEdge(dagEdges, to.id, { type, zipperDirection: "down" })
+        addEdge(dagEdges, to.id, { type })
       );
-      addEdge(lcrsEdges, down.id, { type, zipperDirection: "down" });
+      addEdge(lcrsEdges, down.id, { type });
     }
   }
 
@@ -612,7 +607,6 @@ export const traverseZipper = <T = unknown>(
           const memEdge: Edge = {
             type: "purple",
             constraint: false,
-            zipperDirection: "up",
           };
           addEdge(memo[zipper.id].memEdges, p.up.id, memEdge);
         }
@@ -664,7 +658,6 @@ export const traverseZipper = <T = unknown>(
         const memEdge: Edge = {
           type: "purple",
           constraint: false,
-          zipperDirection: "up",
         };
         addEdge(memo[zipper.id].memEdges, p.up.id, memEdge);
         if (p.up.originalId !== undefined)

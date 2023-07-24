@@ -868,7 +868,6 @@ export const stepsToDot = ({
               type: "pink",
               // special arrowhead for mem parents
               arrowhead: "dot",
-              zipperDirection: "down",
             };
             addEdge(index[zipper.id].dagEdges, upId, edge);
             addEdge(index[zipper.id].lcrsEdges, upId, edge);
@@ -893,7 +892,6 @@ export const stepsToDot = ({
             mergeNodesIndex(index, newIndex);
             const edge: Edge = {
               type: "pink",
-              zipperDirection: "down",
             };
             addEdge(index[r.id].dagEdges, zipper.up.id, edge);
             addEdge(index[r.id].lcrsEdges, zipper.up.id, edge);
@@ -945,7 +943,6 @@ export const stepsToDot = ({
           const edge: Edge = {
             type: "pink",
             constraint: false,
-            zipperDirection: "down",
           };
           addEdge(index[zipper.id].dagEdges, zipper.id, edge);
           addEdge(index[zipper.id].lcrsEdges, zipper.id, edge);
