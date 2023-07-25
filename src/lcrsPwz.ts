@@ -695,19 +695,18 @@ const indexByOriginalId = (nodes: NodesIndex<ExpressionValue>) => {
       return b.zipper.down === null ? 1 : -1;
     })
     .forEach((item) => {
-      // maybe group by type as well?
-      // but if this is no a green node we need to merge edges
       const { type } = item;
-      // for now it works only for derived parts of tree
-      if (type !== "green") return;
-
       const { start, end } = item.zipper.value;
       const { originalId } = item.zipper;
       const { id } = item.zipper;
       if (start === undefined || end === undefined || originalId === undefined)
         return;
 
-      const ids: ID[] = getChainSetDefault(index, [originalId, start, end], []);
+      const ids: ID[] = getChainSetDefault(
+        index,
+        [originalId, type, start, end],
+        []
+      );
       ids.forEach((prevId) => {
         const children1 = mapChildren(item.zipper, (c) => c.id);
         const children2 = mapChildren(nodes[prevId].zipper, (c) => c.id);
@@ -745,18 +744,24 @@ const visualCompaction = (nodes: NodesIndex<ExpressionValue>) => {
   const duplicates = indexByOriginalId(nodes);
   if (Object.keys(duplicates).length === 0) return nodes;
   const newNodes: NodesIndex<ExpressionValue> = Object.create(null);
-  Object.entries(nodes).forEach(([id, item]) => {
-    if (duplicates[id] && duplicates[id] !== id) return;
-    const newItem = { ...item };
-    edgeTypes.forEach((et) => {
-      newItem[et] = { ...newItem[et] };
-      Object.entries(duplicates).forEach(([oldToId, newToid]) => {
-        if (newItem[et][oldToId] === undefined) return;
-        newItem[et][newToid] = newItem[et][oldToId];
-        delete newItem[et][oldToId];
+  Object.keys(nodes).forEach((id) => {
+    const newItem = newNodes[duplicates[id]]
+      ? newNodes[duplicates[id]]
+      : { ...nodes[duplicates[id] ? duplicates[id] : id] };
+    if (newItem.zipper.originalId !== undefined) {
+      edgeTypes.forEach((et) => {
+        newItem[et] = {
+          ...newItem[et],
+          ...nodes[id][et],
+        };
+        Object.entries(duplicates).forEach(([oldToId, newToid]) => {
+          if (newItem[et][oldToId] === undefined) return;
+          newItem[et][newToid] = newItem[et][oldToId];
+          delete newItem[et][oldToId];
+        });
       });
-    });
-    newNodes[id] = newItem;
+    }
+    newNodes[duplicates[id] || id] = newItem;
   });
   return newNodes;
 };

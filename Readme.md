@@ -114,7 +114,9 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - It removes all duplicate nodes and changes edges to point to de-duped nodes.
     - Node is duplicate if it has the same `originalId`, `start` and `end` and same children (after de-duplication)
   - This is very similar to [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html), except this representation doesn't have ambiguation-nodes
-  - The compaction algorithm only works for derived parts of tree and is a total mess
+    - It hints how to implement transformation to SPPF
+    - But I wonder if it possible to modify algorithm to produce SPPF right away
+  - The compaction algorithm is a total mess
   - If it is possible to compact final result, it means that **memoization doesn't fully work**. It memoizes some nodes, but not all of them
     - Which means that either I messed up implementation
     - Or that it works the same in the original paper
@@ -191,3 +193,4 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 - https://github.com/stereobooster/parsing-with-derivalives
 - https://github.com/stereobooster/derp
+- [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
