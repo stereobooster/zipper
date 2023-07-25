@@ -147,8 +147,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - show mem graph (collapsed by default)
     - Collapse `lex` nodes on click
     - Semi-transparent `ign` nodes
-- Jump to the end of differention by current letter (e.g. when all steps in state `none`)
-  - Make letters in string clickable?
 - Jump over "borring" steps (1 step, zipper didn't move)
 - Next zipper movement vizualisation
   - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
@@ -159,6 +157,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - Does it support c-escaped characters?
   - convert multi-character strings (`"..."`) to `Seq` of `Tok`
 - vizualization
+  - highlight all edges and nodes of the selected zipper
   - bug: hover on "next step button" doesn't highlight active zipper after click
   - hovering on zipper node - highlight button in `Direction and depth`
   - use same colors, shapes, labels for `NodeButton` as for node

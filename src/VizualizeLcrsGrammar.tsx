@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Expression,
   Step,
-  deriveFinalSteps,
+  deriveStepsUntil,
   processSteps,
   stepsToDot,
 } from "./lcrsPwz";
@@ -117,28 +117,24 @@ export const VizualizeLcrsGrammar = ({
     setSelectedNode,
   ]);
 
-  const jumpToCycle = useCallback(() => {
-    setFinished(false);
-    setAutoDerivate(false);
-    const [newSteps, newPosition, nextStep, newCycle] = deriveFinalSteps(
-      str,
-      initialStep,
-      cycle
-    );
-    setCycle(newCycle);
-    setPosition(newPosition);
-    setStep(nextStep);
-    setSteps(newSteps);
-    setDisplayZippers([]);
-  }, [
-    cycle,
-    str,
-    initialStep,
-    setFinished,
-    setStep,
-    setSteps,
-    setDisplayZippers,
-  ]);
+  const jumpToCycle = useCallback(
+    (targetPosition?: number) => {
+      setFinished(false);
+      setAutoDerivate(false);
+      const [newSteps, newPosition, nextStep, newCycle] = deriveStepsUntil(
+        str,
+        initialStep,
+        targetPosition === undefined ? cycle : -1,
+        targetPosition === undefined ? -1 : targetPosition
+      );
+      setCycle(newCycle);
+      setPosition(newPosition);
+      setStep(nextStep);
+      setSteps(newSteps);
+      setDisplayZippers([]);
+    },
+    [cycle, str, initialStep, setFinished, setStep, setSteps, setDisplayZippers]
+  );
 
   useEffect(() => {
     if (finished || !autoDerivate) return;
@@ -170,6 +166,17 @@ export const VizualizeLcrsGrammar = ({
           <br />
           <button
             className={c.buttonRect}
+            onClick={() => setAutoDerivate((x) => !x)}
+            disabled={finished}
+            title="play"
+          >
+            ▶
+          </button>
+        </div>
+        <div>
+          <br />
+          <button
+            className={c.buttonRect}
             onClick={go}
             disabled={finished || autoDerivate}
             onMouseEnter={() =>
@@ -180,16 +187,6 @@ export const VizualizeLcrsGrammar = ({
             {steps[step] ? dir(steps[step][0]) : "×"}
           </button>
         </div>
-        <div>
-          <br />
-          <button
-            className={c.buttonRect}
-            onClick={() => setAutoDerivate((x) => !x)}
-            disabled={finished}
-          >
-            ▶
-          </button>
-        </div>
         <label>
           Cycle
           <br />
@@ -198,7 +195,7 @@ export const VizualizeLcrsGrammar = ({
             value={cycle}
             onChange={(e) => setCycle(parseInt(e.target.value, 10) || 0)}
             type="number"
-            onBlur={jumpToCycle}
+            onBlur={() => jumpToCycle()}
             onKeyDown={(e) => e.key === "Enter" && jumpToCycle()}
           />
         </label>
@@ -207,9 +204,15 @@ export const VizualizeLcrsGrammar = ({
           <br />
           <div className={c.text}>
             <code className={c.code}>
-              {str.substring(0, position)}
-              <span style={{ textDecoration: "underline" }}>{token}</span>
-              {str.substring(position + 1, str.length)}
+              {Array.from(str).map((x, i) => (
+                <BaseButton
+                  key={i}
+                  style={i === position ? { textDecoration: "underline" } : {}}
+                  onClick={() => jumpToCycle(i)}
+                >
+                  {x}
+                </BaseButton>
+              ))}
             </code>
           </div>
         </div>

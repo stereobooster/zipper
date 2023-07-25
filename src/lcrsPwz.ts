@@ -153,7 +153,7 @@ export function parse(str: string, tree: Expression) {
   const treeCompactionPrev = treeCompaction;
   treeCompaction = true;
   const initialStep: Step[] = [["down", treeToZipper(tree), undefined]];
-  const [steps, position, , , error] = deriveFinalSteps(str, initialStep);
+  const [steps, position, , , error] = deriveStepsUntil(str, initialStep);
   mems.reset();
   memoInput.length = 0;
   treeCompaction = treeCompactionPrev;
@@ -169,13 +169,20 @@ export function parse(str: string, tree: Expression) {
   return steps.map(([, z]) => z);
 }
 
-export function deriveFinalSteps(str: string, steps: Step[], targetCycle = -1) {
+export function deriveStepsUntil(
+  str: string,
+  steps: Step[],
+  targetCycle = -1,
+  targetPosition = -1
+) {
   mems.reset();
   memoInput.length = 0;
   let position = 0;
   let step = 0;
   let cycle = 0;
   let error = false;
+  const maxPosition =
+    targetPosition !== -1 ? Math.min(targetPosition, str.length) : str.length;
   do {
     if (targetCycle === cycle) break;
     const token = str[position] || "";
@@ -189,11 +196,12 @@ export function deriveFinalSteps(str: string, steps: Step[], targetCycle = -1) {
       error = true;
       break;
     }
+    if (newPosition > maxPosition && targetPosition !== -1) break;
     position = newPosition;
     steps = newSteps;
     step = nextStep;
     cycle += 1;
-  } while (position <= str.length);
+  } while (position <= maxPosition);
 
   return [steps, position, step, cycle, error] as const;
 }
