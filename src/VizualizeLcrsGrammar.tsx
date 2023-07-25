@@ -194,28 +194,14 @@ export const VizualizeLcrsGrammar = ({
           Cycle
           <br />
           <input
-            className={c.buttonRect}
+            className={c.inputRect}
             value={cycle}
             onChange={(e) => setCycle(parseInt(e.target.value, 10) || 0)}
+            type="number"
+            onBlur={jumpToCycle}
+            onKeyDown={(e) => e.key === "Enter" && jumpToCycle()}
           />
         </label>
-        <div>
-          <br />
-          <button className={c.button} onClick={jumpToCycle}>
-            Jump
-          </button>
-        </div>
-        <div>
-          <br />
-          <label>
-            <input
-              type="checkbox"
-              checked={showMem}
-              onChange={() => setShowMem((x) => !x)}
-            />{" "}
-            Mem
-          </label>
-        </div>
         <div>
           <Nobr>String to parse</Nobr>
           <br />
@@ -262,6 +248,17 @@ export const VizualizeLcrsGrammar = ({
               </BaseButton>
             ))}
           </div>
+        </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={showMem}
+              onChange={() => setShowMem((x) => !x)}
+            />{" "}
+            Mem
+          </label>
         </div>
         <div>
           <br />

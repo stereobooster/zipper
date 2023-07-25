@@ -102,8 +102,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Realized that my Narry-tree and Huet zipper implementation is cumbersome
   - I wanted to make it "by the book" e.g. to show that zipper indeed can be implemented as McBride derivtive and that this exact zipper can be used for parsing (with zipper). It indeed works, but it is very hard to maintain this codebase
   - So I chnaged implementation to LCRS tree and zipper which treats LCRS tree as Narry tree (not as binary tree). It is not by the book, but it is easier for me to handle
-- Added vizualization of `Mem` for "parsing with zippers". For now it shows only one-level parents from mem and edges due to `Mem`. I can't use memoization because `Mem` is mutable structure
-  - Still consider adding vizualization of `results` from `Mem` and displaying empty (fake) nodes for `TopC`
+- Added vizualization of `Mem` for "parsing with zippers".
+  - Not very helpfull to be fair
 - Added different UI improvements, like
   - Ability to select node to show "legend" e.g. details about node: label, value, top, left, right, etc..
   - Ability to highlight nodes when other controls are hovered - to easily identify which node is related to this control
@@ -114,12 +114,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - It removes all duplicate nodes and changes edges to point to de-duped nodes.
     - Node is duplicate if it has the same `originalId`, `start` and `end` and same children (after de-duplication)
   - This is very similar to [Shared Packed Parse Forest](https://lark-parser.readthedocs.io/en/latest/_static/sppf/sppf.html), except this representation doesn't have ambiguation-nodes
-    - It hints how to implement transformation to SPPF
-    - But I wonder if it possible to modify algorithm to produce SPPF right away
-  - The compaction algorithm is a total mess
+    - It hints how to implement transformation of the result to SPPF
   - If it is possible to compact final result, it means that **memoization doesn't fully work**. It memoizes some nodes, but not all of them
     - Which means that either I messed up implementation
     - Or that it works the same in the original paper
+  - The compaction algorithm is a total mess
 
 ## Next
 
@@ -134,29 +133,34 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
     - If I would be able to implement `REwLA` I can use is to parse `PEG`
 - I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
+  - Potentially connected to multiple focus zippers
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
 - Collect more "interesting" examples of grammars
 
 ### Small bugs and unsorted notes
 
-- Next zipper movement vizualisation
-  - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
-- "Grammar grammar"
-  - Use `[]` for character classes
-  - Does it support c-escaped characters?
-  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
-- Jump over "borring" steps (1 step, zipper didn't move)
-- vizualization
-  - hover on "next step button" doesn't highlight active zipper after click
-  - hovering on zipper node - highlight button in `Direction and depth`
+- Mem visualization
+  - draw `m-results`?
+  - draw `m-parents` full?
   - add ability to collapse graph by click on node
     - show mem graph (collapsed by default)
     - Collapse `lex` nodes on click
     - Semi-transparent `ign` nodes
-  - allow to highlight nodes and/or edges
-    - for example to show all nodes with `mem`
-    - for example to show focus/zipper instead of using dot-medium for that
+- Jump to the end of differention by current letter (e.g. when all steps in state `none`)
+  - Make letters in string clickable?
+- Jump over "borring" steps (1 step, zipper didn't move)
+- Next zipper movement vizualisation
+  - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
+-  Bug: legend for compacted tree doesn't show info about other nodes
+-  Bug: `A-> "a" "b"; S -> A? A;`, `A -> A "a" | ""; S -> A? A;`
+- "Grammar grammar"
+  - Use `[]` for character classes
+  - Does it support c-escaped characters?
+  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
+- vizualization
+  - bug: hover on "next step button" doesn't highlight active zipper after click
+  - hovering on zipper node - highlight button in `Direction and depth`
   - use same colors, shapes, labels for `NodeButton` as for node
   - add "URL state" so that any state of derivative could be shared
   - animation is problematic because zipper changes id of node on movement

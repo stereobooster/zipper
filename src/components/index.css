@@ -16,11 +16,15 @@
   box-sizing: border-box;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 button,
 label {
   cursor: pointer;
-}
 
-button:disabled {
-  cursor: default;
+  &:disabled {
+    cursor: default;
+  }
 }
