@@ -111,10 +111,11 @@ export const expressionNode = (
 // Extension: support for character classes
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Character_classes
 const match = (label: string, token: string): boolean => {
+  // empty string only matched by ϵ
   if (token === "") return label === "";
   // escapes
   if (label[0] === "\\") {
-    // match any token. PCRE: .
+    // match any letter. PCRE: .
     if (label[1] === ".") return true;
     // match `^` token:  PCRE: \^
     if (label[1] === "^") return token === "^";
@@ -327,7 +328,7 @@ const deriveDownPrime = prevIdTransaction(
       }
       // Extension
       case "Rep": {
-        let x = down(
+        const newFocus = down(
           expressionNode({
             ...zipper,
             value: {
@@ -338,24 +339,33 @@ const deriveDownPrime = prevIdTransaction(
             },
           })
         );
-        x = insertAfter(x, x);
+        const newFocusWithSibling = insertAfter(newFocus, newFocus);
+
+        // this is a mess
+        const newFocusWithEmpty = expressionNode({
+          ...zipper,
+          value: {
+            ...zipper.value,
+            start: position,
+            end: position,
+          },
+          down: expressionNode({
+            ...newFocus,
+            down: null,
+            up: null,
+            value: {
+              ...newFocus.value,
+              expressionType: "Seq",
+              start: position,
+              end: position,
+              value: "",
+            },
+          }),
+        });
+
         return [
-          ["down", x, undefined],
-          [
-            "up",
-            expressionNode({
-              ...zipper,
-              down: null,
-              value: {
-                ...zipper.value,
-                expressionType: "Seq",
-                start: position,
-                end: position,
-                value: "",
-              },
-            }),
-            m,
-          ],
+          ["down", newFocusWithSibling, undefined],
+          ["up", newFocusWithEmpty, m],
         ];
       }
       case "Lex":

@@ -122,13 +122,21 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## Next
 
-- I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table and I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
+- I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
 - I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md), [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
-  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matched only if all branches are matched
+  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches are matches
   - `REwLA` is problematic because lookahed can "spill" over the current tree. I'm not sure what to do about it
-    - I can "bubble up" lookahed node in the tree
-    - Or maybe I can put it in `Mem` somehow
+    - I can store lookahead zippers (LA) separately from "main" zippers, so it will match only if all LA will be matched and "main" grammar will be matched
+    - Also I need to store which main zippers require wich LA zippers (many-to-many)
+    - Something is matched if focus is the same as starting node and there are no left, top and right nodes and direction is `up` or `none`
+      - So store starting point in the step
+    - When LA operator is found
+      - Put it in LA zippers, remove top node, assign ID, store association between main zipper and LA zippers
+      - In the main zipper replace it with empty `Seq`
+    - If LA zipper matched remove it and remove all associations
+    - If LA zipper not matched remove it and remove all main zipper associated with it
+    - in the end if main zipper still have associated PLA zippers it is "no match"
   - `PEG`
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
     - If I would be able to implement `REwLA` I can use is to parse `PEG`
@@ -141,6 +149,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 ### Small bugs and unsorted notes
 
 - Mem visualization
+  - draw mem for selected node?
   - draw `m-results`?
   - draw `m-parents` full?
   - add ability to collapse graph by click on node
@@ -150,8 +159,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Jump over "borring" steps (1 step, zipper didn't move)
 - Next zipper movement vizualisation
   - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
--  Bug: legend for compacted tree doesn't show info about other nodes
--  Bug: `A-> "a" "b"; S -> A? A;`, `A -> A "a" | ""; S -> A? A;`
+- Bug: legend for compacted tree doesn't show info about other (hidden) nodes
+- Bug: `A-> "a" "b"; S -> A? A;`, `A -> A "a" | ""; S -> A? A;`
 - "Grammar grammar"
   - Use `[]` for character classes
   - Does it support c-escaped characters?
@@ -197,3 +206,33 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - https://github.com/stereobooster/parsing-with-derivalives
 - https://github.com/stereobooster/derp
 - [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
+
+### Notation
+
+|                           | Notation   | Node type | Language/Set |
+| ------------------------- | ---------- | --------- | ------------ |
+| concatenation or sequence | ` `        | Seq       | $\cdot$      |
+| union or unordered choice | \|         | Alt       | $\cup$       |
+| intersection              | `&`        | ❗Int     | $\cap$       |
+| Kleene star               | `*`        | Rep       | $\ast$       |
+| Kleene plus               | `+`        |           |              |
+| optional                  | `?`        |           |              |
+| any character             | `.`        | ❗Tok     | $\Sigma$     |
+| range                     | ❗`[a-z]`  | ❗Tok     | ❌           |
+| escaped character         | ❗`\n`     | ❗Tok     | ❌           |
+| set of characters         | ❗`[abc]`  | ❗Tok     | ❌           |
+| character classes         | ❗`\w, \d` |           | ❌           |
+| negation of set           | ❗`[^abc]` | ❗Tok     | ❌           |
+| lexeme                    | ❗         | Lex       | ❌           |
+| ignored                   | ❗         | Ign       | ❌           |
+| token or terminal         | `"x"`      | Tok       |              |
+| symbol or non-terminal    | `x`        | ❌        |              |
+| positive lookahead        | `~`        | ❗Pla     |              |
+| negative lookahead        | `!`        | ❗Nla     |              |
+| negation or complement    | ❗         |           |              |
+| ordered choice            | `/`        |           |              |
+
+Which symbol to use for PLA: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I won't to use it for intersection. `+` is used for Kleene plus. Maybe use `{}`, to avoid situations when you need to use `()`, like `~(a b) c` or `(~a) b`?
+
+❗ - not implemented or not final
+❌ - not applicable
