@@ -9,11 +9,20 @@ const examples = [
   // Ford's example for context sensitive grammar with lookahead operators
   // https://github.com/SRI-CSL/PVSPackrat/issues/3
   [
-    `A -> "a" A "b" | ""; B -> "b" B "c" | ""; S -> ~(A "c") "a"* B;`,
+    `A -> "a" A "b" | "";
+B -> "b" B "c" | "";
+S -> ~(A "c") "a"* B;`,
     "Context sensitive",
     "aabbcc",
   ],
+  [`S -> ~("a" "a") .;`, "Lookahead bigger than main", "aa"],
   [`S -> ~("a" !"b") .*;`, "Nested lookahead", "ab"],
+  [`S -> (~"a" | ~"b") .;`, "Lookahead in Alt", "a"],
+  // is it a bug?
+  [`S -> "a" S | "" ~S;`, "Cycle on lookahed 1", "a"],
+  [`S -> "a" S | ~S "";`, "Cycle on lookahed 2", "a"],
+  [`S -> S "a" | "" ~S;`, "Cycle on lookahed 3", "a"],
+  [`S -> S "a" | ~S "";`, "Cycle on lookahed 4", "a"],
   // Algebraic expressions
   [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
   [`N -> "0-9"; S -> S "+" N | N;`, "Left associative operation", "1+2+3"],

@@ -155,76 +155,69 @@ const match = (label: string, token: string): boolean => {
 };
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
-export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined, StepId];
+export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined, LookaheadId];
 
 // this is mess
-export type StepId = number;
-let _stepId = 1;
-const getStepId = () => ++_stepId;
+export type LookaheadId = number;
+let _lookaheadId = 1;
+const getLookaheadId = () => ++_lookaheadId;
 
-type MainZippersMemo = Record<
-  StepId,
-  {
-    topNode: ID;
-    lookahead: StepId | undefined;
-    prev: StepId[];
-    isLookahead: boolean;
-  }
->;
-let _mainZippers: MainZippersMemo = Object.create(null);
-
-type LookaheadZippersMemo = Record<
-  StepId,
-  {
-    positive: boolean;
-    main: StepId;
-    success: boolean;
-  }
->;
-let _lookaheadZippers: LookaheadZippersMemo = Object.create(null);
+type LookaheadMemoRecord = {
+  topNode: ID;
+  lookahead: LookaheadId | undefined;
+  prev: LookaheadId[];
+  lookaheadParams:
+    | {
+        positive: boolean;
+        main: LookaheadId;
+        success: boolean;
+      }
+    | undefined;
+};
+type LookaheadMemo = Record<LookaheadId, LookaheadMemoRecord>;
+let lookaheadMemo: LookaheadMemo = Object.create(null);
 
 const addLookahead = (
-  oldMain: StepId,
+  oldMain: LookaheadId,
   lookahead: {
     topNode: ID;
     positive: boolean;
   }
 ) => {
-  const mainId = getStepId();
-  const laId = getStepId();
+  const laId = getLookaheadId();
+  const mainId = getLookaheadId();
 
-  _mainZippers[mainId] = {
-    topNode: _mainZippers[oldMain].topNode,
-    prev: [..._mainZippers[oldMain].prev, mainId],
+  const prevParams = lookaheadMemo[oldMain].lookaheadParams;
+  lookaheadMemo[mainId] = {
+    topNode: lookaheadMemo[oldMain].topNode,
+    prev: [...lookaheadMemo[oldMain].prev, mainId],
     lookahead: laId,
-    isLookahead: _mainZippers[oldMain].isLookahead,
+    lookaheadParams: prevParams ? { ...prevParams } : undefined,
   };
 
-  _mainZippers[laId] = {
+  lookaheadMemo[laId] = {
     topNode: lookahead.topNode,
     prev: [laId],
     lookahead: undefined,
-    isLookahead: true,
+    lookaheadParams: {
+      positive: lookahead.positive,
+      main: mainId,
+      success: false,
+    },
   };
 
-  _lookaheadZippers[laId] = {
-    positive: lookahead.positive,
-    main: mainId,
-    success: false,
-  };
-
-  return [mainId, laId];
+  return [laId, mainId];
 };
 
 const addMain = (step: Step) => {
-  const sid = step[3];
-  if (_mainZippers[sid]) return;
+  const lid = step[3];
+  if (lookaheadMemo[lid]) return;
   const zipper = step[1];
-  _mainZippers[sid] = {
+  lookaheadMemo[lid] = {
     topNode: zipper.originalId || zipper.id,
-    prev: [sid],
+    prev: [lid],
     lookahead: undefined,
-    isLookahead: false,
+    lookaheadParams: undefined,
   };
 };
 
@@ -233,58 +226,85 @@ const checkLookahead = (
   newSteps: Step[],
   steps: Step[]
 ): Step[] => {
-  const sid = steps[currentStep][3];
+  const lid = steps[currentStep][3];
   steps = steps.flatMap((step, i) => (i === currentStep ? newSteps : [step]));
-
+  const lookaheadParams = lookaheadMemo[lid].lookaheadParams;
   // not a lookahed - do nothing
-  if (!_mainZippers[sid].isLookahead) return steps;
-  const laSid = sid;
+  if (!lookaheadParams) return steps;
+  const laSid = lid;
+  const positive = lookaheadParams.positive;
+
+  if (newSteps.length === 0) {
+    let i = lookaheadMemo[laSid].prev.length - 1;
+    do {
+      const lid = lookaheadMemo[laSid].prev[i];
+
+      const lastOfAKind = steps.filter(([, , , x]) => x === lid).length === 0;
+
+      // do nothing here
+      if (!lastOfAKind) return steps;
+
+      // no need to remove lookaheads of this type, because it was last one
+      if (positive) {
+        lookaheadMemo[lid].lookaheadParams!.success = false;
+        // remove all main zippers which require this lookahead
+        steps = steps.filter(
+          ([, , , x]) =>
+            !lookaheadMemo[x].prev.includes(
+              lookaheadMemo[lid].lookaheadParams!.main
+            )
+        );
+      } else {
+        lookaheadMemo[lid].lookaheadParams!.success = true;
+      }
+
+      i--;
+    } while (i >= 0);
+  }
 
   let didMatch = false;
   newSteps.forEach((step) => {
     const [d, z, , nsid] = step;
-    if (!_mainZippers[nsid].isLookahead) return;
+    if (!lookaheadMemo[nsid].lookaheadParams) return;
     if (d !== "up") return;
     if (z.up !== null || z.left !== null || z.right !== null) return;
-    if (_mainZippers[nsid].topNode !== z.originalId) return;
+    if (lookaheadMemo[nsid].topNode !== z.originalId) return;
     didMatch = true;
   });
 
-  const positive = _lookaheadZippers[laSid].positive;
-
-  if (newSteps.length === 0) {
-    const lastOfAKind =
-      steps.filter(([, , , x]) => _mainZippers[x].prev[0] === laSid).length ===
-      0;
-
-    // do nothing here
-    if (!lastOfAKind) return steps;
-    // no need to remove lookaheads of this type, because it was last one
-    if (positive) {
-      _lookaheadZippers[laSid].success = false;
-      // remove all main zippers which require this lookahead
-      steps = steps.filter(
-        ([, , , x]) =>
-          !_mainZippers[x].prev.includes(_lookaheadZippers[laSid].main)
-      );
-    } else {
-      _lookaheadZippers[laSid].success = true;
-    }
+  if (didMatch) {
+    let i = lookaheadMemo[laSid].prev.length - 1;
+    do {
+      const lid = lookaheadMemo[lookaheadMemo[laSid].prev[i]].lookahead;
+      if (lid && !lookaheadMemo[lid].lookaheadParams!.success) {
+        didMatch = false;
+        break;
+      }
+      i--;
+    } while (i >= 0);
   }
 
   if (didMatch) {
-    // remove lookaheads of this type
-    steps = steps.filter(([, , , x]) => x !== laSid);
-    if (positive) {
-      _lookaheadZippers[laSid].success = true;
-    } else {
-      _lookaheadZippers[laSid].success = false;
-      // remove all main zippers which require this lookahead
-      steps = steps.filter(
-        ([, , , x]) =>
-          !_mainZippers[x].prev.includes(_lookaheadZippers[laSid].main)
-      );
-    }
+    let i = lookaheadMemo[laSid].prev.length - 1;
+    do {
+      const lid = lookaheadMemo[laSid].prev[i];
+      // remove lookaheads of this type
+      steps = steps.filter(([, , , x]) => x !== lid);
+
+      if (positive) {
+        lookaheadMemo[lid].lookaheadParams!.success = true;
+      } else {
+        lookaheadMemo[lid].lookaheadParams!.success = false;
+        // remove all main zippers which require this lookahead
+        steps = steps.filter(
+          ([, , , x]) =>
+            !lookaheadMemo[x].prev.includes(
+              lookaheadMemo[lid].lookaheadParams!.main
+            )
+        );
+      }
+      i--;
+    } while (i >= 0);
   }
 
   return steps;
@@ -299,9 +319,8 @@ let treeCompaction = false;
 export const resetMemtables = () => {
   mems.reset();
   memoInput.length = 0;
-  _mainZippers = Object.create(null);
-  _lookaheadZippers = Object.create(null);
-  _stepId = 1;
+  lookaheadMemo = Object.create(null);
+  _lookaheadId = 1;
 };
 
 export function parse(str: string, tree: Expression) {
@@ -361,7 +380,11 @@ export function deriveStepsUntil(
 }
 
 export function processSteps(token: string, position: number, steps: Step[]) {
-  if (steps.length === 0) return [steps, position, 0, 0, 0] as const;
+  if (
+    steps.filter(([, , , lid]) => !lookaheadMemo[lid] || !lookaheadMemo[lid].lookaheadParams)
+      .length === 0
+  )
+    return [[] as Step[], position, 0, 0, 0] as const;
 
   // workaround to add first step from which derivation starts
   addMain(steps[0]);
@@ -399,7 +422,7 @@ const verticalCompaction = (zipper: ExpressionZipper) => {
 
 const deriveDownPrime = prevIdTransaction(
   (
-    sid: StepId,
+    lid: LookaheadId,
     position: number,
     token: string,
     zipper: ExpressionZipper,
@@ -424,7 +447,7 @@ const deriveDownPrime = prevIdTransaction(
               },
             }),
             m,
-            sid,
+            lid,
           ],
         ];
       }
@@ -444,7 +467,7 @@ const deriveDownPrime = prevIdTransaction(
                 },
               }),
               m,
-              sid,
+              lid,
             ],
           ];
         // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
@@ -463,7 +486,7 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
-            sid,
+            lid,
           ],
         ];
       case "Alt": {
@@ -482,7 +505,7 @@ const deriveDownPrime = prevIdTransaction(
           "down",
           expressionNode({ ...e, up: x }),
           undefined,
-          sid,
+          lid,
         ]);
       }
       // Extension
@@ -523,8 +546,8 @@ const deriveDownPrime = prevIdTransaction(
         });
 
         return [
-          ["down", newFocusWithSibling, undefined, sid],
-          ["up", newFocusWithEmpty, m, sid],
+          ["down", newFocusWithSibling, undefined, lid],
+          ["up", newFocusWithEmpty, m, lid],
         ];
       }
       case "Lex":
@@ -543,7 +566,7 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
-            sid,
+            lid,
           ],
         ];
       case "Ign":
@@ -562,7 +585,7 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
-            sid,
+            lid,
           ],
         ];
       case "Nla":
@@ -592,7 +615,7 @@ const deriveDownPrime = prevIdTransaction(
           },
         });
 
-        const [mainId, laId] = addLookahead(sid, {
+        const [laId, mainId] = addLookahead(lid, {
           topNode: standAloneLa.originalId || standAloneLa.id,
           positive: zipper.value.expressionType === "Pla",
         });
@@ -611,7 +634,7 @@ const deriveDownPrime = prevIdTransaction(
 );
 
 const deriveUpPrime = prevIdTransaction(
-  (sid: StepId, zipper: ExpressionZipper): Step[] => {
+  (lid: LookaheadId, zipper: ExpressionZipper): Step[] => {
     // | TopC -> []
     if (zipper.up === null) return [];
     switch (zipper.up.value.expressionType) {
@@ -645,7 +668,7 @@ const deriveUpPrime = prevIdTransaction(
                 },
               }),
               res.value.m,
-              sid,
+              lid,
             ],
           ];
         }
@@ -657,7 +680,7 @@ const deriveUpPrime = prevIdTransaction(
         }
 
         // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
-        return [["down", res, undefined, sid]];
+        return [["down", res, undefined, lid]];
       }
       case "AltC": {
         // | AltC (m) -> d↑ (Alt [e]) m
@@ -675,7 +698,7 @@ const deriveUpPrime = prevIdTransaction(
               },
             }),
             x.value.m,
-            sid,
+            lid,
           ],
         ];
       }
@@ -699,8 +722,8 @@ const deriveUpPrime = prevIdTransaction(
         });
 
         return [
-          ["up", x, m, sid],
-          ["down", y, undefined, sid],
+          ["up", x, m, lid],
+          ["down", y, undefined, lid],
         ];
       }
       case "LexC": {
@@ -722,7 +745,7 @@ const deriveUpPrime = prevIdTransaction(
               },
             }),
             x.value.m,
-            sid,
+            lid,
           ],
         ];
       }
@@ -743,7 +766,7 @@ const deriveUpPrime = prevIdTransaction(
               },
             }),
             x.value.m,
-            sid,
+            lid,
           ],
         ];
       }
@@ -755,7 +778,7 @@ const deriveUpPrime = prevIdTransaction(
 
 const deriveDown = prevIdTransaction(
   (
-    sid: StepId,
+    lid: LookaheadId,
     position: number,
     zipper: ExpressionZipper,
     dryRun: boolean
@@ -774,7 +797,7 @@ const deriveDown = prevIdTransaction(
           expressionNode({ ...zipper, value: focus.value, down: focus.down })
         ),
         undefined,
-        sid,
+        lid,
       ]);
     }
     // | None ->
@@ -787,14 +810,14 @@ const deriveDown = prevIdTransaction(
       // mems.put(p, e, m);
       if (!dryRun) mems.set(id, position, m);
       // d′↓ m e
-      return [["downPrime", zipper, m, sid]];
+      return [["downPrime", zipper, m, lid]];
     }
   }
 );
 
 const deriveUp = prevIdTransaction(
   (
-    sid: StepId,
+    lid: LookaheadId,
     position: number,
     zipper: ExpressionZipper,
     m: Mem,
@@ -812,7 +835,7 @@ const deriveUp = prevIdTransaction(
         expressionNode({ ...zipper, up: c.up, left: c.left, right: c.right })
       ),
       undefined,
-      sid,
+      lid,
     ]);
   }
 );

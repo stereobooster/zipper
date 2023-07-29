@@ -227,7 +227,7 @@ export const VizualizeLcrsGrammar = ({
             >
               All
             </BaseButton>
-            {steps.map(([d, z, , _sid], i) => (
+            {steps.map(([d, z, , lid], i) => (
               <BaseButton
                 className={[
                   c.ToggleButton,
@@ -245,8 +245,7 @@ export const VizualizeLcrsGrammar = ({
                 onMouseEnter={() => setHighlightedNodes([z.id])}
                 onMouseLeave={() => setHighlightedNodes([])}
               >
-                {dir(d)} {getLevel(z)} 
-                {/* [{sid}] */}
+                {dir(d)} {getLevel(z)} {lid > 0 && `[${lid}]`}
               </BaseButton>
             ))}
           </div>

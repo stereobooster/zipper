@@ -119,17 +119,17 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - Which means that either I messed up implementation
     - Or that it works the same in the original paper
   - The compaction algorithm is a total mess
-- Proof of concept for lookahed operators
+- Added lookahed operators
   - Similar operators exist in [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) and [Regular Expressions](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md): `&` - positive, `!` - negative
   - I use: `~` - positive, `!` - negative
   - But PEGs end of file (EOF) `!.` needs special treatment (not implemented)
-  - Current algorithm is a mess and doesn't support nested lookaheads for now (`~("a" !"b")`)
-  - Idea is:
+  - Current algorithm is a mess. Idea is:
     - to mark each zipper with id
     - if there is lookahead operator it is produce two independent zippers - for one for lookahed and one for main derivation. Connection between them is stored (through ids)
     - Derivation of zippers continue independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
   - lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
   - I can express PEGs ordered choice (`/`) using lookahed
+  - Lookahed with cycle doesn't work
 
 ## Next
 
@@ -144,6 +144,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
 - Collect more "interesting" examples of grammars
+- Backreferences, capturing groups
 
 ### Small bugs and unsorted notes
 
@@ -151,9 +152,17 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `*` min: 0, max: inf
   - `+` min: 1, max: inf
   - `?` min: 0, max: 1
-  - `[n,m]` min: n, max: m
-  - `[n,]` min: n, max: inf
-  - `[n]` min: n, max: n
+  - `{n,m}` min: n, max: m
+  - `{n,}` min: n, max: inf
+  - `{n}` min: n, max: n
+- "Grammar grammar"
+  - Use `[]` for character classes
+  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
+  - Does it support c-escaped characters?
+    - `\f, \n, \r, \t, \v , \", \\` https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#escape_sequences
+    - codepoints
+- `!` vs `^`
+- `~` vs `Ign`, `Ign` = non-capturing group?
 - Mem visualization
   - draw mem for selected node?
   - draw `m-results`?
@@ -167,10 +176,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - it is sometimes not obvious why next move will remove zipper, for example, in case when it's loop e.g. the same node was already derived with the given token
 - Bug: legend for compacted tree doesn't show info about other (hidden) nodes
 - Bug: `A-> "a" "b"; S -> A? A;`, `A -> A "a" | ""; S -> A? A;`
-- "Grammar grammar"
-  - Use `[]` for character classes
-  - Does it support c-escaped characters?
-  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
 - vizualization
   - highlight all edges and nodes of the selected zipper
   - bug: hover on "next step button" doesn't highlight active zipper after click
@@ -216,28 +221,28 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Notation
 
-|                           | Notation   | Node type | Language/Set |
-| ------------------------- | ---------- | --------- | ------------ |
-| concatenation or sequence | ` `        | Seq       | $\cdot$      |
-| union or unordered choice | \|         | Alt       | $\cup$       |
-| token or terminal         | `"x"`      | Tok       |              |
-| symbol or non-terminal    | `x`        | 1         |              |
-| Kleene star               | `*`        | Rep       | $\ast$       |
-| Kleene plus               | `+`        | 2         |              |
-| optional                  | `?`        | 3         |              |
-| any character             | `.`        | 4         | $\Sigma$     |
-| range                     | ❗`[a-z]`  | 4         | ❌           |
-| set of characters         | ❗`[abc]`  | 4         | ❌           |
-| negation of set           | ❗`[^abc]` | 4         | ❌           |
-| escaped character         | ❗`"\n"`   | ❗        | ❌           |
-| character classes         | ❗`\w, \d` | ❗        | ❌           |
-| ignored                   | ❗         | 5, Ign    | ❌           |
-| lexeme                    | ❗         | 6, Lex    | ❌           |
-| positive lookahead        | 7, `~`     | ❗Pla     |              |
-| negative lookahead        | `!`        | ❗Nla     |              |
-| negation or complement    | ❗         |           |              |
-| ordered choice            | `/`        |           |              |
-| intersection              | `&`        | ❗Int     | $\cap$       |
+|                                          | Notation   | Node type | Language/Set |
+| ---------------------------------------- | ---------- | --------- | ------------ |
+| concatenation or sequence                | ` `        | Seq       | $\cdot$      |
+| union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
+| token or terminal                        | `"x"`      | Tok       |              |
+| symbol or non-terminal                   | `x`        | 1         |              |
+| Kleene star                              | `*`        | Rep       | $\ast$       |
+| Kleene plus                              | `+`        | 2         |              |
+| optional                                 | `?`        | 3         |              |
+| any character                            | `.`        | 4         | $\Sigma$     |
+| range                                    | ❗`[a-z]`  | 4         | ❌           |
+| set of characters                        | ❗`[abc]`  | 4         | ❌           |
+| negation of set                          | ❗`[^abc]` | 4         | ❌           |
+| escaped character                        | ❗`"\n"`   | ❗        | ❌           |
+| character classes                        | ❗`\w, \d` | ❗        | ❌           |
+| ignored                                  | ❗         | 5, Ign    | ❌           |
+| lexeme                                   | ❗         | 6, Lex    | ❌           |
+| positive lookahead                       | 7, `~`     | ❗Pla     |              |
+| negative lookahead                       | `!`        | ❗Nla     |              |
+| negation or complement                   | ❗         |           |              |
+| ordered choice                           | `/`        |           |              |
+| intersection or conjuction               | `&`        | ❗Int     | $\cap$       |
 
 ❗ - not implemented or not final
 ❌ - not applicable
