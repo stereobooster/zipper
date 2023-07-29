@@ -13,7 +13,7 @@ const examples = [
     "Context sensitive",
     "aabbcc",
   ],
-  // TODO: nested lookahead operators
+  [`S -> ~("a" !"b") .*;`, "Nested lookahead", "ab"],
   // Algebraic expressions
   [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
   [`N -> "0-9"; S -> S "+" N | N;`, "Left associative operation", "1+2+3"],

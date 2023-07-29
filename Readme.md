@@ -129,6 +129,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - if there is lookahead operator it is produce two independent zippers - for one for lookahed and one for main derivation. Connection between them is stored (through ids)
     - Derivation of zippers continue independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
   - lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
+  - I can express PEGs ordered choice (`/`) using lookahed
 
 ## Next
 
@@ -138,7 +139,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches are matches
   - `PEG`
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
-    - If I would be able to implement `REwLA` I can use is to parse `PEG`
 - I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
   - Potentially connected to multiple focus zippers
 - Extend "Grammar grammar" to support `Ign` and `Lex`
@@ -147,6 +147,13 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Small bugs and unsorted notes
 
+- add min, max to `Rep` and use it to express different quantifiers
+  - `*` min: 0, max: inf
+  - `+` min: 1, max: inf
+  - `?` min: 0, max: 1
+  - `[n,m]` min: n, max: m
+  - `[n,]` min: n, max: inf
+  - `[n]` min: n, max: n
 - Mem visualization
   - draw mem for selected node?
   - draw `m-results`?
