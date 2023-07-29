@@ -20,17 +20,23 @@ import {
 // Non-terminal or symbol
 const nonTerminal = lex("NT", plus(alt(["a-z", "A-Z", "_"])));
 // Terminal or string
-const terminal = seq([
+const str = seq([
   ign('"'),
-  lex("T", star(alt([exc('"'), seq(["\\", '"'])]))),
+  lex("String", star(alt([exc('"'), seq(["\\", '"'])]))),
   ign('"'),
+]);
+const charClass = seq([
+  ign("["),
+  lex("CharClass", star(alt([exc("]"), seq(["\\", "]"])]))),
+  ign("]"),
 ]);
 const arrow = ign("→", seq(["-", ">"]));
 const spaceOptional = ign("Space?", star(" \t"));
 const space = ign("Space", plus(" \t"));
 const ruleBody = recs((rb, v) => {
   const variable = alt([
-    terminal,
+    str,
+    charClass,
     nonTerminal,
     seq([ign("("), spaceOptional, rb, spaceOptional, ign(")")]),
     seq("Star", [v, ign("*")]),
@@ -66,6 +72,33 @@ export const grammarExpression = rules;
 
 const isEmpty = (obj: Record<any, any>) => Object.keys(obj).length === 0;
 
+const escapeSequences: Record<string, string> = {
+  f: "\f",
+  n: "\n",
+  r: "\r",
+  t: "\t",
+  v: "\v",
+  '"': '"',
+};
+
+const unescapeString = (str: string): string[] => {
+  const chars = [...str];
+  const res: string[] = [];
+  let i = 0;
+  do {
+    const char = chars[i];
+    const nextChar = chars[i + 1];
+    if (char === "\\" && escapeSequences[nextChar]) {
+      res.push(escapeSequences[nextChar]);
+      i += 2;
+    } else {
+      res.push(char);
+      i += 1;
+    }
+  } while (i < chars.length);
+  return res;
+};
+
 export function evaluate(tree: Expression) {
   const env: Record<string, Expression> = Object.create(null);
   const get = (name: string) => {
@@ -80,7 +113,13 @@ export function evaluate(tree: Expression) {
     return tmp;
   };
   function ruleToExpression(tree: Expression, label = ""): Expression {
-    if (tree.value.label === "T") return tok(tree.value.value!);
+    if (tree.value.label === "CharClass")
+      return tok(tree.value.value!.replaceAll("\\]", "]"));
+    if (tree.value.label === "String") {
+      const chars = unescapeString(tree.value.value!);
+      if (chars.length <= 1) return tok(tree.value.value!);
+      return seq(chars);
+    }
     if (tree.value.label === "NT") return get(tree.value.value!);
     if (tree.value.label === "Seq")
       return seq(

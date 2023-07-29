@@ -155,14 +155,9 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `{n,m}` min: n, max: m
   - `{n,}` min: n, max: inf
   - `{n}` min: n, max: n
-- "Grammar grammar"
-  - Use `[]` for character classes
-  - convert multi-character strings (`"..."`) to `Seq` of `Tok`
-  - Does it support c-escaped characters?
-    - `\f, \n, \r, \t, \v , \", \\` https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#escape_sequences
-    - codepoints
 - `!` vs `^`
 - `~` vs `Ign`, `Ign` = non-capturing group?
+- BUG: `N -> "a";` can't detect end of derivation
 - Mem visualization
   - draw mem for selected node?
   - draw `m-results`?
@@ -195,6 +190,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - https://github.com/antvis/Graphin
     - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
     - https://d3-graph-gallery.com/network.html
+- "Grammar grammar" doesn't support codepoints
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types
