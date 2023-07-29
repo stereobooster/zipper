@@ -11,7 +11,7 @@ import { memoizeWeak, memoizeWeakChain } from "./memoization";
 
 export type ID = string;
 // this suppose to be valid CSS id selector
-const getId = (): ID => `${Math.random()}`.replaceAll("0.", "n");
+export const getId = (): ID => `${Math.random()}`.replaceAll("0.", "n");
 
 // Tree ----------------------------------------------------------------------------
 

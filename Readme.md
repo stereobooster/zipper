@@ -119,24 +119,23 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - Which means that either I messed up implementation
     - Or that it works the same in the original paper
   - The compaction algorithm is a total mess
+- Proof of concept for lookahed operators
+  - Similar operators exist in [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) and [Regular Expressions](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md): `&` - positive, `!` - negative
+  - I use: `~` - positive, `!` - negative
+  - But PEGs end of file (EOF) `!.` needs special treatment (not implemented)
+  - Current algorithm is a mess and doesn't support nested lookaheads for now (`~("a" !"b")`)
+  - Idea is:
+    - to mark each zipper with id
+    - if there is lookahead operator it is produce two independent zippers - for one for lookahed and one for main derivation. Connection between them is stored (through ids)
+    - Derivation of zippers continue independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
+  - lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
 
 ## Next
 
 - I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
-- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md), [REwLA](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
+- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
   - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches are matches
-  - `REwLA` is problematic because lookahed can "spill" over the current tree. I'm not sure what to do about it
-    - I can store lookahead zippers (LA) separately from "main" zippers, so it will match only if all LA will be matched and "main" grammar will be matched
-    - Also I need to store which main zippers require wich LA zippers (many-to-many)
-    - Something is matched if focus is the same as starting node and there are no left, top and right nodes and direction is `up` or `none`
-      - So store starting point in the step
-    - When LA operator is found
-      - Put it in LA zippers, remove top node, assign ID, store association between main zipper and LA zippers
-      - In the main zipper replace it with empty `Seq`
-    - If LA zipper matched remove it and remove all associations
-    - If LA zipper not matched remove it and remove all main zipper associated with it
-    - in the end if main zipper still have associated PLA zippers it is "no match"
   - `PEG`
     - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
     - If I would be able to implement `REwLA` I can use is to parse `PEG`
@@ -206,6 +205,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - https://github.com/stereobooster/parsing-with-derivalives
 - https://github.com/stereobooster/derp
 - [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
+- [Recognising and Generating Terms using Derivatives of Parsing Expression Grammars](https://arxiv.org/pdf/1801.10490.pdf)
 
 ### Notation
 
@@ -213,26 +213,78 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | ------------------------- | ---------- | --------- | ------------ |
 | concatenation or sequence | ` `        | Seq       | $\cdot$      |
 | union or unordered choice | \|         | Alt       | $\cup$       |
-| intersection              | `&`        | ❗Int     | $\cap$       |
-| Kleene star               | `*`        | Rep       | $\ast$       |
-| Kleene plus               | `+`        |           |              |
-| optional                  | `?`        |           |              |
-| any character             | `.`        | ❗Tok     | $\Sigma$     |
-| range                     | ❗`[a-z]`  | ❗Tok     | ❌           |
-| escaped character         | ❗`\n`     | ❗Tok     | ❌           |
-| set of characters         | ❗`[abc]`  | ❗Tok     | ❌           |
-| character classes         | ❗`\w, \d` |           | ❌           |
-| negation of set           | ❗`[^abc]` | ❗Tok     | ❌           |
-| lexeme                    | ❗         | Lex       | ❌           |
-| ignored                   | ❗         | Ign       | ❌           |
 | token or terminal         | `"x"`      | Tok       |              |
-| symbol or non-terminal    | `x`        | ❌        |              |
-| positive lookahead        | `~`        | ❗Pla     |              |
+| symbol or non-terminal    | `x`        | 1         |              |
+| Kleene star               | `*`        | Rep       | $\ast$       |
+| Kleene plus               | `+`        | 2         |              |
+| optional                  | `?`        | 3         |              |
+| any character             | `.`        | 4         | $\Sigma$     |
+| range                     | ❗`[a-z]`  | 4         | ❌           |
+| set of characters         | ❗`[abc]`  | 4         | ❌           |
+| negation of set           | ❗`[^abc]` | 4         | ❌           |
+| escaped character         | ❗`"\n"`   | ❗        | ❌           |
+| character classes         | ❗`\w, \d` | ❗        | ❌           |
+| ignored                   | ❗         | 5, Ign    | ❌           |
+| lexeme                    | ❗         | 6, Lex    | ❌           |
+| positive lookahead        | 7, `~`     | ❗Pla     |              |
 | negative lookahead        | `!`        | ❗Nla     |              |
 | negation or complement    | ❗         |           |              |
 | ordered choice            | `/`        |           |              |
-
-Which symbol to use for PLA: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I won't to use it for intersection. `+` is used for Kleene plus. Maybe use `{}`, to avoid situations when you need to use `()`, like `~(a b) c` or `(~a) b`?
+| intersection              | `&`        | ❗Int     | $\cap$       |
 
 ❗ - not implemented or not final
 ❌ - not applicable
+
+1. Symbol expressed as a property of Node (Expression)
+2. Kleene plus implemented using `Seq` and `Rep`. Can be impelemnted as separate node type
+3. Optional implemented using `Alt` and and empty `Seq`. Can be impelemnted as separate node type
+4. For not those are implemented using `Tok`. Notation need to be changed
+5. Ingored implemented as separate Expression type, but could be as well property of Node (Expression). Not exposed in notation though
+6. `Lexeme` makes parser scanerless. Not exposed in notation though
+7. Which symbol to use for PLA: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I wont to use it for intersection. `+` is used for Kleene plus. Maybe use `{}`, to avoid situations when you need to use `()`, like `~(a b) c` or `(~a) b`?
+
+### Interesting grammars
+
+```
+S -> S & "a";
+```
+
+empty set
+
+```
+X -> a X b;
+Y -> b Y c;
+S -> X c* & a* Y;
+```
+
+`aabbcc`
+
+### Memoization
+
+Memoization used for detecting loops (recursion, breaking infinite loop), for example, grammar like this `S -> S "a";` (left recursion) would cause infinite loop otherwise. When loop is detected it will return bottom value (empty set).
+
+> That is why they put something in the memo table before deriving
+
+Memoization used for memoizing `results` if the same expression is derived by the same token (position). For example, `A -> "a"; S -> A "b" | A "c";` Alternation (`|`) splits ziiper into N separate zippers (for each branch) which are derived independently. It will derivate first zipper by token `0`, then second zipper by token `0`, etc...
+
+> That is why they memoize `results` and do this by position
+
+In trivial case (concatenation) you need to memoize only one result, but because alternation splits zipper there can be more than one result.
+
+> That is why `results` is an array
+
+**But** I can't come up with an example where we would need `results` as array or store `parents` without recursion.
+
+Grammar: `A -> A "a" | ""; S -> A A;`, string: `aa`
+
+When deriving `A` by the first letter (position: 0) it can have different parents (3 - because length of input is 2):
+
+- `S`
+- `S -> A -> Seq`
+- `S -> A -> Seq -> A -> Seq`
+
+And different results:
+
+- `""`
+- `Seq (A -> "", "a")`
+- Won't be results until we get the second letter: `Seq (Seq ("a", A -> ""), ?)`

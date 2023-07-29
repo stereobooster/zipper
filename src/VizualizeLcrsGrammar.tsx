@@ -8,6 +8,7 @@ import {
   Step,
   deriveStepsUntil,
   processSteps,
+  resetMemtables,
   stepsToDot,
 } from "./lcrsPwz";
 import { ID, getLevel, treeToZipper } from "./LcrsTree";
@@ -27,6 +28,7 @@ export const VizualizeLcrsGrammar = ({
   width,
   str,
 }: VizualizeGrammarProps) => {
+  useEffect(() => () => resetMemtables(), [tree, str]);
   const [fit, setFit] = useState(true);
   const options: GraphvizOptions = useMemo(
     () => ({ height, width, fit }),
@@ -45,7 +47,7 @@ export const VizualizeLcrsGrammar = ({
   const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
 
   const initialStep: Step[] = useMemo(
-    () => [["down", treeToZipper(tree), undefined]],
+    () => [["down", treeToZipper(tree), undefined, 0]],
     [tree]
   );
   const [cycle, setCycle] = useState(0);
@@ -68,18 +70,10 @@ export const VizualizeLcrsGrammar = ({
   }, [layout, steps, displayZippers, compact, showMem, position, token]);
 
   const go = useCallback(() => {
-    if (position > str.length) {
-      setFinished(true);
-      setAutoDerivate(false);
-      return;
-    }
+    if (position > str.length) return setAutoDerivate(false);
+
     const [newSteps, newPosition, currentStep, currentStepLength, nextStep] =
-      processSteps(token, position === str.length, position, steps);
-    if (newSteps.length === 0) {
-      setFinished(true);
-      setAutoDerivate(false);
-      return;
-    }
+      processSteps(token, position, steps);
     setCycle((x) => x + 1);
     setPosition(newPosition);
     setStep(nextStep);
@@ -103,6 +97,10 @@ export const VizualizeLcrsGrammar = ({
       }
       return selectedNode;
     });
+    if (newSteps.length === 0) {
+      setFinished(true);
+      setAutoDerivate(false);
+    }
   }, [
     step,
     position,
@@ -229,7 +227,7 @@ export const VizualizeLcrsGrammar = ({
             >
               All
             </BaseButton>
-            {steps.map(([d, z], i) => (
+            {steps.map(([d, z, , _sid], i) => (
               <BaseButton
                 className={[
                   c.ToggleButton,
@@ -247,7 +245,8 @@ export const VizualizeLcrsGrammar = ({
                 onMouseEnter={() => setHighlightedNodes([z.id])}
                 onMouseLeave={() => setHighlightedNodes([])}
               >
-                {dir(d)} {getLevel(z)}
+                {dir(d)} {getLevel(z)} 
+                {/* [{sid}] */}
               </BaseButton>
             ))}
           </div>
@@ -298,6 +297,7 @@ export const VizualizeLcrsGrammar = ({
         </div>
       </div>
       <div className={c.row}>
+        {steps.length === 0 && <b>Parsing failed</b>}
         <Graphviz
           dot={dot}
           onClick={setSelectedNode}

@@ -1,15 +1,28 @@
 import c from "./components/common.module.css";
 import { Nobr } from "./components/Nobr";
 import { useState } from "react";
-import { parseGrammar } from "./lcrsPwzGrammar";
+import { grammarExpression, parseGrammar } from "./lcrsPwzGrammar";
 import { VizualizeLcrsGrammar } from "./VizualizeLcrsGrammar";
 
 const examples = [
+  // Lookahead
+  // Ford's example for context sensitive grammar with lookahead operators
+  // https://github.com/SRI-CSL/PVSPackrat/issues/3
+  [
+    `A -> "a" A "b" | ""; B -> "b" B "c" | ""; S -> ~(A "c") "a"* B;`,
+    "Context sensitive",
+    "aabbcc",
+  ],
+  // TODO: nested lookahead operators
   // Algebraic expressions
   [`S -> S "+" S | S "-" S | "0-9";`, "Algebraic expression", "1+2-3+4"],
   [`N -> "0-9"; S -> S "+" N | N;`, "Left associative operation", "1+2+3"],
   [`N -> "0-9"; S -> N "+" S | N;`, "Right associative operation", "1+2+3"],
-  [`N -> "0-9"; M -> M "*" N | N; S -> S "+" M | M;`, "Priority of operations", "1+2*3+4"],
+  [
+    `N -> "0-9"; M -> M "*" N | N; S -> S "+" M | M;`,
+    "Priority of operations",
+    "1+2*3+4",
+  ],
   // Kleene star
   [`S -> S "a" | "";`, "Kleene star as left recursion", "aaa"],
   [`S -> "a" S | "";`, "Kleene star as right recursion", "aaa"],
@@ -22,6 +35,7 @@ const examples = [
   [`S -> "a"****;`, "Highly ambigiuous #2", "aa"],
   // TODO: I think this is a bug in the original paper, but this one works: S -> "a" | S S;
   [`S -> "a" | "" | S S;`, "Bug (infinite loop)", "aaa"],
+  ["", "Grammar", `S -> ~"a"*;`],
 ];
 
 export const LcrsGrammarPlayground = () => {
@@ -50,7 +64,13 @@ export const LcrsGrammarPlayground = () => {
               const exampleNumber = parseInt(e.target.value, 10);
               setExample(exampleNumber);
               setStr(examples[exampleNumber][2]);
-              changeGrammar(examples[exampleNumber][0]);
+              if (exampleNumber === examples.length - 1) {
+                setGrammar("");
+                setExpression(grammarExpression);
+                setError("");
+              } else {
+                changeGrammar(examples[exampleNumber][0]);
+              }
             }}
             value={example}
             className={c.select}
@@ -69,6 +89,7 @@ export const LcrsGrammarPlayground = () => {
             className={c.select}
             value={grammar}
             onChange={(e) => changeGrammar(e.target.value)}
+            disabled={example === examples.length - 1}
           />
         </label>
         <label>
@@ -91,4 +112,4 @@ export const LcrsGrammarPlayground = () => {
   );
 };
 
-export default LcrsGrammarPlayground
+export default LcrsGrammarPlayground;

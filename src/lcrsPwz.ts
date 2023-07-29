@@ -26,6 +26,7 @@ import {
   treeToZipper,
   up,
   traverseZipper,
+  getId,
 } from "./LcrsTree";
 import {
   grayColor,
@@ -49,7 +50,12 @@ export type ExpressionType =
   | "Lex"
   | "LexC"
   | "Ign"
-  | "IgnC";
+  | "IgnC"
+  // positive lookahead
+  | "Pla"
+  // negative lookahead
+  | "Nla";
+// Intersection
 // | "Int"
 // | "IntC";
 
@@ -111,17 +117,9 @@ export const expressionNode = (
 // Extension: support for character classes
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Character_classes
 const match = (label: string, token: string): boolean => {
-  // empty string only matched by ϵ
+  // TODO: why do we need it. Isn't it handled by Seq?
   if (token === "") return label === "";
-  // escapes
-  if (label[0] === "\\") {
-    // match any letter. PCRE: .
-    if (label[1] === ".") return true;
-    // match `^` token:  PCRE: \^
-    if (label[1] === "^") return token === "^";
-    // match `\` token:  PCRE: \\
-    if (label[1] === undefined) return token === "\\";
-  }
+
   let not = false;
   // negation. PCRE: [^a]
   if (label[0] === "^") {
@@ -129,34 +127,189 @@ const match = (label: string, token: string): boolean => {
     not = true;
   }
   let result;
-  // character range. PCRE: [a-b]
-  if (label.length === 3 && label[1] === "-") {
-    result =
-      label.charCodeAt(0) <= token.charCodeAt(0) &&
-      label.charCodeAt(2) >= token.charCodeAt(0);
+
+  // escapes
+  if (label[0] === "\\") {
+    // match any letter. PCRE: .
+    if (label[1] === ".") result = [...token].length === 1;
+    // match `^` token:  PCRE: \^
+    if (label[1] === "^") result = token === "^";
+    // match `\` token:  PCRE: \\
+    if (label[1] === undefined) result = token === "\\";
   }
-  // character set. PCRE: [abc]
-  else {
-    result = label.includes(token);
+
+  if (result === undefined) {
+    // character range. PCRE: [a-b]
+    if (label.length === 3 && label[1] === "-") {
+      result =
+        label.charCodeAt(0) <= token.charCodeAt(0) &&
+        label.charCodeAt(2) >= token.charCodeAt(0);
+    }
+    // character set. PCRE: [abc]
+    else {
+      result = label.includes(token);
+    }
   }
+
   return not ? !result : result;
 };
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
-export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined];
+export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined, StepId];
+
+// this is mess
+export type StepId = number;
+let _stepId = 1;
+const getStepId = () => ++_stepId;
+
+type MainZippersMemo = Record<
+  StepId,
+  {
+    topNode: ID;
+    lookahead: StepId | undefined;
+    prev: StepId[];
+    isLookahead: boolean;
+  }
+>;
+let _mainZippers: MainZippersMemo = Object.create(null);
+
+type LookaheadZippersMemo = Record<
+  StepId,
+  {
+    positive: boolean;
+    main: StepId;
+    success: boolean;
+  }
+>;
+let _lookaheadZippers: LookaheadZippersMemo = Object.create(null);
+
+const addLookahead = (
+  oldMain: StepId,
+  lookahead: {
+    topNode: ID;
+    positive: boolean;
+  }
+) => {
+  const mainId = getStepId();
+  const laId = getStepId();
+
+  _mainZippers[mainId] = {
+    topNode: _mainZippers[oldMain].topNode,
+    prev: [..._mainZippers[oldMain].prev, mainId],
+    lookahead: laId,
+    isLookahead: _mainZippers[oldMain].isLookahead,
+  };
+
+  _mainZippers[laId] = {
+    topNode: lookahead.topNode,
+    prev: [laId],
+    lookahead: undefined,
+    isLookahead: true,
+  };
+
+  _lookaheadZippers[laId] = {
+    positive: lookahead.positive,
+    main: mainId,
+    success: false,
+  };
+
+  return [mainId, laId];
+};
+
+const addMain = (step: Step) => {
+  const sid = step[3];
+  if (_mainZippers[sid]) return;
+  const zipper = step[1];
+  _mainZippers[sid] = {
+    topNode: zipper.originalId || zipper.id,
+    prev: [sid],
+    lookahead: undefined,
+    isLookahead: false,
+  };
+};
+
+const checkLookahead = (
+  currentStep: number,
+  newSteps: Step[],
+  steps: Step[]
+): Step[] => {
+  const sid = steps[currentStep][3];
+  steps = steps.flatMap((step, i) => (i === currentStep ? newSteps : [step]));
+
+  // not a lookahed - do nothing
+  if (!_mainZippers[sid].isLookahead) return steps;
+  const laSid = sid;
+
+  let didMatch = false;
+  newSteps.forEach((step) => {
+    const [d, z, , nsid] = step;
+    if (!_mainZippers[nsid].isLookahead) return;
+    if (d !== "up") return;
+    if (z.up !== null || z.left !== null || z.right !== null) return;
+    if (_mainZippers[nsid].topNode !== z.originalId) return;
+    didMatch = true;
+  });
+
+  const positive = _lookaheadZippers[laSid].positive;
+
+  if (newSteps.length === 0) {
+    const lastOfAKind =
+      steps.filter(([, , , x]) => _mainZippers[x].prev[0] === laSid).length ===
+      0;
+
+    // do nothing here
+    if (!lastOfAKind) return steps;
+    // no need to remove lookaheads of this type, because it was last one
+    if (positive) {
+      _lookaheadZippers[laSid].success = false;
+      // remove all main zippers which require this lookahead
+      steps = steps.filter(
+        ([, , , x]) =>
+          !_mainZippers[x].prev.includes(_lookaheadZippers[laSid].main)
+      );
+    } else {
+      _lookaheadZippers[laSid].success = true;
+    }
+  }
+
+  if (didMatch) {
+    // remove lookaheads of this type
+    steps = steps.filter(([, , , x]) => x !== laSid);
+    if (positive) {
+      _lookaheadZippers[laSid].success = true;
+    } else {
+      _lookaheadZippers[laSid].success = false;
+      // remove all main zippers which require this lookahead
+      steps = steps.filter(
+        ([, , , x]) =>
+          !_mainZippers[x].prev.includes(_lookaheadZippers[laSid].main)
+      );
+    }
+  }
+
+  return steps;
+};
 
 const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
 let treeCompaction = false;
 
+// stupid workaround because I use global variables
+export const resetMemtables = () => {
+  mems.reset();
+  memoInput.length = 0;
+  _mainZippers = Object.create(null);
+  _lookaheadZippers = Object.create(null);
+  _stepId = 1;
+};
+
 export function parse(str: string, tree: Expression) {
   const treeCompactionPrev = treeCompaction;
   treeCompaction = true;
-  const initialStep: Step[] = [["down", treeToZipper(tree), undefined]];
+  const initialStep: Step[] = [["down", treeToZipper(tree), undefined, 0]];
   const [steps, position, , , error] = deriveStepsUntil(str, initialStep);
-  mems.reset();
-  memoInput.length = 0;
+  resetMemtables();
   treeCompaction = treeCompactionPrev;
   if (error)
     // this is not perfect because it can show "Ign" items, which doesn't help
@@ -176,8 +329,9 @@ export function deriveStepsUntil(
   targetCycle = -1,
   targetPosition = -1
 ) {
-  mems.reset();
-  memoInput.length = 0;
+  resetMemtables();
+  if (steps.length !== 1) throw new Error("Expects one step");
+
   let position = 0;
   let step = 0;
   let cycle = 0;
@@ -189,7 +343,6 @@ export function deriveStepsUntil(
     const token = str[position] || "";
     const [newSteps, newPosition, , , nextStep] = processSteps(
       token,
-      position === str.length,
       position,
       steps
     );
@@ -207,27 +360,28 @@ export function deriveStepsUntil(
   return [steps, position, step, cycle, error] as const;
 }
 
-export function processSteps(
-  token: string,
-  end: boolean,
-  position: number,
-  steps: Step[]
-) {
+export function processSteps(token: string, position: number, steps: Step[]) {
+  if (steps.length === 0) return [steps, position, 0, 0, 0] as const;
+
+  // workaround to add first step from which derivation starts
+  addMain(steps[0]);
+
+  const end = token === "";
   memoInput[position] = token;
 
   let currentStep = steps.findIndex(([d]) => d !== "none");
   if (currentStep === -1) {
     currentStep = 0;
     position = position + 1;
-    if (!end) steps = steps.map(([, z, m]) => ["up", z, m]);
+    if (!end) steps = steps.map(([, ...rest]) => ["up", ...rest]);
   }
 
   const newSteps = deriveStep(position, token, steps[currentStep]);
-  steps = steps.flatMap((step, i) => (i === currentStep ? newSteps : [step]));
+  steps = checkLookahead(currentStep, newSteps, steps);
 
   if (end)
-    steps = steps.map(([d, z, m]) =>
-      d === "up" && z.up === null ? ["none", z, m] : [d, z, m]
+    steps = steps.map(([d, z, ...rest]) =>
+      d === "up" && z.up === null ? ["none", z, ...rest] : [d, z, ...rest]
     );
 
   let nextStep = steps.findIndex(([d]) => d !== "none");
@@ -245,6 +399,7 @@ const verticalCompaction = (zipper: ExpressionZipper) => {
 
 const deriveDownPrime = prevIdTransaction(
   (
+    sid: StepId,
     position: number,
     token: string,
     zipper: ExpressionZipper,
@@ -269,6 +424,7 @@ const deriveDownPrime = prevIdTransaction(
               },
             }),
             m,
+            sid,
           ],
         ];
       }
@@ -288,6 +444,7 @@ const deriveDownPrime = prevIdTransaction(
                 },
               }),
               m,
+              sid,
             ],
           ];
         // | Seq (s, e :: es) -> d↓ (SeqC (m, s, [], es)) e
@@ -306,6 +463,7 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
+            sid,
           ],
         ];
       case "Alt": {
@@ -324,6 +482,7 @@ const deriveDownPrime = prevIdTransaction(
           "down",
           expressionNode({ ...e, up: x }),
           undefined,
+          sid,
         ]);
       }
       // Extension
@@ -364,8 +523,8 @@ const deriveDownPrime = prevIdTransaction(
         });
 
         return [
-          ["down", newFocusWithSibling, undefined],
-          ["up", newFocusWithEmpty, m],
+          ["down", newFocusWithSibling, undefined, sid],
+          ["up", newFocusWithEmpty, m, sid],
         ];
       }
       case "Lex":
@@ -384,6 +543,7 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
+            sid,
           ],
         ];
       case "Ign":
@@ -402,151 +562,204 @@ const deriveDownPrime = prevIdTransaction(
               })
             ),
             undefined,
+            sid,
           ],
         ];
+      case "Nla":
+      case "Pla": {
+        const withOutLa = expressionNode({
+          ...zipper,
+          down: null,
+          value: {
+            ...zipper.value,
+            expressionType: "Seq",
+            start: position,
+            end: position,
+            value: "",
+          },
+        });
+
+        const standAloneLa = expressionNode({
+          ...zipper,
+          // need to do this, so that they won't be sharing mem
+          prevId: getId(),
+          left: null,
+          right: null,
+          up: null,
+          value: {
+            ...zipper.value,
+            expressionType: "Seq",
+          },
+        });
+
+        const [mainId, laId] = addLookahead(sid, {
+          topNode: standAloneLa.originalId || standAloneLa.id,
+          positive: zipper.value.expressionType === "Pla",
+        });
+
+        return [
+          ["down", standAloneLa, undefined, laId],
+          zipper.right
+            ? ["down", deleteBefore(right(withOutLa)), undefined, mainId]
+            : ["up", withOutLa, m, mainId],
+        ];
+      }
       default:
         throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
     }
   }
 );
 
-const deriveUpPrime = prevIdTransaction((zipper: ExpressionZipper): Step[] => {
-  // | TopC -> []
-  if (zipper.up === null) return [];
-  switch (zipper.up.value.expressionType) {
-    case "SeqC": {
-      const focusEmpty =
-        (zipper.value.expressionType !== "Lex" &&
-          zipper.value.start === zipper.value.end) ||
-        (zipper.value.expressionType === "Seq" &&
-          zipper.down === null &&
-          zipper.value.value === "");
-      // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
-      if (zipper.right === null) {
-        let res = zipper;
+const deriveUpPrime = prevIdTransaction(
+  (sid: StepId, zipper: ExpressionZipper): Step[] => {
+    // | TopC -> []
+    if (zipper.up === null) return [];
+    switch (zipper.up.value.expressionType) {
+      case "SeqC": {
+        const focusEmpty =
+          (zipper.value.expressionType !== "Lex" &&
+            zipper.value.start === zipper.value.end) ||
+          (zipper.value.expressionType === "Seq" &&
+            zipper.down === null &&
+            zipper.value.value === "");
+        // | SeqC (m, s, es, []) -> d↑ (Seq (s, List.rev (e :: es))) m
+        if (zipper.right === null) {
+          let res = zipper;
+          if (treeCompaction && focusEmpty) {
+            // horizontal compaction
+            if (zipper.left !== null) {
+              res = deleteAfter(left(zipper));
+            }
+          }
+          res = up(res);
+          return [
+            [
+              "up",
+              expressionNode({
+                ...res,
+                value: {
+                  ...res.value,
+                  expressionType: "Seq",
+                  m: undefined,
+                  end: zipper.value.end,
+                },
+              }),
+              res.value.m,
+              sid,
+            ],
+          ];
+        }
+
+        let res = right(zipper);
         if (treeCompaction && focusEmpty) {
           // horizontal compaction
-          if (zipper.left !== null) {
-            res = deleteAfter(left(zipper));
-          }
+          res = deleteBefore(res);
         }
-        res = up(res);
+
+        // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
+        return [["down", res, undefined, sid]];
+      }
+      case "AltC": {
+        // | AltC (m) -> d↑ (Alt [e]) m
+        const x = up(zipper);
         return [
           [
             "up",
             expressionNode({
-              ...res,
+              ...x,
               value: {
-                ...res.value,
-                expressionType: "Seq",
+                ...x.value,
+                expressionType: "Alt",
                 m: undefined,
                 end: zipper.value.end,
               },
             }),
-            res.value.m,
+            x.value.m,
+            sid,
           ],
         ];
       }
+      // Extension
+      case "RepC": {
+        // if Kleene star derives empty string - return nothing,
+        // because we already accounted for empty string in `deriveDownPrime` see `case "Rep":`
+        if (zipper.value.start === zipper.value.end) return [];
+        let y = right(zipper);
+        y = insertAfter(y, y);
+        let x = up(deleteAfter(zipper));
+        const m = x.value.m;
+        x = expressionNode({
+          ...x,
+          value: {
+            ...x.value,
+            expressionType: "Rep",
+            m: undefined,
+            end: zipper.value.end,
+          },
+        });
 
-      let res = right(zipper);
-      if (treeCompaction && focusEmpty) {
-        // horizontal compaction
-        res = deleteBefore(res);
+        return [
+          ["up", x, m, sid],
+          ["down", y, undefined, sid],
+        ];
       }
-
-      // | SeqC (m, s, esL , eR :: esR ) -> d↓ (SeqC (m, s, e :: esL , esR )) eR
-      return [["down", res, undefined]];
+      case "LexC": {
+        const x = up(zipper);
+        return [
+          [
+            "up",
+            expressionNode({
+              ...x,
+              down: null,
+              value: {
+                ...x.value,
+                expressionType: "Lex",
+                m: undefined,
+                end: zipper.value.end,
+                value: memoInput
+                  .slice(x.value.start, zipper.value.end)
+                  .join(""),
+              },
+            }),
+            x.value.m,
+            sid,
+          ],
+        ];
+      }
+      case "IgnC": {
+        const x = up(zipper);
+        return [
+          [
+            "up",
+            expressionNode({
+              ...x,
+              down: null,
+              value: {
+                ...x.value,
+                expressionType: "Seq",
+                m: undefined,
+                end: zipper.value.end,
+                value: "",
+              },
+            }),
+            x.value.m,
+            sid,
+          ],
+        ];
+      }
+      default:
+        throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
     }
-    case "AltC": {
-      // | AltC (m) -> d↑ (Alt [e]) m
-      const x = up(zipper);
-      return [
-        [
-          "up",
-          expressionNode({
-            ...x,
-            value: {
-              ...x.value,
-              expressionType: "Alt",
-              m: undefined,
-              end: zipper.value.end,
-            },
-          }),
-          x.value.m,
-        ],
-      ];
-    }
-    // Extension
-    case "RepC": {
-      // if Kleene star derives empty string - return nothing,
-      // because we already accounted for empty string in `deriveDownPrime` see `case "Rep":`
-      if (zipper.value.start === zipper.value.end) return [];
-      let y = right(zipper);
-      y = insertAfter(y, y);
-      let x = up(deleteAfter(zipper));
-      const m = x.value.m;
-      x = expressionNode({
-        ...x,
-        value: {
-          ...x.value,
-          expressionType: "Rep",
-          m: undefined,
-          end: zipper.value.end,
-        },
-      });
-
-      return [
-        ["up", x, m],
-        ["down", y, undefined],
-      ];
-    }
-    case "LexC": {
-      const x = up(zipper);
-      return [
-        [
-          "up",
-          expressionNode({
-            ...x,
-            down: null,
-            value: {
-              ...x.value,
-              expressionType: "Lex",
-              m: undefined,
-              end: zipper.value.end,
-              value: memoInput.slice(x.value.start, zipper.value.end).join(""),
-            },
-          }),
-          x.value.m,
-        ],
-      ];
-    }
-    case "IgnC": {
-      const x = up(zipper);
-      return [
-        [
-          "up",
-          expressionNode({
-            ...x,
-            down: null,
-            value: {
-              ...x.value,
-              expressionType: "Seq",
-              m: undefined,
-              end: zipper.value.end,
-              value: "",
-            },
-          }),
-          x.value.m,
-        ],
-      ];
-    }
-    default:
-      throw new Error(`Unhandled type: ${zipper.value.expressionType}`);
   }
-});
+);
 
 const deriveDown = prevIdTransaction(
-  (position: number, zipper: ExpressionZipper, dryRun: boolean): Step[] => {
+  (
+    sid: StepId,
+    position: number,
+    zipper: ExpressionZipper,
+    dryRun: boolean
+  ): Step[] => {
     const id = zipper.prevId || zipper.id;
     let m = mems.get(id, position);
     // match mems.get(p, e) with
@@ -561,6 +774,7 @@ const deriveDown = prevIdTransaction(
           expressionNode({ ...zipper, value: focus.value, down: focus.down })
         ),
         undefined,
+        sid,
       ]);
     }
     // | None ->
@@ -573,13 +787,14 @@ const deriveDown = prevIdTransaction(
       // mems.put(p, e, m);
       if (!dryRun) mems.set(id, position, m);
       // d′↓ m e
-      return [["downPrime", zipper, m]];
+      return [["downPrime", zipper, m, sid]];
     }
   }
 );
 
 const deriveUp = prevIdTransaction(
   (
+    sid: StepId,
     position: number,
     zipper: ExpressionZipper,
     m: Mem,
@@ -597,6 +812,7 @@ const deriveUp = prevIdTransaction(
         expressionNode({ ...zipper, up: c.up, left: c.left, right: c.right })
       ),
       undefined,
+      sid,
     ]);
   }
 );
@@ -607,18 +823,18 @@ function deriveStep(
   step: Step,
   dryRun = false
 ): Step[] {
-  const [direction, zipper, m] = step;
+  const [direction, zipper, m, id] = step;
   switch (direction) {
     case "down":
-      return deriveDown(position, zipper, dryRun);
+      return deriveDown(id, position, zipper, dryRun);
     case "up":
       if (!m) console.log("undefined m");
-      return deriveUp(position, zipper, m!, dryRun);
+      return deriveUp(id, position, zipper, m!, dryRun);
     case "downPrime":
       if (!m) console.log("undefined m");
-      return deriveDownPrime(position, token, zipper, m!);
+      return deriveDownPrime(id, position, token, zipper, m!);
     case "upPrime":
-      return deriveUpPrime(zipper);
+      return deriveUpPrime(id, zipper);
     case "none":
       return [step];
   }
@@ -684,6 +900,10 @@ const expressionToDot = memoizeWeakChain(
         label = short ? "∪" : "Alt";
       } else if (expressionType === "Rep" || expressionType === "RepC") {
         label = short ? "∗" : "Rep";
+      } else if (expressionType === "Pla") {
+        label = short ? "~" : "Pla";
+      } else if (expressionType === "Nla") {
+        label = short ? "!" : "Nla";
       }
     }
     // https://graphviz.org/doc/info/shapes.html
@@ -905,7 +1125,7 @@ export const stepsToDot = ({
       let zipperNext;
       if (direction === "none") {
         direction = "up";
-        const newStep = [direction, step[1], step[2]] as Step;
+        const newStep = [direction, step[1], step[2], step[3]] as Step;
         zipperNext = deriveStep(position, token, newStep, true);
       } else {
         zipperNext = deriveStep(position, token, step, true);

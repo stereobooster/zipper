@@ -3,10 +3,13 @@ import { forEach, mapToArray } from "./LcrsTree";
 import { Expression, parse } from "./lcrsPwz";
 import {
   alt,
+  any,
   exc,
   ign,
   lex,
+  nla,
   opt,
+  pla,
   plus,
   recs,
   seq,
@@ -33,6 +36,9 @@ const ruleBody = recs((rb, v) => {
     seq("Star", [v, ign("*")]),
     seq("Plus", [v, ign("+")]),
     seq("Opt", [v, ign("?")]),
+    seq("Pla", [ign("~"), v]),
+    seq("Nla", [ign("!"), v]),
+    seq("Any", [ign(".")]),
   ]);
 
   const seqRule = seq("Seq", [variable, plus(seq([space, variable]))]);
@@ -92,6 +98,11 @@ export function evaluate(tree: Expression) {
       return plus(label, ruleToExpression(tree.down!));
     if (tree.value.label === "Opt")
       return opt(label, ruleToExpression(tree.down!));
+    if (tree.value.label === "Pla")
+      return pla(label, ruleToExpression(tree.down!));
+    if (tree.value.label === "Nla")
+      return nla(label, ruleToExpression(tree.down!));
+    if (tree.value.label === "Any") return any();
     throw new Error(`Unkown type ${tree.value.label}`);
   }
   const addRule = (tree: Expression) => {

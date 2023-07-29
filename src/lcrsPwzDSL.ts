@@ -226,6 +226,54 @@ export function ign(...args: [string, StrExp] | [StrExp]) {
 }
 
 /**
+ * Positive lookahead
+ */
+export function pla(label: string, child: StrExp): Expression;
+export function pla(childr: StrExp): Expression;
+export function pla(...args: [string, StrExp] | [StrExp]) {
+  const [first, second] = args;
+  let label, child;
+  if (second !== undefined) {
+    label = first as string;
+    child = second as StrExp;
+  } else {
+    label = "";
+    child = first;
+  }
+  return expressionNode({
+    value: {
+      expressionType: "Pla",
+      label,
+    },
+    down: helper([child]),
+  });
+}
+
+/**
+ * Negative lookahead
+ */
+export function nla(label: string, child: StrExp): Expression;
+export function nla(childr: StrExp): Expression;
+export function nla(...args: [string, StrExp] | [StrExp]) {
+  const [first, second] = args;
+  let label, child;
+  if (second !== undefined) {
+    label = first as string;
+    child = second as StrExp;
+  } else {
+    label = "";
+    child = first;
+  }
+  return expressionNode({
+    value: {
+      expressionType: "Nla",
+      label,
+    },
+    down: helper([child]),
+  });
+}
+
+/**
  * When we combine operators to form expressions, the order in which the operators are to be applied may
  * not be obvious. For example, `a + b + c` can be interpreted as `((a + b) + c)` or as `(a + (b + c))`.
  * We say that `+` is left-associative if operands are grouped left to right as in `((a + b) + c)`.
