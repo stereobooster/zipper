@@ -125,29 +125,33 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - But PEGs end of file (EOF) `!.` needs special treatment (not implemented)
   - Current algorithm is a mess. Idea is:
     - to mark each zipper with id
-    - if there is lookahead operator it is produce two independent zippers - for one for lookahed and one for main derivation. Connection between them is stored (through ids)
-    - Derivation of zippers continue independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
-  - lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
+    - if there is lookahead operator it produces two independent zippers - one for lookahed and one for main derivation. Connection between them is stored through ids
+    - Derivation of zippers continues independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
+  - Lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
   - I can express PEGs ordered choice (`/`) using lookahed
-  - Lookahed with cycle doesn't work
+  - Lookahed with cycle doesn't work so far
 
 ## Next
 
 - I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
-- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) parsing with zippers
-  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches are matches
-  - `PEG`
-    - [Reference paper](https://arxiv.org/pdf/1808.08893.pdf) is confuising
+- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md)
+  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches match
 - I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
   - Potentially connected to multiple focus zippers
 - Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
 - Collect more "interesting" examples of grammars
-- Backreferences, capturing groups
+  - Markdown parser
+- Backreferences
 
 ### Small bugs and unsorted notes
 
+- `EOF`
+- `S -> ~"a"*` is ambigious
+  - Simplest solution put everything in front (or back), but not on both sides
+  - Harder solution is to implement prioritization
+  - Or forbid this situation
 - add min, max to `Rep` and use it to express different quantifiers
   - `*` min: 0, max: inf
   - `+` min: 1, max: inf
@@ -155,8 +159,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `{n,m}` min: n, max: m
   - `{n,}` min: n, max: inf
   - `{n}` min: n, max: n
-- `!` vs `^`
-- `~` vs `Ign`, `Ign` = non-capturing group?
 - BUG: `N -> "a";` can't detect end of derivation
 - Mem visualization
   - draw mem for selected node?
@@ -214,85 +216,56 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - https://github.com/stereobooster/derp
 - [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
 - [Recognising and Generating Terms using Derivatives of Parsing Expression Grammars](https://arxiv.org/pdf/1801.10490.pdf)
+- [Simplified Parsing Expression Derivatives](https://arxiv.org/pdf/1808.08893.pdf)
 
 ### Notation
 
-|                                          | Notation   | Node type | Language/Set |
-| ---------------------------------------- | ---------- | --------- | ------------ |
-| concatenation or sequence                | ` `        | Seq       | $\cdot$      |
-| union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
-| token or terminal                        | `"x"`      | Tok       |              |
-| symbol or non-terminal                   | `x`        | 1         |              |
-| Kleene star                              | `*`        | Rep       | $\ast$       |
-| Kleene plus                              | `+`        | 2         |              |
-| optional                                 | `?`        | 3         |              |
-| any character                            | `.`        | 4         | $\Sigma$     |
-| range                                    | ❗`[a-z]`  | 4         | ❌           |
-| set of characters                        | ❗`[abc]`  | 4         | ❌           |
-| negation of set                          | ❗`[^abc]` | 4         | ❌           |
-| escaped character                        | ❗`"\n"`   | ❗        | ❌           |
-| character classes                        | ❗`\w, \d` | ❗        | ❌           |
-| ignored                                  | ❗         | 5, Ign    | ❌           |
-| lexeme                                   | ❗         | 6, Lex    | ❌           |
-| positive lookahead                       | 7, `~`     | ❗Pla     |              |
-| negative lookahead                       | `!`        | ❗Nla     |              |
-| negation or complement                   | ❗         |           |              |
-| ordered choice                           | `/`        |           |              |
-| intersection or conjuction               | `&`        | ❗Int     | $\cap$       |
-
-❗ - not implemented or not final
-❌ - not applicable
+| Note |                                          | Notation   | Node type | Language/Set |
+| ---- | ---------------------------------------- | ---------- | --------- | ------------ |
+|      | concatenation or sequence                | ` `        | Seq       | $\cdot$      |
+|      | union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
+|      | token or terminal                        | `"x"`      | Tok       |              |
+| 1    | symbol or non-terminal                   | `x`        | -         |              |
+|      | Kleene star                              | `*`        | Rep       | $\ast$       |
+| 2    | Kleene plus                              | `+`        |           |              |
+| 3    | optional                                 | `?`        |           |              |
+| 4    | any character                            | `.`        |           | $\Sigma$     |
+| 4    | range                                    | `[a-z]`    |           |              |
+| 4    | set of characters                        | `[abc]`    |           |              |
+| 4    | negation of set                          | `[^abc]`   |           |              |
+| 4    | escape sequences                         | `"\n"`     |           |              |
+|      | codepoints                               | `\u{hhhh}` |           |              |
+|      | character classes                        | `\w, \d`   |           |              |
+| 5    | lexeme                                   |            | Lex       |              |
+| 6    | ignored                                  |            | Ign       |              |
+| 7    | positive lookahead                       | `~`        | Pla       |              |
+|      | negative lookahead                       | `!`        | Nla       |              |
+|      | EOF                                      | `!.`       |           |              |
+| 8    | Quantifiers                              | `{n,m}`    |           |              |
+|      | ordered choice                           | `/`        |           |              |
+|      | intersection or conjuction               | `&`        |           | $\cap$       |
+| 9    | negation or complement                   |            |           |              |
+|      | associativity                            |            |           |              |
+|      | priority                                 |            |           |              |
 
 1. Symbol expressed as a property of Node (Expression)
+   1. Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
+   2. How to reuse expression, but without preserving symbol in a tree? Maybe `_S -> "a"`?
 2. Kleene plus implemented using `Seq` and `Rep`. Can be impelemnted as separate node type
 3. Optional implemented using `Alt` and and empty `Seq`. Can be impelemnted as separate node type
 4. For not those are implemented using `Tok`. Notation need to be changed
-5. Ingored implemented as separate Expression type, but could be as well property of Node (Expression). Not exposed in notation though
-6. `Lexeme` makes parser scanerless. Not exposed in notation though
-7. Which symbol to use for PLA: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I wont to use it for intersection. `+` is used for Kleene plus. Maybe use `{}`, to avoid situations when you need to use `()`, like `~(a b) c` or `(~a) b`?
-
-### Interesting grammars
-
-```
-S -> S & "a";
-```
-
-empty set
-
-```
-X -> a X b;
-Y -> b Y c;
-S -> X c* & a* Y;
-```
-
-`aabbcc`
-
-### Memoization
-
-Memoization used for detecting loops (recursion, breaking infinite loop), for example, grammar like this `S -> S "a";` (left recursion) would cause infinite loop otherwise. When loop is detected it will return bottom value (empty set).
-
-> That is why they put something in the memo table before deriving
-
-Memoization used for memoizing `results` if the same expression is derived by the same token (position). For example, `A -> "a"; S -> A "b" | A "c";` Alternation (`|`) splits ziiper into N separate zippers (for each branch) which are derived independently. It will derivate first zipper by token `0`, then second zipper by token `0`, etc...
-
-> That is why they memoize `results` and do this by position
-
-In trivial case (concatenation) you need to memoize only one result, but because alternation splits zipper there can be more than one result.
-
-> That is why `results` is an array
-
-**But** I can't come up with an example where we would need `results` as array or store `parents` without recursion.
-
-Grammar: `A -> A "a" | ""; S -> A A;`, string: `aa`
-
-When deriving `A` by the first letter (position: 0) it can have different parents (3 - because length of input is 2):
-
-- `S`
-- `S -> A -> Seq`
-- `S -> A -> Seq -> A -> Seq`
-
-And different results:
-
-- `""`
-- `Seq (A -> "", "a")`
-- Won't be results until we get the second letter: `Seq (Seq ("a", A -> ""), ?)`
+5. `Lexeme` makes parser scanerless. Not exposed in notation though
+   1. Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
+   2. Which notation to use?
+      1. Separate section?
+      2. At rule level? `lex: S -> "a";`, `S:lex -> "a";`
+      3. At symbol level? `S -> lex("a")`, `S -> lex:"a"`
+6. Ingored implemented as separate Expression type, but could be as well property of Node (Expression). Not exposed in notation though
+   1. Kind of similar to [non-capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Non-capturing_group)
+7. Which notation to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I want to use it for intersection.
+   1. Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
+8. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
+9. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
+10. $(A \cup B)^c = A^c \cap B^c$
+11. $(A \cap B)^c = A^c \cup B^c$
+12. $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere
