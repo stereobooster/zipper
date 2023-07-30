@@ -319,6 +319,9 @@ const mems = new Memo<Mem>();
 // primitive implementation, but good enough for prototype
 const memoInput: string[] = [];
 let treeCompaction = false;
+export const setTreeCompaction = (x: boolean) => {
+  treeCompaction = x;
+};
 
 // stupid workaround because I use global variables
 export const resetMemtables = () => {

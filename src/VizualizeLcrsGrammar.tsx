@@ -9,6 +9,7 @@ import {
   deriveStepsUntil,
   processSteps,
   resetMemtables,
+  setTreeCompaction,
   stepsToDot,
 } from "./lcrsPwz";
 import { ID, getLevel, treeToZipper } from "./LcrsTree";
@@ -22,13 +23,14 @@ type VizualizeGrammarProps = {
   width?: number;
 };
 
+const em: any[] = [];
+
 export const VizualizeLcrsGrammar = ({
   tree,
   height,
   width,
   str,
 }: VizualizeGrammarProps) => {
-  useEffect(() => () => resetMemtables(), [tree, str]);
   const [fit, setFit] = useState(true);
   const options: GraphvizOptions = useMemo(
     () => ({ height, width, fit }),
@@ -38,13 +40,14 @@ export const VizualizeLcrsGrammar = ({
   const [animate, setAnimate] = useState(false);
   const [showMem, setShowMem] = useState(false);
   const [layout, setLayout] = useState("dag");
+  const [sppf, setSppf] = useState(false);
   const [compact, setCompact] = useState(false);
 
   const [autoDerivate, setAutoDerivate] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [displayZippers, setDisplayZippers] = useState([] as number[]);
+  const [displayZippers, setDisplayZippers] = useState<number[]>(em);
   const [selectedNode, setSelectedNode] = useState<ID | undefined>();
-  const [highlightedNodes, setHighlightedNodes] = useState<ID[]>([]);
+  const [highlightedNodes, setHighlightedNodes] = useState<ID[]>(em);
 
   const initialStep: Step[] = useMemo(
     () => [["down", treeToZipper(tree), undefined, 0]],
@@ -54,6 +57,18 @@ export const VizualizeLcrsGrammar = ({
   const [position, setPosition] = useState(0);
   const [step, setStep] = useState(0);
   const [steps, setSteps] = useState(initialStep);
+  useEffect(() => {
+    setCycle(0);
+    setPosition(0);
+    setStep(0);
+    setSteps(initialStep);
+    resetMemtables();
+    setSelectedNode(undefined);
+    setHighlightedNodes(em);
+    setDisplayZippers(em);
+    setAutoDerivate(false);
+    setFinished(false);
+  }, [tree, str]);
 
   const token = str[position] || "";
 
@@ -65,9 +80,9 @@ export const VizualizeLcrsGrammar = ({
       mem: showMem,
       position,
       token,
-      compact,
+      compact: sppf,
     });
-  }, [layout, steps, displayZippers, compact, showMem, position, token]);
+  }, [layout, steps, displayZippers, sppf, showMem, position, token]);
 
   const go = useCallback(() => {
     if (position > str.length) return setAutoDerivate(false);
@@ -266,8 +281,23 @@ export const VizualizeLcrsGrammar = ({
           <label>
             <input
               type="checkbox"
+              checked={sppf}
+              onChange={() => setSppf((x) => !x)}
+            />{" "}
+            Kind of SPPF
+          </label>
+        </div>
+        <div>
+          <br />
+          <label>
+            <input
+              type="checkbox"
               checked={compact}
-              onChange={() => setCompact((x) => !x)}
+              onChange={() => {
+                setTreeCompaction(!compact);
+                setCompact(!compact);
+                jumpToCycle();
+              }}
             />{" "}
             Compact
           </label>
