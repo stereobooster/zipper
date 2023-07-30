@@ -155,8 +155,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🟢     | 6    | set of characters  | `[abc]`    |                 |              |                    |
 | 🟢     | 7    | negation of set    | `[^abc]`   | -               |              |                    |
 | 🟢     | 6    | escape sequences   | `"\n"`     |                 |              |                    |
-| 🔴     |      | codepoints         | `\u{hhhh}` |                 |              |                    |
-| 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
 | 🟡     | 8    | lexeme             | `lex(x)`   | Lex             |              |                    |
 | 🟡     | 9    | ignored            | `ign(x)`   | Ign             |              |                    |
 | 🟡     | 10   | positive lookahead | `&`        | Pla             |              |                    |
@@ -168,6 +166,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🔴     |      | associativity      |            |                 |              |                    |
 | 🔴     |      | priority           |            |                 |              |                    |
 | 🔴     |      | backreferences     |            |                 |              |                    |
+| 🔴     |      | codepoints         | `\u{hhhh}` |                 |              |                    |
+| 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
 
 1. Symbol expressed as a property of Node (Expression)
    - Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
@@ -205,7 +205,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - $(A \cup B)^c = A^c \cap B^c$
     - $(A \cap B)^c = A^c \cup B^c$
     - $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere
-    - Original Brzozowski paper had this, but it is not possible to use with recursion (not μ-recursive or something like that, need to look up exact mathemtical term). i saw a paper where they proposed how it can be used based on different semantics
+    - Original Brzozowski paper had this, but it is not possible to use with recursion (not μ-recursive or something like that, need to look up exact mathemtical term). I saw a papper where they proposed how it can be used based on different semantics
 
 ### Small bugs and unsorted notes
 
@@ -273,3 +273,4 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 - [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
 - [Recognising and Generating Terms using Derivatives of Parsing Expression Grammars](https://arxiv.org/pdf/1801.10490.pdf)
 - [Simplified Parsing Expression Derivatives](https://arxiv.org/pdf/1808.08893.pdf)
+- https://stereobooster.com/posts/an-overview-of-parsing-algorithms/
