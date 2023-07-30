@@ -133,25 +133,22 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## Next
 
+- Extend "Grammar grammar" to support `Ign` and `Lex`
+- Add tests and fix bugs
+- Collect more "interesting" examples of grammars
+  - Markdown parser
 - I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
 - I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md)
   - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches match
 - I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
   - Potentially connected to multiple focus zippers
-- Extend "Grammar grammar" to support `Ign` and `Lex`
 - Better error message should take in account `Ign` and `Lex`
-- Collect more "interesting" examples of grammars
-  - Markdown parser
 - Backreferences
 
 ### Small bugs and unsorted notes
 
 - `EOF`
-- `S -> ~"a"*` is ambigious
-  - Simplest solution put everything in front (or back), but not on both sides
-  - Harder solution is to implement prioritization
-  - Or forbid this situation
 - add min, max to `Rep` and use it to express different quantifiers
   - `*` min: 0, max: inf
   - `+` min: 1, max: inf

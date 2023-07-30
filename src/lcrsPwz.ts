@@ -155,7 +155,12 @@ const match = (label: string, token: string): boolean => {
 };
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
-export type Step = [DeriveDirection, ExpressionZipper, Mem | undefined, LookaheadId];
+export type Step = [
+  DeriveDirection,
+  ExpressionZipper,
+  Mem | undefined,
+  LookaheadId
+];
 
 // this is mess
 export type LookaheadId = number;
@@ -381,8 +386,10 @@ export function deriveStepsUntil(
 
 export function processSteps(token: string, position: number, steps: Step[]) {
   if (
-    steps.filter(([, , , lid]) => !lookaheadMemo[lid] || !lookaheadMemo[lid].lookaheadParams)
-      .length === 0
+    steps.filter(
+      ([, , , lid]) =>
+        !lookaheadMemo[lid] || !lookaheadMemo[lid].lookaheadParams
+    ).length === 0
   )
     return [[] as Step[], position, 0, 0, 0] as const;
 
@@ -928,9 +935,12 @@ const expressionToDot = memoizeWeakChain(
       } else if (expressionType === "Nla") {
         label = short ? "!" : "Nla";
       }
+    } else if (label === "\\." && expressionType === "Tok") {
+      label = "★"; // Σ 🃏
     }
+
     // https://graphviz.org/doc/info/shapes.html
-    const shape = label.length <= 1 ? "square" : "rect";
+    const shape = [...label].length <= 1 ? "square" : "rect";
     label = label.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
     const rounded = !m;
 

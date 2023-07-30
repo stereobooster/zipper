@@ -91,7 +91,9 @@ export const rec = (cb: (x: Expression) => Expression): Expression => {
 export const recs = (
   cb: (...x: Expression[]) => Expression[]
 ): Expression[] => {
-  const res = Array.from(Array(cb.length)).map(() => (Object.create(null) as any));
+  const res = Array.from(Array(cb.length)).map(
+    () => Object.create(null) as any
+  );
   const tmp = cb(...res);
   res.forEach((_, i) => {
     Object.entries(tmp[i]).forEach(([k, v]) => (res[i][k] = v));
@@ -270,6 +272,32 @@ export function nla(...args: [string, StrExp] | [StrExp]) {
       label,
     },
     down: helper([child]),
+  });
+}
+
+/**
+ * ordered choice implemented with the help of negative lookahead
+ */
+export function ord(label: string, children: StrExp[]): Expression;
+export function ord(children: StrExp[]): Expression;
+export function ord(...args: [string, StrExp[]] | [StrExp[]]) {
+  const [first, second] = args;
+  let label, children;
+  if (typeof first == "string") {
+    label = first;
+    children = second as StrExp[];
+  } else {
+    label = "";
+    children = first;
+  }
+  if (children.length !== 2)
+    throw new Error("For now ord supports only two arguments");
+  return expressionNode({
+    value: {
+      expressionType: "Alt",
+      label,
+    },
+    down: helper([children[0], seq([nla(children[0]), children[1]])]),
   });
 }
 
