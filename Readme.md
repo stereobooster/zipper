@@ -134,16 +134,81 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 - `EOF`
 - Add tests and fix bugs
-- Collect more "interesting" examples of grammars
+- Collect more examples of "interesting grammars"
   - Markdown parser
 - I still a bit fuzzy on how exactly `Mem` works. I get general idea, but when I tried to implement PwZ without memoization table I got confused. So probably it makes sense to continue improving vizaulization for `Mem`
   - As soon as I will understand it better I can implement PwZ without memoization table
-- I want to experiment with [Conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md) or [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md)
-  - `Conjuctive` should be possible, because `&` behaves same as `|` (`Alt`) except it matches only if all branches match
 - I wonder if it is possible to modify PwZ to produce SPPF instead of list of trees
   - Potentially connected to multiple focus zippers
 - Better error message should take in account `Ign` and `Lex`
-- Backreferences
+
+### Notation
+
+| Status | Note |                    | Notation   | Expression type | Language/Set | aka                |
+| ------ | ---- | ------------------ | ---------- | --------------- | ------------ | ------------------ |
+| 🟢     |      | concatenation      | ` `        | Seq             | $\cdot$      | sequence           |
+| 🟢     |      | unordered choice   | \|         | Alt             | $\cup$       | union, disjunction |
+| 🟢     |      | token              | `"x"`      | Tok             |              | terminal           |
+| 🟢     | 1    | symbol             | `x`        | -               |              | non-terminal       |
+| 🟢     |      | Kleene star        | `*`        | Rep             | $\ast$       |                    |
+| 🟡     | 2    | Kleene plus        | `+`        |                 |              |                    |
+| 🟡     | 3    | optional           | `?`        |                 |              |                    |
+| 🟡     | 4    | any character      | `.`        |                 | $\Sigma$     |                    |
+| 🟡     | 5    | range              | `[a-z]`    |                 |              |                    |
+| 🟢     | 5    | set of characters  | `[abc]`    |                 |              |                    |
+| 🟡     | 6    | negation of set    | `[^abc]`   |                 |              |                    |
+| 🟢     | 5    | escape sequences   | `"\n"`     |                 |              |                    |
+| 🔴     |      | codepoints         | `\u{hhhh}` |                 |              |                    |
+| 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
+| 🟡     | 7    | lexeme             | `lex(x)`   | Lex             |              |                    |
+| 🟡     | 8    | ignored            | `ign(x)`   | Ign             |              |                    |
+| 🟡     | 9    | positive lookahead | `~`        | Pla             |              |                    |
+| 🟡     |      | negative lookahead | `!`        | Nla             |              |                    |
+| 🔴     |      | EOF                | `!.`       |                 |              | end of file        |
+| 🔴     | 10   | quantifiers        | `{n,m}`    |                 |              |                    |
+| 🟡     | 11   | ordered choice     | `/`        |                 |              |                    |
+| 🔴     | 12   | intersection       | `&`        |                 | $\cap$       | conjuction         |
+| 🔴     | 13   | negation           |            |                 |              | complement         |
+| 🔴     |      | associativity      |            |                 |              |                    |
+| 🔴     |      | priority           |            |                 |              |                    |
+| 🔴     |      | backreferences     |            |                 |              |                    |
+
+1. Symbol expressed as a property of Node (Expression)
+   - Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
+2. Kleene plus implemented as `A+ = A A*`. TODO: implement as `Rep` with min, max
+3. Optional implemented as `A? = "" | A`. TODO: implement as `Rep` with min, max
+4. Matches any character of length 1. Will not match EOF (""). For now those implemented as `Tok`. TODO: fix workaround with `\.`
+5. For now implemented as `Tok`.
+6. For now implemented as `Tok`. TODO: fix workaround with `\^`
+7. `Lexeme` makes parser scanerless.
+   - Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
+   - I have doubt about notation. For now I use `lex(x)`. Other options:
+     - Separate section?
+     - At rule level? `lex: S -> "a";`, `S:lex -> "a";`
+     - At symbol level? `S -> lex("a")`, `S -> lex:"a"`
+8. Ignored symbols consume input and output empty strings. Useful when tree compaction used (all empty nodes are removed).
+   - For now implemented as separate Expression type, but could be as well implemented as property of Node (Expression).
+   - Kind of similar to [non-capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Non-capturing_group)
+   - I have doubt about notation. For now I use `ign(x)`.
+9. Lookaheads similar to PEG operators
+   - There are probably bugs in implementation (especially when lookaheads are recursive)
+   - I have doubts which symbol to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`. For now I use `~`. But probably it makes sense to use `&` as in PEG, and for intersection use something else
+   - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
+   - Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
+10. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
+    - TODO: implement as `Rep` with min, max
+11. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
+    - I think I need to use backtracking in order to implement effective ordered choice
+12. Intersection. Original Brzozowski paper had this, but when Might proposed PwD he omitted it. But it could be trivially implemented in PwD
+    - In PwZ it is a bit more tricky. Should work the same as `Alt` except it matches only if all branches match
+    - Other formalism that proposed to use intersection is [conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md)
+    - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
+    - I think Kozen propoved that it is sound (μ-recursive or something like that, need to look up exact mathemtical term)
+13. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
+    - $(A \cup B)^c = A^c \cap B^c$
+    - $(A \cap B)^c = A^c \cup B^c$
+    - $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere
+    - Original Brzozowski paper had this, but it is not possible to use with recursion (not μ-recursive or something like that, need to look up exact mathemtical term). i saw a paper where they proposed how it can be used based on different semantics
 
 ### Small bugs and unsorted notes
 
@@ -187,7 +252,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - https://github.com/antvis/Graphin
     - https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/ etc.
     - https://d3-graph-gallery.com/network.html
-- "Grammar grammar" doesn't support codepoints
 - LCRSZipper
   - hide implementation details (`children`, `loop`)
   - Expression vs Zipper types
@@ -205,62 +269,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - but this problem is fixed in LCRS tree implementation
 - Mention combinatorial species
 
-## Other
+## Links
 
 - https://github.com/stereobooster/parsing-with-derivalives
 - https://github.com/stereobooster/derp
 - [Memoized zipper-based attribute grammars and their higher order extension](https://www.sciencedirect.com/science/article/pii/S016764231830412X)
 - [Recognising and Generating Terms using Derivatives of Parsing Expression Grammars](https://arxiv.org/pdf/1801.10490.pdf)
 - [Simplified Parsing Expression Derivatives](https://arxiv.org/pdf/1808.08893.pdf)
-
-### Notation
-
-| Note   |                                          | Notation   | Node type | Language/Set |
-| ------ | ---------------------------------------- | ---------- | --------- | ------------ |
-|        | concatenation or sequence                | ` `        | Seq       | $\cdot$      |
-|        | union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
-|        | token or terminal                        | `"x"`      | Tok       |              |
-| 1      | symbol or non-terminal                   | `x`        | -         |              |
-|        | Kleene star                              | `*`        | Rep       | $\ast$       |
-| 2      | Kleene plus                              | `+`        |           |              |
-| 3      | optional                                 | `?`        |           |              |
-| 4      | any character                            | `.`        |           | $\Sigma$     |
-| 4      | range                                    | `[a-z]`    |           |              |
-| 4      | set of characters                        | `[abc]`    |           |              |
-| 4      | negation of set                          | `[^abc]`   |           |              |
-| 4      | escape sequences                         | `"\n"`     |           |              |
-| ❌     | codepoints                               | `\u{hhhh}` |           |              |
-| ❌     | character classes                        | `\w, \d`   |           |              |
-| 5      | lexeme                                   | `lex(x)`   | Lex       |              |
-| 6      | ignored                                  | `ign(x)`   | Ign       |              |
-| 7      | positive lookahead                       | `~`        | Pla       |              |
-|        | negative lookahead                       | `!`        | Nla       |              |
-| ❌     | EOF                                      | `!.`       |           |              |
-| 8, ❌  | Quantifiers                              | `{n,m}`    |           |              |
-| 9      | ordered choice                           | `/`        |           |              |
-| ❌     | intersection or conjuction               | `&`        |           | $\cap$       |
-| 10, ❌ | negation or complement                   |            |           |              |
-| ❌     | associativity                            |            |           |              |
-| ❌     | priority                                 |            |           |              |
-
-1. Symbol expressed as a property of Node (Expression)
-   1. Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
-2. Kleene plus implemented using `Seq` and `Rep`. Can be impelemnted as separate node type
-3. Optional implemented using `Alt` and and empty `Seq`. Can be impelemnted as separate node type
-4. For not those are implemented using `Tok`. Notation need to be changed
-5. `Lexeme` makes parser scanerless. Not exposed in notation though
-   1. Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
-   2. Which notation to use?
-      1. Separate section?
-      2. At rule level? `lex: S -> "a";`, `S:lex -> "a";`
-      3. At symbol level? `S -> lex("a")`, `S -> lex:"a"`
-6. Ingored implemented as separate Expression type, but could be as well property of Node (Expression). Not exposed in notation though
-   1. Kind of similar to [non-capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Non-capturing_group)
-7. Which notation to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I want to use it for intersection.
-   1. Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
-8. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
-9. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
-10. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
-    - $(A \cup B)^c = A^c \cap B^c$
-    - $(A \cap B)^c = A^c \cup B^c$
-    - $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere
