@@ -152,19 +152,19 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🟢     |      | Kleene star        | `*`        | Rep             | $\ast$       |                    |
 | 🟡     | 2    | Kleene plus        | `+`        |                 |              |                    |
 | 🟡     | 3    | optional           | `?`        |                 |              |                    |
-| 🟡     | 4    | any character      | `.`        |                 | $\Sigma$     |                    |
-| 🟡     | 5    | range              | `[a-z]`    |                 |              |                    |
-| 🟢     | 5    | set of characters  | `[abc]`    |                 |              |                    |
-| 🟡     | 6    | negation of set    | `[^abc]`   |                 |              |                    |
-| 🟢     | 5    | escape sequences   | `"\n"`     |                 |              |                    |
+| 🔴     | 4    | quantifiers        | `{n,m}`    |                 |              |                    |
+| 🟡     | 5    | any character      | `.`        |                 | $\Sigma$     |                    |
+| 🟡     | 6    | range              | `[a-z]`    |                 |              |                    |
+| 🟢     | 6    | set of characters  | `[abc]`    |                 |              |                    |
+| 🟡     | 7    | negation of set    | `[^abc]`   |                 |              |                    |
+| 🟢     | 6    | escape sequences   | `"\n"`     |                 |              |                    |
 | 🔴     |      | codepoints         | `\u{hhhh}` |                 |              |                    |
 | 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
-| 🟡     | 7    | lexeme             | `lex(x)`   | Lex             |              |                    |
-| 🟡     | 8    | ignored            | `ign(x)`   | Ign             |              |                    |
-| 🟡     | 9    | positive lookahead | `~`        | Pla             |              |                    |
+| 🟡     | 8    | lexeme             | `lex(x)`   | Lex             |              |                    |
+| 🟡     | 9    | ignored            | `ign(x)`   | Ign             |              |                    |
+| 🟡     | 10   | positive lookahead | `~`        | Pla             |              |                    |
 | 🟡     |      | negative lookahead | `!`        | Nla             |              |                    |
-| 🟢     | 10   | end of file        | `!.`       | Eof             |              |                    |
-| 🔴     | 11   | quantifiers        | `{n,m}`    |                 |              |                    |
+| 🟢     | 11   | end of file        | `!.`       | Eof             |              |                    |
 | 🟡     | 12   | ordered choice     | `/`        |                 |              |                    |
 | 🔴     | 13   | intersection       | `&`        |                 | $\cap$       | conjuction         |
 | 🔴     | 14   | negation           |            |                 |              | complement         |
@@ -176,27 +176,27 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
    - Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
 2. Kleene plus implemented as `A+ = A A*`. TODO: implement as `Rep` with min, max
 3. Optional implemented as `A? = "" | A`. TODO: implement as `Rep` with min, max
-4. Matches any character of length 1. Will not match EOF (""). For now those implemented as `Tok`. TODO: fix workaround with `\.`
-5. For now implemented as `Tok`.
-6. For now implemented as `Tok`. TODO: fix workaround with `\^`
-7. `Lexeme` makes parser scanerless.
+4. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
+   - TODO: implement as `Rep` with min, max
+5. Matches any character of length 1. It doesn't match EOF (""). For now implemented as `Tok`. TODO: fix workaround with `\.`
+6. For now implemented as `Tok`.
+7. For now implemented as `Tok`. TODO: fix workaround with `\^`
+8. `Lexeme` makes parser scanerless.
    - Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
    - I have doubt about notation. For now I use `lex(x)`. Other options:
      - Separate section?
      - At rule level? `lex: S -> "a";`, `S:lex -> "a";`
      - At symbol level? `S -> lex("a")`, `S -> lex:"a"`
-8. Ignored symbols consume input and output empty strings. Useful when tree compaction used (all empty nodes are removed).
+9. Ignored symbols consume input and output empty strings. Useful when tree compaction used (all empty nodes are removed).
    - For now implemented as separate Expression type, but could be as well implemented as property of Node (Expression).
    - Kind of similar to [non-capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Non-capturing_group)
    - I have doubt about notation. For now I use `ign(x)`.
-9. Lookaheads similar to PEG operators
-   - There are probably bugs in implementation (especially when lookaheads are recursive)
-   - I have doubts which symbol to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`. For now I use `~`. But probably it makes sense to use `&` as in PEG, and for intersection use something else
-   - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
-   - Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
-10. End of file matched only if token is empty string (which can appear only in the end of file `str[pos] || ""`). The difference from `Tok` is that after matching it doesn't stop traversing, instead it continues as if it was empty `Seq`
-11. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
-    - TODO: implement as `Rep` with min, max
+10. Lookaheads similar to PEG operators
+    - There are probably bugs in implementation (especially when lookaheads are recursive)
+    - I have doubts which symbol to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`. For now I use `~`. But probably it makes sense to use `&` as in PEG, and for intersection use something else
+    - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
+    - Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
+11. End of file matched only if token is empty string (which can appear only in the end of file `str[pos] || ""`). The difference from `Tok` is that after matching it doesn't stop traversing, instead it continues as if it was empty `Seq`
 12. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
     - I think I need to use backtracking in order to implement effective ordered choice
 13. Intersection. Original Brzozowski paper had this, but when Might proposed PwD he omitted it. But it could be trivially implemented in PwD
