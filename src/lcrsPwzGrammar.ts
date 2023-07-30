@@ -44,6 +44,21 @@ const ruleBody = recs((rb, v) => {
     seq("Star", [v, ign("*")]),
     seq("Plus", [v, ign("+")]),
     seq("Opt", [v, ign("?")]),
+    // not sure about this syntax, but let's try it
+    seq("Lex", [
+      ign(seq(["l", "e", "x", "("])),
+      spaceOptional,
+      v,
+      spaceOptional,
+      ign(")"),
+    ]),
+    seq("Ign", [
+      ign(seq(["i", "g", "n", "("])),
+      spaceOptional,
+      v,
+      spaceOptional,
+      ign(")"),
+    ]),
   ]);
 
   // `S -> ~"a"*` is ambigious
@@ -128,41 +143,57 @@ export function evaluate(tree: Expression) {
     return tmp;
   };
   function ruleToExpression(tree: Expression, label = ""): Expression {
-    if (tree.value.label === "CharClass")
-      return tok(tree.value.value!.replaceAll("\\]", "]"));
-    if (tree.value.label === "String") {
-      const chars = unescapeString(tree.value.value!);
-      if (chars.length <= 1) return tok(tree.value.value!);
-      return seq(chars);
+    if (label.startsWith("_")) label = "";
+    switch (tree.value.label) {
+      case "CharClass":
+        return tok(tree.value.value!.replaceAll("\\]", "]"));
+      case "String": {
+        const chars = unescapeString(tree.value.value!);
+        if (chars.length <= 1) return tok(tree.value.value!);
+        return seq(chars);
+      }
+      case "NT":
+        return get(tree.value.value!);
+      case "Seq":
+        return seq(
+          label,
+          mapToArray("right", tree.down, (x) =>
+            ruleToExpression(x as Expression)
+          )
+        );
+      case "Alt":
+        return alt(
+          label,
+          mapToArray("right", tree.down, (x) =>
+            ruleToExpression(x as Expression)
+          )
+        );
+      case "Ord":
+        return ord(
+          label,
+          mapToArray("right", tree.down, (x) =>
+            ruleToExpression(x as Expression)
+          )
+        );
+      case "Star":
+        return star(label, ruleToExpression(tree.down!));
+      case "Plus":
+        return plus(label, ruleToExpression(tree.down!));
+      case "Opt":
+        return opt(label, ruleToExpression(tree.down!));
+      case "Pla":
+        return pla(label, ruleToExpression(tree.down!));
+      case "Nla":
+        return nla(label, ruleToExpression(tree.down!));
+      case "Lex":
+        return lex(label, ruleToExpression(tree.down!));
+      case "Ign":
+        return ign(label, ruleToExpression(tree.down!));
+      case "Any":
+        return any();
+      default:
+        throw new Error(`Unknown operator: ${tree.value.label}`);
     }
-    if (tree.value.label === "NT") return get(tree.value.value!);
-    if (tree.value.label === "Seq")
-      return seq(
-        label,
-        mapToArray("right", tree.down, (x) => ruleToExpression(x as Expression))
-      );
-    if (tree.value.label === "Alt")
-      return alt(
-        label,
-        mapToArray("right", tree.down, (x) => ruleToExpression(x as Expression))
-      );
-    if (tree.value.label === "Ord")
-      return ord(
-        label,
-        mapToArray("right", tree.down, (x) => ruleToExpression(x as Expression))
-      );
-    if (tree.value.label === "Star")
-      return star(label, ruleToExpression(tree.down!));
-    if (tree.value.label === "Plus")
-      return plus(label, ruleToExpression(tree.down!));
-    if (tree.value.label === "Opt")
-      return opt(label, ruleToExpression(tree.down!));
-    if (tree.value.label === "Pla")
-      return pla(label, ruleToExpression(tree.down!));
-    if (tree.value.label === "Nla")
-      return nla(label, ruleToExpression(tree.down!));
-    if (tree.value.label === "Any") return any();
-    throw new Error(`Unkown type ${tree.value.label}`);
   }
   let last: string;
   const addRule = (tree: Expression) => {

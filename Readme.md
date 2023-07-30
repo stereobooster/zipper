@@ -128,12 +128,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
     - if there is lookahead operator it produces two independent zippers - one for lookahed and one for main derivation. Connection between them is stored through ids
     - Derivation of zippers continues independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
   - Lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
-  - I can express PEGs ordered choice (`/`) using lookahed
   - Lookahed with cycle doesn't work so far
 
 ## Next
 
-- Extend "Grammar grammar" to support `Ign` and `Lex`
+- `EOF`
 - Add tests and fix bugs
 - Collect more "interesting" examples of grammars
   - Markdown parser
@@ -148,7 +147,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Small bugs and unsorted notes
 
-- `EOF`
 - add min, max to `Rep` and use it to express different quantifiers
   - `*` min: 0, max: inf
   - `+` min: 1, max: inf
@@ -156,7 +154,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - `{n,m}` min: n, max: m
   - `{n,}` min: n, max: inf
   - `{n}` min: n, max: n
-- BUG: `N -> "a";` can't detect end of derivation
+- BUG: `N -> "a";` can't detect end of the derivation
 - Mem visualization
   - draw mem for selected node?
   - draw `m-results`?
@@ -217,37 +215,36 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ### Notation
 
-| Note |                                          | Notation   | Node type | Language/Set |
-| ---- | ---------------------------------------- | ---------- | --------- | ------------ |
-|      | concatenation or sequence                | ` `        | Seq       | $\cdot$      |
-|      | union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
-|      | token or terminal                        | `"x"`      | Tok       |              |
-| 1    | symbol or non-terminal                   | `x`        | -         |              |
-|      | Kleene star                              | `*`        | Rep       | $\ast$       |
-| 2    | Kleene plus                              | `+`        |           |              |
-| 3    | optional                                 | `?`        |           |              |
-| 4    | any character                            | `.`        |           | $\Sigma$     |
-| 4    | range                                    | `[a-z]`    |           |              |
-| 4    | set of characters                        | `[abc]`    |           |              |
-| 4    | negation of set                          | `[^abc]`   |           |              |
-| 4    | escape sequences                         | `"\n"`     |           |              |
-|      | codepoints                               | `\u{hhhh}` |           |              |
-|      | character classes                        | `\w, \d`   |           |              |
-| 5    | lexeme                                   |            | Lex       |              |
-| 6    | ignored                                  |            | Ign       |              |
-| 7    | positive lookahead                       | `~`        | Pla       |              |
-|      | negative lookahead                       | `!`        | Nla       |              |
-|      | EOF                                      | `!.`       |           |              |
-| 8    | Quantifiers                              | `{n,m}`    |           |              |
-|      | ordered choice                           | `/`        |           |              |
-|      | intersection or conjuction               | `&`        |           | $\cap$       |
-| 9    | negation or complement                   |            |           |              |
-|      | associativity                            |            |           |              |
-|      | priority                                 |            |           |              |
+| Note   |                                          | Notation   | Node type | Language/Set |
+| ------ | ---------------------------------------- | ---------- | --------- | ------------ |
+|        | concatenation or sequence                | ` `        | Seq       | $\cdot$      |
+|        | union or unordered choice or disjunction | \|         | Alt       | $\cup$       |
+|        | token or terminal                        | `"x"`      | Tok       |              |
+| 1      | symbol or non-terminal                   | `x`        | -         |              |
+|        | Kleene star                              | `*`        | Rep       | $\ast$       |
+| 2      | Kleene plus                              | `+`        |           |              |
+| 3      | optional                                 | `?`        |           |              |
+| 4      | any character                            | `.`        |           | $\Sigma$     |
+| 4      | range                                    | `[a-z]`    |           |              |
+| 4      | set of characters                        | `[abc]`    |           |              |
+| 4      | negation of set                          | `[^abc]`   |           |              |
+| 4      | escape sequences                         | `"\n"`     |           |              |
+| ❌     | codepoints                               | `\u{hhhh}` |           |              |
+| ❌     | character classes                        | `\w, \d`   |           |              |
+| 5      | lexeme                                   | `lex(x)`   | Lex       |              |
+| 6      | ignored                                  | `ign(x)`   | Ign       |              |
+| 7      | positive lookahead                       | `~`        | Pla       |              |
+|        | negative lookahead                       | `!`        | Nla       |              |
+| ❌     | EOF                                      | `!.`       |           |              |
+| 8, ❌  | Quantifiers                              | `{n,m}`    |           |              |
+| 9      | ordered choice                           | `/`        |           |              |
+| ❌     | intersection or conjuction               | `&`        |           | $\cap$       |
+| 10, ❌ | negation or complement                   |            |           |              |
+| ❌     | associativity                            |            |           |              |
+| ❌     | priority                                 |            |           |              |
 
 1. Symbol expressed as a property of Node (Expression)
    1. Similar to [named capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group)
-   2. How to reuse expression, but without preserving symbol in a tree? Maybe `_S -> "a"`?
 2. Kleene plus implemented using `Seq` and `Rep`. Can be impelemnted as separate node type
 3. Optional implemented using `Alt` and and empty `Seq`. Can be impelemnted as separate node type
 4. For not those are implemented using `Tok`. Notation need to be changed
@@ -262,7 +259,8 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 7. Which notation to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`? In PEG they use `&`, but I want to use it for intersection.
    1. Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
 8. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
-9. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
-10. $(A \cup B)^c = A^c \cap B^c$
-11. $(A \cap B)^c = A^c \cup B^c$
-12. $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere
+9. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
+10. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
+    - $(A \cup B)^c = A^c \cap B^c$
+    - $(A \cap B)^c = A^c \cup B^c$
+    - $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere

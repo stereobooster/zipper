@@ -24,6 +24,13 @@ S -> ~(A "c") "a"* B;`,
   [`S -> "a" S | ~S "";`, "Cycle on lookahed 2", "a"],
   [`S -> S "a" | "" ~S;`, "Cycle on lookahed 3", "a"],
   [`S -> S "a" | ~S "";`, "Cycle on lookahed 4", "a"],
+  // Tree manipulation operators
+  // "Invisible" symbols - any symbol that starts with `_`
+  // Useful if you want to use variable, but you don't want it to appear in the compact tree.
+  // When you use DSL it is much simpler: const n = alt("", ["a", "b"]);
+  [`_N -> "a" | "b"; S -> _N "+" _N;`, `"Invisible" symbols`, "a+b"],
+  [`S -> lex("test");`, `Lexeme`, "test"],
+  [`S -> ign("(") "a" ign(")");`, `Ignored symbols`, "(a)"],
   // Algebraic expressions
   [`S -> S "+" S | S "-" S | [0-9];`, "Algebraic expression", "1+2-3+4"],
   [`N -> [0-9]; S -> S "+" N | N;`, "Left associative operation", "1+2+3"],
