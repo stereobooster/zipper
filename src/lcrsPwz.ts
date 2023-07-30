@@ -54,7 +54,9 @@ export type ExpressionType =
   // positive lookahead
   | "Pla"
   // negative lookahead
-  | "Nla";
+  | "Nla"
+  // End of file
+  | "Eof";
 // Intersection
 // | "Int"
 // | "IntC";
@@ -439,6 +441,24 @@ const deriveDownPrime = prevIdTransaction(
     m: Mem
   ): Step[] => {
     switch (zipper.value.expressionType) {
+      case "Eof":
+        if (token !== "") return [];
+        return [
+          [
+            "up",
+            expressionNode({
+              ...zipper,
+              value: {
+                ...zipper.value,
+                start: position,
+                end: position,
+                value: "",
+              },
+            }),
+            m,
+            lid,
+          ],
+        ];
       case "Tok": {
         // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
         if (!match(zipper.value.label, token)) return [];
@@ -937,6 +957,8 @@ const expressionToDot = memoizeWeakChain(
         label = short ? "~" : "Pla";
       } else if (expressionType === "Nla") {
         label = short ? "!" : "Nla";
+      } else if (expressionType === "Eof") {
+        label = short ? "!." : "Eof";
       }
     } else if (label === "\\." && expressionType === "Tok") {
       label = "★"; // Σ 🃏

@@ -132,7 +132,6 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 
 ## Next
 
-- `EOF`
 - Add tests and fix bugs
 - Collect more examples of "interesting grammars"
   - Markdown parser
@@ -164,11 +163,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🟡     | 8    | ignored            | `ign(x)`   | Ign             |              |                    |
 | 🟡     | 9    | positive lookahead | `~`        | Pla             |              |                    |
 | 🟡     |      | negative lookahead | `!`        | Nla             |              |                    |
-| 🔴     |      | EOF                | `!.`       |                 |              | end of file        |
-| 🔴     | 10   | quantifiers        | `{n,m}`    |                 |              |                    |
-| 🟡     | 11   | ordered choice     | `/`        |                 |              |                    |
-| 🔴     | 12   | intersection       | `&`        |                 | $\cap$       | conjuction         |
-| 🔴     | 13   | negation           |            |                 |              | complement         |
+| 🟢     | 10   | end of file        | `!.`       | Eof             |              |                    |
+| 🔴     | 11   | quantifiers        | `{n,m}`    |                 |              |                    |
+| 🟡     | 12   | ordered choice     | `/`        |                 |              |                    |
+| 🔴     | 13   | intersection       | `&`        |                 | $\cap$       | conjuction         |
+| 🔴     | 14   | negation           |            |                 |              | complement         |
 | 🔴     |      | associativity      |            |                 |              |                    |
 | 🔴     |      | priority           |            |                 |              |                    |
 | 🔴     |      | backreferences     |            |                 |              |                    |
@@ -195,16 +194,17 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
    - I have doubts which symbol to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`. For now I use `~`. But probably it makes sense to use `&` as in PEG, and for intersection use something else
    - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
    - Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
-10. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
+10. End of file matched only if token is empty string (which can appear only in the end of file `str[pos] || ""`). The difference from `Tok` is that after matching it doesn't stop traversing, instead it continues as if it was empty `Seq`
+11. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
     - TODO: implement as `Rep` with min, max
-11. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
+12. Ordered choice operator from PEG simulated with negative lookahead: `A / B = A | !A B`
     - I think I need to use backtracking in order to implement effective ordered choice
-12. Intersection. Original Brzozowski paper had this, but when Might proposed PwD he omitted it. But it could be trivially implemented in PwD
+13. Intersection. Original Brzozowski paper had this, but when Might proposed PwD he omitted it. But it could be trivially implemented in PwD
     - In PwZ it is a bit more tricky. Should work the same as `Alt` except it matches only if all branches match
     - Other formalism that proposed to use intersection is [conjuctive grammar](https://github.com/stereobooster/derp/blob/main/docs/Conjunctive%20grammar.md)
     - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
     - I think Kozen propoved that it is sound (μ-recursive or something like that, need to look up exact mathemtical term)
-13. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
+14. Negation makes sense for matching (negation of character, complement of a language, negative lookahead), but not for parsing. Which tree you suppose to return? As an alternative it is an option to use symbolic nagation:
     - $(A \cup B)^c = A^c \cap B^c$
     - $(A \cap B)^c = A^c \cup B^c$
     - $(A \cdot B)^c = A^c \cdot B \cup A \cdot B^c \cup A^c \cdot B^c$ - this is not quite correct, but we need to start somewhere

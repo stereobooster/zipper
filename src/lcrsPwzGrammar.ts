@@ -4,6 +4,7 @@ import { Expression, parse } from "./lcrsPwz";
 import {
   alt,
   any,
+  eof,
   exc,
   ign,
   lex,
@@ -184,6 +185,8 @@ export function evaluate(tree: Expression) {
       case "Pla":
         return pla(label, ruleToExpression(tree.down!));
       case "Nla":
+        if (tree.down?.value.label === "Any")
+          return eof();
         return nla(label, ruleToExpression(tree.down!));
       case "Lex":
         return lex(label, ruleToExpression(tree.down!));

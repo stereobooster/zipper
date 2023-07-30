@@ -170,14 +170,20 @@ export function opt(...args: [string, StrExp] | [StrExp]) {
 }
 
 /**
+ * matches any character except the given one, similar to `^x` from PCRE
+ */
+export const exc = (label: string) => tok(`^${label}`);
+
+/**
  * matches any character, similar to `.` from PCRE
  */
 export const any = () => tok("\\.");
 
 /**
- * matches any character except the given one, similar to `^x` from PCRE
+ * matches EOF ("")
  */
-export const exc = (label: string) => tok(`^${label}`);
+export const eof = () =>
+  expressionNode({ value: { expressionType: "Eof", label: "" } }) as Expression;
 
 /**
  * Lexical level grammar - for scannerless parser
