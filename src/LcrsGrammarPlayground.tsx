@@ -11,19 +11,19 @@ const examples = [
   [
     `A -> "a" A "b" | "";
 B -> "b" B "c" | "";
-S -> ~(A "c") "a"* B;`,
+S -> &(A "c") "a"* B;`,
     "Context sensitive",
     "aabbcc",
   ],
   [`S -> ("a" / "ab") .*;`, "PEGs ordered choice throught lookahead", "abb"],
-  [`S -> ~("a" "a") .;`, "Lookahead bigger than main", "aa"],
-  [`S -> ~("a" !"b") .*;`, "Nested lookahead", "ab"],
-  [`S -> (~"a" | ~"b") .;`, "Lookahead in Alt", "a"],
+  [`S -> &("a" "a") .;`, "Lookahead bigger than main", "aa"],
+  [`S -> &("a" !"b") .*;`, "Nested lookahead", "ab"],
+  [`S -> (&"a" | &"b") .;`, "Lookahead in Alt", "a"],
   // is it a bug?
-  [`S -> "a" S | "" ~S;`, "Cycle on lookahed 1", "a"],
-  [`S -> "a" S | ~S "";`, "Cycle on lookahed 2", "a"],
-  [`S -> S "a" | "" ~S;`, "Cycle on lookahed 3", "a"],
-  [`S -> S "a" | ~S "";`, "Cycle on lookahed 4", "a"],
+  [`S -> "a" S | "" &S;`, "Cycle on lookahed 1", "a"],
+  [`S -> "a" S | &S "";`, "Cycle on lookahed 2", "a"],
+  [`S -> S "a" | "" &S;`, "Cycle on lookahed 3", "a"],
+  [`S -> S "a" | &S "";`, "Cycle on lookahed 4", "a"],
   // Tree manipulation operators
   // "Invisible" symbols - any symbol that starts with `_`
   // Useful if you want to use variable, but you don't want it to appear in the compact tree.
@@ -52,7 +52,7 @@ S -> ~(A "c") "a"* B;`,
   [`S -> "a"****;`, "Highly ambigiuous #2", "aa"],
   // TODO: I think this is a bug in the original paper, but this one works: S -> "a" | S S;
   [`S -> "a" | "" | S S;`, "Bug (infinite loop)", "aaa"],
-  ["", "Grammar", `S -> ~"a"*;`],
+  ["", "Grammar", `S -> &"a"*;`],
 ];
 
 export const LcrsGrammarPlayground = () => {

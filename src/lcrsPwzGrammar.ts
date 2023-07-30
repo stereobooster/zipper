@@ -62,10 +62,10 @@ const ruleBody = recs((rb, v) => {
     ]),
   ]);
 
-  // `S -> ~"a"*` is ambigious
+  // `S -> &"a"*` is ambigious
   const lookahead = alt([
     variable,
-    seq("Pla", [ign("~"), variable]),
+    seq("Pla", [ign("&"), variable]),
     seq("Nla", [ign("!"), variable]),
   ]);
 

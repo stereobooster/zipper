@@ -954,7 +954,7 @@ const expressionToDot = memoizeWeakChain(
       } else if (expressionType === "Rep" || expressionType === "RepC") {
         label = short ? "∗" : "Rep";
       } else if (expressionType === "Pla") {
-        label = short ? "~" : "Pla";
+        label = short ? "&" : "Pla";
       } else if (expressionType === "Nla") {
         label = short ? "!" : "Nla";
       } else if (expressionType === "Eof") {

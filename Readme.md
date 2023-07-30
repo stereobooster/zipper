@@ -121,14 +121,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
   - The compaction algorithm is a total mess
 - Added lookahed operators
   - Similar operators exist in [PEG](https://github.com/stereobooster/derp/blob/main/docs/PEG.md) and [Regular Expressions](https://github.com/stereobooster/derp/blob/main/docs/Regular%20expressions%20with%20lookahead.md): `&` - positive, `!` - negative
-  - I use: `~` - positive, `!` - negative
-  - But PEGs end of file (EOF) `!.` needs special treatment (not implemented)
   - Current algorithm is a mess. Idea is:
     - to mark each zipper with id
     - if there is lookahead operator it produces two independent zippers - one for lookahed and one for main derivation. Connection between them is stored through ids
     - Derivation of zippers continues independently, but if lookahead matched or unmatched, it will preserve or remove main zippers
-  - Lookahead operators allows to specify **context-sensitive** languages, for example $a^nb^nc^n$
-  - Lookahed with cycle doesn't work so far
+  - Lookahed with cycle **doesn't** work so far
 
 ## Next
 
@@ -162,11 +159,11 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
 | 🟡     | 8    | lexeme             | `lex(x)`   | Lex             |              |                    |
 | 🟡     | 9    | ignored            | `ign(x)`   | Ign             |              |                    |
-| 🟡     | 10   | positive lookahead | `~`        | Pla             |              |                    |
+| 🟡     | 10   | positive lookahead | `&`        | Pla             |              |                    |
 | 🟡     |      | negative lookahead | `!`        | Nla             |              |                    |
 | 🟢     | 11   | end of file        | `!.`       | Eof             |              |                    |
 | 🟡     | 12   | ordered choice     | `/`        |                 |              |                    |
-| 🔴     | 13   | intersection       | `&`        |                 | $\cap$       | conjuction         |
+| 🔴     | 13   | intersection       |            |                 | $\cap$       | conjuction         |
 | 🔴     | 14   | negation           |            |                 |              | complement         |
 | 🔴     |      | associativity      |            |                 |              |                    |
 | 🔴     |      | priority           |            |                 |              |                    |
@@ -180,6 +177,7 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
    - TODO: implement as `Rep` with min, max
 5. Matches any character of length 1. It doesn't match EOF (""). For now implemented as `Tok`. TODO: fix workaround with `\.`
 6. For now implemented as `Tok`.
+   - Renage doesn't support multiple ranges, like `[a-zA-Z_]`
 7. For now implemented as `Tok`. TODO: fix workaround with `\^`
 8. `Lexeme` makes parser scanerless.
    - Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
@@ -190,10 +188,9 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 9. Ignored symbols consume input and output empty strings. Useful when tree compaction used (all empty nodes are removed).
    - For now implemented as separate Expression type, but could be as well implemented as property of Node (Expression).
    - Kind of similar to [non-capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Non-capturing_group)
-   - I have doubt about notation. For now I use `ign(x)`.
+   - I have doubt about notation. For now I use `ign(x)`. Maybe `~x`?
 10. Lookaheads similar to PEG operators
     - There are probably bugs in implementation (especially when lookaheads are recursive)
-    - I have doubts which symbol to use for positive lookahead: `@` `#` `$` `%` `=` `>` `~` `_`. For now I use `~`. But probably it makes sense to use `&` as in PEG, and for intersection use something else
     - Allows to express some **context-sensitive** grammars, like $a^nb^nc^n$
     - Kind of similar to [lookahead assertion](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Lookahead_assertion)
 11. End of file matched only if token is empty string (which can appear only in the end of file `str[pos] || ""`). The difference from `Tok` is that after matching it doesn't stop traversing, instead it continues as if it was empty `Seq`
