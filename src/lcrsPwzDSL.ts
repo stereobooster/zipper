@@ -172,12 +172,25 @@ export function opt(...args: [string, StrExp] | [StrExp]) {
 /**
  * matches any character except the given one, similar to `^x` from PCRE
  */
-export const exc = (label: string) => tok(`^${label}`);
+export const exc = (label: string) =>
+  expressionNode({
+    value: {
+      expressionType: "Tok",
+      label,
+      invert: true,
+    },
+  }) as Expression;
 
 /**
  * matches any character, similar to `.` from PCRE
  */
-export const any = () => tok("\\.");
+export const any = () =>
+  expressionNode({
+    value: {
+      expressionType: "Any",
+      label: "",
+    },
+  }) as Expression;
 
 /**
  * matches EOF ("")

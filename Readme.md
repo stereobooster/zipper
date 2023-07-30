@@ -150,10 +150,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 | 🟡     | 2    | Kleene plus        | `+`        |                 |              |                    |
 | 🟡     | 3    | optional           | `?`        |                 |              |                    |
 | 🔴     | 4    | quantifiers        | `{n,m}`    |                 |              |                    |
-| 🟡     | 5    | any character      | `.`        |                 | $\Sigma$     |                    |
+| 🟢     | 5    | any character      | `.`        | Any             | $\Sigma$     |                    |
 | 🟡     | 6    | range              | `[a-z]`    |                 |              |                    |
 | 🟢     | 6    | set of characters  | `[abc]`    |                 |              |                    |
-| 🟡     | 7    | negation of set    | `[^abc]`   |                 |              |                    |
+| 🟢     | 7    | negation of set    | `[^abc]`   | -               |              |                    |
 | 🟢     | 6    | escape sequences   | `"\n"`     |                 |              |                    |
 | 🔴     |      | codepoints         | `\u{hhhh}` |                 |              |                    |
 | 🔴     |      | character classes  | `\w, \d`   |                 |              |                    |
@@ -175,10 +175,10 @@ I had trouble understanding Zippers. So I decided to do vizualization for the Zi
 3. Optional implemented as `A? = "" | A`. TODO: implement as `Rep` with min, max
 4. [Quantifiers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Quantifier)
    - TODO: implement as `Rep` with min, max
-5. Matches any character of length 1. It doesn't match EOF (""). For now implemented as `Tok`. TODO: fix workaround with `\.`
+5. Matches any character of length 1. It doesn't match EOF ("")
 6. For now implemented as `Tok`.
    - Renage doesn't support multiple ranges, like `[a-zA-Z_]`
-7. For now implemented as `Tok`. TODO: fix workaround with `\^`
+7. Implemented as property (`invert`) of the `Tok`
 8. `Lexeme` makes parser scanerless.
    - Kind of similar to [capturing group](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Capturing_group)
    - I have doubt about notation. For now I use `lex(x)`. Other options:

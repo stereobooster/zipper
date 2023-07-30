@@ -146,8 +146,12 @@ export function evaluate(tree: Expression) {
   function ruleToExpression(tree: Expression, label = ""): Expression {
     if (label.startsWith("_")) label = "";
     switch (tree.value.label) {
-      case "CharClass":
-        return tok(tree.value.value!.replaceAll("\\]", "]"));
+      case "CharClass": {
+        const pattern = tree.value.value!.replaceAll("\\]", "]");
+        return pattern[0] === "^" && pattern.length > 1
+          ? exc(pattern.slice(1))
+          : tok(pattern);
+      }
       case "String": {
         const chars = unescapeString(tree.value.value!);
         if (chars.length <= 1) return tok(tree.value.value!);
@@ -185,8 +189,7 @@ export function evaluate(tree: Expression) {
       case "Pla":
         return pla(label, ruleToExpression(tree.down!));
       case "Nla":
-        if (tree.down?.value.label === "Any")
-          return eof();
+        if (tree.down?.value.label === "Any") return eof();
         return nla(label, ruleToExpression(tree.down!));
       case "Lex":
         return lex(label, ruleToExpression(tree.down!));

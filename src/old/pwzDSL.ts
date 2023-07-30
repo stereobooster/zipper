@@ -85,12 +85,6 @@ export const recs = (
 // Extension ------------------------------------------------------------------
 
 /**
- * Kleene star expressed as S -> ϵ | x S
- */
-// export const star = (label: string, x: Expression) =>
-//   rec((s) => alt(label, [tok(""), seq("", [x, s])]));
-
-/**
  * Kleene star, similar to `x*` from PCRE
  */
 export function star(label: string, child: StrExp): Expression;

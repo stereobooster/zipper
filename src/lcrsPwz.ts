@@ -56,7 +56,9 @@ export type ExpressionType =
   // negative lookahead
   | "Nla"
   // End of file
-  | "Eof";
+  | "Eof"
+  // Matches any character of length 1
+  | "Any";
 // Intersection
 // | "Int"
 // | "IntC";
@@ -72,6 +74,8 @@ export type ExpressionValue = {
   start?: number;
   end?: number;
   value?: string;
+  // Tok only: to support [^...]
+  invert?: boolean;
 };
 
 export type Expression = LcrsTree<ExpressionValue>;
@@ -119,41 +123,21 @@ export const expressionNode = (
 // Extension: support for character classes
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Character_classes
 const match = (label: string, token: string): boolean => {
-  // TODO: why do we need it. Isn't it handled by Seq?
-  if (token === "") return label === "";
-
-  let not = false;
-  // negation. PCRE: [^a]
-  if (label[0] === "^") {
-    label = label.slice(1);
-    not = true;
+  // because `.includes` will return true for `""`
+  if (token === "") return false;
+  if (token === label) return true;
+  // TODO support multibyte chars?
+  // character range. PCRE: [a-b]
+  if (label.length === 3 && label[1] === "-") {
+    return (
+      label.charCodeAt(0) <= token.charCodeAt(0) &&
+      label.charCodeAt(2) >= token.charCodeAt(0)
+    );
   }
-  let result;
-
-  // escapes
-  if (label[0] === "\\") {
-    // match any letter. PCRE: .
-    if (label[1] === ".") result = [...token].length === 1;
-    // match `^` token:  PCRE: \^
-    if (label[1] === "^") result = token === "^";
-    // match `\` token:  PCRE: \\
-    if (label[1] === undefined) result = token === "\\";
+  // character set. PCRE: [abc]
+  else {
+    return label.includes(token);
   }
-
-  if (result === undefined) {
-    // character range. PCRE: [a-b]
-    if (label.length === 3 && label[1] === "-") {
-      result =
-        label.charCodeAt(0) <= token.charCodeAt(0) &&
-        label.charCodeAt(2) >= token.charCodeAt(0);
-    }
-    // character set. PCRE: [abc]
-    else {
-      result = label.includes(token);
-    }
-  }
-
-  return not ? !result : result;
 };
 
 export type DeriveDirection = "down" | "up" | "none" | "downPrime" | "upPrime";
@@ -450,6 +434,7 @@ const deriveDownPrime = prevIdTransaction(
               ...zipper,
               value: {
                 ...zipper.value,
+                expressionType: "Seq",
                 start: position,
                 end: position,
                 value: "",
@@ -459,9 +444,17 @@ const deriveDownPrime = prevIdTransaction(
             lid,
           ],
         ];
+      case "Any":
       case "Tok": {
+        let didMath;
+        if (zipper.value.expressionType === "Any") {
+          didMath = [...token].length === 1;
+        } else {
+          didMath = match(zipper.value.label, token);
+        }
+        didMath = zipper.value.invert ? !didMath : didMath;
         // | Tok (t') -> if t = t' then [(Seq (t, []), m)] else []
-        if (!match(zipper.value.label, token)) return [];
+        if (!didMath) return [];
         return [
           [
             "none",
@@ -901,7 +894,7 @@ const expressionToDot = memoizeWeakChain(
       originalId,
       down,
       loop,
-      value: { label, expressionType, value, m },
+      value: { label, expressionType, value, m, invert },
     }: LcrsZipper<ExpressionValue>,
     type: NodeType
   ): string => {
@@ -959,9 +952,14 @@ const expressionToDot = memoizeWeakChain(
         label = short ? "!" : "Nla";
       } else if (expressionType === "Eof") {
         label = short ? "!." : "Eof";
+      } else if (expressionType === "Any") {
+        label = short ? "★" : "Any"; // Σ 🃏
       }
-    } else if (label === "\\." && expressionType === "Tok") {
-      label = "★"; // Σ 🃏
+    }
+
+    if (!value && expressionType !== "Eof") {
+      if (invert) label = `^${label}`;
+      if ([...label].length > 1) label = `[${label}]`;
     }
 
     // https://graphviz.org/doc/info/shapes.html
